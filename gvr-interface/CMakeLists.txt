@@ -24,7 +24,7 @@ endif ()
 
 include_directories(${Qt5Gui_PRIVATE_INCLUDE_DIRS})
 
-link_hifi_libraries(shared networking audio-client avatars)
+link_hifi_libraries(shared networking audio-client avatars plugins)
 
 if (ANDROID)
   find_package(LibOVR)
@@ -82,4 +82,4 @@ if (ANDROID)
   configure_file("${CMAKE_CURRENT_SOURCE_DIR}/templates/hockeyapp.xml.in" "${ANDROID_APK_BUILD_DIR}/res/values/hockeyapp.xml")
   qt_create_apk()
 
-endif (ANDROID)
+#copy_dlls_beside_windows_executable()

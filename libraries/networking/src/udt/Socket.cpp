@@ -26,6 +26,9 @@
 #include "../NLPacket.h"
 #include "../NLPacketList.h"
 #include "PacketList.h"
+#if defined(Q_OS_LINUX)
+#include <sys/socket.h>
+#endif
 
 using namespace udt;
 

@@ -154,6 +154,21 @@ extern DisplayPluginList getDisplayPlugins();
 extern InputPluginList getInputPlugins();
 
 extern void saveInputPluginSettings(const InputPluginList& plugins);
+
+#if defined(ANDROID) 
+DisplayPluginList getDisplayPlugins() {
+    DisplayPluginList result;
+    return result;
+}
+
+InputPluginList getInputPlugins() {
+    InputPluginList result;
+    return result;
+}
+
+void saveInputPluginSettings(const InputPluginList& plugins) {
+}
+#endif
 static DisplayPluginList displayPlugins;
 
 const DisplayPluginList& PluginManager::getDisplayPlugins() {

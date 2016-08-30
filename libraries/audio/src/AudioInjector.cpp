@@ -386,8 +386,13 @@ int64_t AudioInjector::injectNextFrame() {
     }
 
     int64_t playNextFrameAt = ++_nextFrame * AudioConstants::NETWORK_FRAME_USECS;
-
-    return std::max(INT64_C(0), playNextFrameAt - currentTime);
+    
+    #if defined(ANDROID)
+        const int64_t MIN = 0;
+    #else
+        const int64_t MIN = INT64_C(0);
+    #endif
+    return std::max(MIN, playNextFrameAt - currentTime);
 }
 
 void AudioInjector::stop() {

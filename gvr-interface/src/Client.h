@@ -25,9 +25,7 @@ public:
 protected:
     
     void setupNetworking();
-    virtual void processVerifiedPacket(const HifiSockAddr& senderSockAddr, const QByteArray& incomingPacket);
 private slots:
-    void processDatagrams();
 };
 
 #endif // hifi_Client_h

@@ -50,24 +50,13 @@ RenderingClient::RenderingClient(QObject *parent, const QString& launchURLString
 
     audioThread->start();
     
-    
-    connect(&_avatarTimer, &QTimer::timeout, this, &RenderingClient::sendAvatarPacket);
     _avatarTimer.setInterval(16); // 60 FPS
     _avatarTimer.start();
     _fakeAvatar.setDisplayName("GearVR");
-    _fakeAvatar.setFaceModelURL(QUrl(DEFAULT_HEAD_MODEL_URL));
-    _fakeAvatar.setSkeletonModelURL(QUrl(DEFAULT_BODY_MODEL_URL));
-    _fakeAvatar.toByteArray(); // Creates HeadData
-}
-
-void RenderingClient::sendAvatarPacket() {
-    _fakeAvatar.setPosition(_position);
-    _fakeAvatar.setHeadOrientation(_orientation);
-
-    QByteArray packet = byteArrayWithPopulatedHeader(PacketTypeAvatarData);
-    packet.append(_fakeAvatar.toByteArray());
-    DependencyManager::get<NodeList>()->broadcastToNodes(packet, NodeSet() << NodeType::AvatarMixer);
-    _fakeAvatar.sendIdentityPacket();
+    //TODO: CHECK AND REMOVE: _fakeAvatar.setFaceModelURL(QUrl(DEFAULT_HEAD_MODEL_URL));
+    //_fakeAvatar.setSkeletonModelURL(QUrl(DEFAULT_BODY_MODEL_URL));
+    _fakeAvatar.toByteArray(true, true); // Creates HeadData // TODO: check these true, true
+    _fakeAvatar.sendAvatarDataPacket();
 }
 
 void RenderingClient::cleanupBeforeQuit() {
@@ -77,62 +66,6 @@ void RenderingClient::cleanupBeforeQuit() {
     
     // destroy the AudioClient so it and its thread will safely go down
     DependencyManager::destroy<AudioClient>();
-}
-
-void RenderingClient::processVerifiedPacket(const HifiSockAddr& senderSockAddr, const QByteArray& incomingPacket) {
-    auto nodeList = DependencyManager::get<NodeList>();
-    PacketType incomingType = packetTypeForPacket(incomingPacket);
-    
-    switch (incomingType) {
-        case PacketTypeAudioEnvironment:
-        case PacketTypeAudioStreamStats:
-        case PacketTypeMixedAudio:
-        case PacketTypeSilentAudioFrame: {
-        
-            if (incomingType == PacketTypeAudioStreamStats) {
-                QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "parseAudioStreamStatsPacket",
-                                          Qt::QueuedConnection,
-                                          Q_ARG(QByteArray, incomingPacket));
-            } else if (incomingType == PacketTypeAudioEnvironment) {
-                QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "parseAudioEnvironmentData",
-                                          Qt::QueuedConnection,
-                                          Q_ARG(QByteArray, incomingPacket));
-            } else {
-                QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "addReceivedAudioToStream",
-                                          Qt::QueuedConnection,
-                                          Q_ARG(QByteArray, incomingPacket));
-            }
-        
-            // update having heard from the audio-mixer and record the bytes received
-            SharedNodePointer audioMixer = nodeList->sendingNodeForPacket(incomingPacket);
-        
-            if (audioMixer) {
-                audioMixer->setLastHeardMicrostamp(usecTimestampNow());
-            }
-        
-            break;
-        }
-        case PacketTypeBulkAvatarData:
-        case PacketTypeKillAvatar:
-        case PacketTypeAvatarIdentity:
-        case PacketTypeAvatarBillboard: {
-            // update having heard from the avatar-mixer and record the bytes received
-            SharedNodePointer avatarMixer = nodeList->sendingNodeForPacket(incomingPacket);
-        
-            if (avatarMixer) {
-                avatarMixer->setLastHeardMicrostamp(usecTimestampNow());
-            
-                QMetaObject::invokeMethod(DependencyManager::get<AvatarHashMap>().data(),
-                                          "processAvatarMixerDatagram",
-                                          Q_ARG(const QByteArray&, incomingPacket),
-                                          Q_ARG(const QWeakPointer<Node>&, avatarMixer));
-            }
-            break;
-        }
-        default:
-            Client::processVerifiedPacket(senderSockAddr, incomingPacket);
-            break;
-    }
 }
 
 void RenderingClient::goToLocation(const glm::vec3& newPosition,
