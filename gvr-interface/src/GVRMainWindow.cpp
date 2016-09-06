@@ -32,6 +32,7 @@ const float LIBOVR_LONG_PRESS_DURATION = 0.75f;
 #endif
 
 #include <AddressManager.h>
+#include <NetworkingConstants.h>
 
 #include "InterfaceView.h"
 #include "LoginDialog.h"
@@ -74,9 +75,6 @@ GVRMainWindow::GVRMainWindow(QWidget* parent) :
     
     // add the interface view
     new InterfaceView(baseWidget);
-
-    // REMOVE THIS LINE, ONLY WITH TESTING PURPOSES ! ! !
-    //DependencyManager::get<AddressManager>()->handleLookupString("hifi://186.19.158.77:40102");
 }
 
 GVRMainWindow::~GVRMainWindow() {
@@ -125,6 +123,9 @@ void GVRMainWindow::setupMenuBar() {
     
     // change the login action depending on our logged in/out state
     auto accountManager = DependencyManager::get<AccountManager>();
+    accountManager->setIsAgent(true);
+    accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL);
+
     connect(accountManager.data(), &AccountManager::loginComplete, this, &GVRMainWindow::refreshLoginAction);
     connect(accountManager.data(), &AccountManager::logoutComplete, this, &GVRMainWindow::refreshLoginAction);
     

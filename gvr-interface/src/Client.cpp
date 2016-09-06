@@ -13,12 +13,14 @@
 #include <AddressManager.h>
 #include <HifiSockAddr.h>
 #include <NodeList.h>
+#include <SettingInterface.h>
 
 #include "Client.h"
 
 Client::Client(QObject* parent) :
     QObject(parent)
 {   
+    Setting::init(); // confirm this: Added by gcalero to remove this warning Setting::Interface::init() for key "AddressManager/address" - Manager not yet created. Settings persistence disabled.
     // we need to make sure that required dependencies are created
     DependencyManager::set<AccountManager>();
     DependencyManager::set<AddressManager>();
