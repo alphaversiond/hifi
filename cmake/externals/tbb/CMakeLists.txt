@@ -4,13 +4,29 @@ include(ExternalProject)
 
 if (ANDROID)
 
-  find_program(NDK_BUILD_COMMAND NAMES ndk-build DOC "Path to the ndk-build command")
+  set(NDK_EXECUTABLE ndk-build)
+  message (STATUS "WAS ANDROID")
+  message (STATUS "What OS? WIN32:[${WIN32}] UNIX:[${UNIX}] CMAKE_HOST_WIN32:[${CMAKE_HOST_WIN32}]")
 
+  if (CMAKE_HOST_WIN32)
+    message (STATUS "Host is WIN32")
+    set(NDK_EXECUTABLE ndk-build.cmd)
+    set(TBB_OS windows)
+  elseif (CMAKE_HOST_APPLE)
+    message (STATUS "Host is APPLE")
+    set(TBB_OS macos)
+  else ()
+    message (STATUS "Host is APPLE")
+    set(TBB_OS linux)
+  endif ()
+
+  find_program(NDK_BUILD_COMMAND NAMES ${NDK_EXECUTABLE} PATHS "$ENV{ANDROID_NDK}" DOC "Path to the ndk-build command")
+      
   ExternalProject_Add(
     ${EXTERNAL_NAME}
     URL http://hifi-public.s3.amazonaws.com/dependencies/tbb43_20150316oss_src.tgz
     URL_MD5 bf090eaa86cf89ea014b7b462786a440
-    BUILD_COMMAND ${NDK_BUILD_COMMAND} --directory=jni target=android tbb tbbmalloc arch=arm
+    BUILD_COMMAND ${NDK_BUILD_COMMAND} --directory=jni target=android tbb tbbmalloc arch=arm tbb_os=${TBB_OS}
     BUILD_IN_SOURCE 1
     CONFIGURE_COMMAND ""
     INSTALL_COMMAND ${CMAKE_COMMAND} -DTBB_LIBS_SUFFIX=so -P ${CMAKE_CURRENT_SOURCE_DIR}/TBBLibCopy.cmake
