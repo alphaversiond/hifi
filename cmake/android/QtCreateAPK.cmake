@@ -21,7 +21,7 @@ endif ()
 
 macro(qt_create_apk)
 	if(ANDROID_APK_FULLSCREEN)
-		set(ANDROID_APK_THEME "android:theme=\"@android:style/Theme.NoTitleBar.Fullscreen\"")
+		set(ANDROID_APK_THEME "android:theme=\"@style/AppTheme\"")
 	else()
 		set(ANDROID_APK_THEME "")
 	endif()

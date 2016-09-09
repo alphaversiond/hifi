@@ -17,6 +17,7 @@
 #include <QtWidgets/QMenuBar>
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QVBoxLayout>
+#include <QtWidgets/QPushButton>
 
 #ifndef ANDROID
 
@@ -60,10 +61,9 @@ GVRMainWindow::GVRMainWindow(QWidget* parent) :
     setFixedSize(NOTE_4_WIDTH / 2, NOTE_4_HEIGHT / 2);
 #endif
     
-    setupMenuBar();
-    
     QWidget* baseWidget = new QWidget(this);
-    
+    setupMenuBar(baseWidget);
+
     // setup a layout so we can vertically align to top
     _mainLayout = new QVBoxLayout(baseWidget);
     _mainLayout->setAlignment(Qt::AlignTop);
@@ -105,21 +105,21 @@ void GVRMainWindow::keyReleaseEvent(QKeyEvent* event) {
     QWidget::keyReleaseEvent(event);
 }
 
-void GVRMainWindow::setupMenuBar() {
-    QMenu* fileMenu = new QMenu("File");
+void GVRMainWindow::setupMenuBar(QWidget * baseWidget) {
+    _fileMenu = new QMenu("File");
     QMenu* helpMenu = new QMenu("Help");
     
     _menuBar = new QMenuBar(0);
     
-    _menuBar->addMenu(fileMenu);
+    _menuBar->addMenu(_fileMenu);
     _menuBar->addMenu(helpMenu);
     
-    QAction* goToAddress = new QAction("Go to Address", fileMenu);
+    QAction* goToAddress = new QAction("Go to Address", _fileMenu);
     connect(goToAddress, &QAction::triggered, this, &GVRMainWindow::showAddressBar);
-    fileMenu->addAction(goToAddress);
+    _fileMenu->addAction(goToAddress);
     
-    _loginAction = new QAction("Login", fileMenu);
-    fileMenu->addAction(_loginAction);
+    _loginAction = new QAction("Login", _fileMenu);
+    _fileMenu->addAction(_loginAction);
     
     // change the login action depending on our logged in/out state
     auto accountManager = DependencyManager::get<AccountManager>();
@@ -135,8 +135,22 @@ void GVRMainWindow::setupMenuBar() {
     QAction* aboutQt = new QAction("About Qt", helpMenu);
     connect(aboutQt, &QAction::triggered, qApp, &QApplication::aboutQt);
     helpMenu->addAction(aboutQt);
+
+    QPushButton *menuButton = new QPushButton(baseWidget);
+    menuButton->setText(tr("Menu"));
+    menuButton->setGeometry(QRect(QPoint(0, 0), QSize(400,100)));
+    QPalette buttonPal(menuButton->palette());
+    buttonPal.setColor(QPalette::ButtonText, QColor(Qt::yellow));
+    buttonPal.setColor(QPalette::Window, QColor(Qt::blue));
+    menuButton->setPalette(buttonPal);
+    menuButton->show();
+    connect(menuButton, &QAbstractButton::clicked, this, &GVRMainWindow::showMenu);
     
     setMenuBar(_menuBar);
+}
+
+void GVRMainWindow::showMenu() {
+    _fileMenu->exec();
 }
 
 void GVRMainWindow::showAddressBar() {
