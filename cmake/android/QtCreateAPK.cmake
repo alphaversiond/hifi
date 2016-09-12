@@ -52,7 +52,6 @@ macro(qt_create_apk)
   foreach(_IGNORE_COPY IN LISTS IGNORE_COPY_LIBS)
     list(REMOVE_ITEM _DEPENDENCIES ${_IGNORE_COPY})
   endforeach()
-  
   foreach(_DEP IN LISTS _DEPENDENCIES)
     if (NOT TARGET ${_DEP})
       list(APPEND _DEPS_LIST ${_DEP})
@@ -75,7 +74,6 @@ macro(qt_create_apk)
   endforeach()
   
   list(REMOVE_DUPLICATES _DEPS_LIST)
-  
   # just copy static libs to apk libs folder - don't add to deps list
   foreach(_LOCATED_DEP IN LISTS _DEPS_LIST)
     if (_LOCATED_DEP MATCHES "\\.a$")
@@ -88,6 +86,22 @@ macro(qt_create_apk)
     endif ()
   endforeach()
   
+  if (UPPER_CMAKE_BUILD_TYPE MATCHES DEBUG)
+    foreach(_A_DEP IN LISTS _DEPS_LIST)
+      if (_A_DEP MATCHES "^\\$<\\$<NOT:\\$<CONFIG:DEBUG>>")
+        list(REMOVE_ITEM _DEPS_LIST ${_A_DEP})
+      elseif(_A_DEP MATCHES "^\\$<\\$<CONFIG:DEBUG>")
+        string(REPLACE "$<$<CONFIG:DEBUG>:" "" _DEP_TMP ${_A_DEP})
+        string(LENGTH ${_DEP_TMP} _DEP_TEMP_LEN)
+        math(EXPR _DEP_TEMP_LEN '${_DEP_TEMP_LEN}-1')
+        string(SUBSTRING ${_DEP_TMP} 0 ${_DEP_TEMP_LEN} _DEP_TMP)
+        list(REMOVE_ITEM _DEPS_LIST ${_A_DEP})
+        list(APPEND _DEPS_LIST ${_DEP_TMP})
+      endif()
+    endforeach()
+  elseif()
+      # Not happening when compiling release..
+  endif()
   string(REPLACE ";" "," _DEPS "${_DEPS_LIST}")
   
   configure_file("${ANDROID_THIS_DIRECTORY}/deployment-file.json.in" "${TARGET_NAME}-deployment.json")
