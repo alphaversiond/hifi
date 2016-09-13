@@ -5,18 +5,13 @@ include(ExternalProject)
 if (ANDROID)
 
   set(NDK_EXECUTABLE ndk-build)
-  message (STATUS "WAS ANDROID")
-  message (STATUS "What OS? WIN32:[${WIN32}] UNIX:[${UNIX}] CMAKE_HOST_WIN32:[${CMAKE_HOST_WIN32}]")
 
   if (CMAKE_HOST_WIN32)
-    message (STATUS "Host is WIN32")
     set(NDK_EXECUTABLE ndk-build.cmd)
     set(TBB_OS windows)
   elseif (CMAKE_HOST_APPLE)
-    message (STATUS "Host is APPLE")
     set(TBB_OS macos)
   else ()
-    message (STATUS "Host is APPLE")
     set(TBB_OS linux)
   endif ()
 
