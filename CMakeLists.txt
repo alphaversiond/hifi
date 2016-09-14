@@ -4,7 +4,9 @@ if (USE_ANDROID_TOOLCHAIN)
   set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/android/android.toolchain.cmake")
   set(ANDROID_NATIVE_API_LEVEL 19)
   set(ANDROID_TOOLCHAIN_NAME arm-linux-androideabi-clang3.5)
-  set(ANDROID_STL c++_shared)
+  # the intention is still to use the shared library but for it only works
+  # with the static one by now
+  set(ANDROID_STL c++_static)
 endif ()
 
 if (WIN32)
@@ -249,8 +251,11 @@ if (NOT ANDROID)
   add_subdirectory(tools)
 endif()
 
-if (ANDROID OR DESKTOP_GVR)
+if (DESKTOP_GVR)
   add_subdirectory(interface)
+endif ()
+
+if (ANDROID OR DESKTOP_GVR)
   add_subdirectory(gvr-interface)
   add_subdirectory(plugins)
 endif ()
