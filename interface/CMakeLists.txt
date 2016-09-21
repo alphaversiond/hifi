@@ -261,17 +261,21 @@ endforeach()
 # include headers for interface and InterfaceConfig.
 include_directories("${PROJECT_SOURCE_DIR}/src")
 
+if (NOT ANDROID)
+  set(NON_ANDROID_PLATFORM_QT_LIBRARIES Qt5::WebEngine)
+endif ()
+
 target_link_libraries(
   ${TARGET_NAME}
   Qt5::Gui Qt5::Network Qt5::Multimedia Qt5::OpenGL
   Qt5::Qml Qt5::Quick Qt5::Script Qt5::Svg
-  Qt5::WebChannel Qt5::WebEngine
-  ${PLATFORM_QT_LIBRARIES}
+  Qt5::WebChannel ${NON_ANDROID_PLATFORM_QT_LIBRARIES}
 )
 
-if (UNIX)
+if (UNIX AND NOT ANDROID)
+  message (status "pthread here because it was UNIX")
     target_link_libraries(${TARGET_NAME} pthread)
-endif(UNIX)
+endif(UNIX AND NOT ANDROID)
 
 # assume we are using a Qt build without bearer management
 add_definitions(-DQT_NO_BEARERMANAGEMENT)

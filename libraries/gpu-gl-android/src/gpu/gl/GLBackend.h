@@ -37,7 +37,7 @@ protected:
     explicit GLBackend(bool syncCache) : Parent() { }
     
 public:
-    GLBackend(); /*: Parent() { } was protected*/
+    GLBackend() { } /*: Parent() { } was protected*/
     ~GLBackend() { }
 
     void setCameraCorrection(const Mat4& correction) { } // 48
