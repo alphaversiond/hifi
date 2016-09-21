@@ -16,7 +16,9 @@
 #include <QNetworkReply>
 
 #include <NetworkingConstants.h>
+#ifndef ANDROID
 #include <steamworks-wrapper/SteamClient.h>
+#endif
 
 #include "AccountManager.h"
 #include "DependencyManager.h"
@@ -55,7 +57,11 @@ void LoginDialog::toggleAction() {
 }
 
 bool LoginDialog::isSteamRunning() const {
+#ifndef ANDROID
     return SteamClient::isRunning();
+#else
+    return false;
+#endif
 }
 
 void LoginDialog::login(const QString& username, const QString& password) const {
@@ -64,6 +70,7 @@ void LoginDialog::login(const QString& username, const QString& password) const 
 }
 
 void LoginDialog::loginThroughSteam() {
+#ifndef ANDROID
     qDebug() << "Attempting to login through Steam";
     SteamClient::requestTicket([this](Ticket ticket) {
         if (ticket.isNull()) {
@@ -73,9 +80,11 @@ void LoginDialog::loginThroughSteam() {
 
         DependencyManager::get<AccountManager>()->requestAccessTokenWithSteam(ticket);
     });
+#endif
 }
 
 void LoginDialog::linkSteam() {
+#ifndef ANDROID
     qDebug() << "Attempting to link Steam account";
     SteamClient::requestTicket([this](Ticket ticket) {
         if (ticket.isNull()) {
@@ -99,9 +108,11 @@ void LoginDialog::linkSteam() {
                                     QNetworkAccessManager::PostOperation, callbackParams,
                                     QJsonDocument(payload).toJson());
     });
+#endif
 }
 
 void LoginDialog::createAccountFromStream(QString username) {
+#ifndef ANDROID
     qDebug() << "Attempting to create account from Steam info";
     SteamClient::requestTicket([this, username](Ticket ticket) {
         if (ticket.isNull()) {
@@ -128,7 +139,7 @@ void LoginDialog::createAccountFromStream(QString username) {
                                     QNetworkAccessManager::PostOperation, callbackParams,
                                     QJsonDocument(payload).toJson());
     });
-
+#endif
 }
 
 void LoginDialog::openUrl(const QString& url) const {

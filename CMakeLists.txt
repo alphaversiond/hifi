@@ -251,12 +251,13 @@ if (NOT ANDROID)
   add_subdirectory(tools)
 endif()
 
-if (DESKTOP_GVR)
-  add_subdirectory(interface)
-endif ()
+#if (DESKTOP_GVR)
+#  add_subdirectory(interface)
+#endif ()
 
 if (ANDROID OR DESKTOP_GVR)
-  add_subdirectory(gvr-interface)
+  add_subdirectory(interface)
+  #add_subdirectory(gvr-interface)
   add_subdirectory(plugins)
 endif ()
 

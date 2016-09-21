@@ -22,7 +22,9 @@
 #include <gl/OpenGLVersionChecker.h>
 #include <SharedUtil.h>
 
+#ifndef ANDROID
 #include <steamworks-wrapper/SteamClient.h>
+#endif
 
 #include "AddressManager.h"
 #include "Application.h"
@@ -157,7 +159,9 @@ int main(int argc, const char* argv[]) {
     // or in the main window ctor, before GL startup.
     Application::initPlugins(arguments);
 
+#ifndef ANDROID
     SteamClient::init();
+#endif
 
 #ifdef Q_OS_WIN
     // If we're running in steam mode, we need to do an explicit check to ensure we're up to the required min spec
@@ -245,7 +249,9 @@ int main(int argc, const char* argv[]) {
 
     Application::shutdownPlugins();
 
+#ifndef ANDROID
     SteamClient::shutdown();
+#endif
 
     qCDebug(interfaceapp, "Normal exit.");
 #if !defined(DEBUG) && !defined(Q_OS_LINUX)

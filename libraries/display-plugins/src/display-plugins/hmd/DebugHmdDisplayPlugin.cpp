@@ -13,6 +13,10 @@
 #include <controllers/Pose.h>
 #include <gpu/Frame.h>
 
+#ifdef ANDROID
+#include <QtOpenGL/QGLWidget>
+#endif
+
 const QString DebugHmdDisplayPlugin::NAME("HMD Simulator");
 
 static const QString DEBUG_FLAG("HIFI_DEBUG_HMD");
@@ -52,10 +56,13 @@ bool DebugHmdDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
 
 // DLL based display plugins MUST initialize GLEW inside the DLL code.
 void DebugHmdDisplayPlugin::customizeContext() {
+    // glewContextInit undefined for android (why it isn't taking it from the ndk?) AND!!!
+#ifndef ANDROID
     glewExperimental = true;
     glewInit();
     glGetError(); // clear the potential error from glewExperimental
     Parent::customizeContext();
+#endif
 }
 
 bool DebugHmdDisplayPlugin::internalActivate() {

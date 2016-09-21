@@ -36,7 +36,7 @@ public:
         _hasItems.wakeAll();
     }
 
-    void waitIdle(uint32_t maxWaitMs = UINT32_MAX) {
+    void waitIdle(uint32_t maxWaitMs = std::numeric_limits<std::uint32_t>::max()) {
         QElapsedTimer timer;
         timer.start();
 

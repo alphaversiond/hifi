@@ -20,8 +20,10 @@
 #include <QByteArray>
 #include <QString>
 #include <QFileInfo>
+#ifndef ANDROID
 #include <quazip5/quazip.h>
 #include <quazip5/JlCompress.h>
+#endif
 #include "ResourceManager.h"
 
 #include "FileScriptingInterface.h"
@@ -110,7 +112,7 @@ void FileScriptingInterface::downloadZip(QString path, const QString link) {
 
 
 QString FileScriptingInterface::unzipFile(QString path, QString tempDir) {
-
+#ifndef ANDROID
     QDir dir(path);
     QString dirName = dir.path();
     QString target = tempDir + "/model_repo";
@@ -124,11 +126,14 @@ QString FileScriptingInterface::unzipFile(QString path, QString tempDir) {
         qDebug() << "Extraction failed";
         return "";
     }
-
+#else
+    return "";
+#endif
 }
 
 // this function is not in use
 void FileScriptingInterface::recursiveFileScan(QFileInfo file, QString* dirName) {
+#ifndef ANDROID
     /*if (!file.isDir()) {
         qDebug() << "Regular file logged: " + file.fileName();
         return;
@@ -149,5 +154,6 @@ void FileScriptingInterface::recursiveFileScan(QFileInfo file, QString* dirName)
         qDebug() << "Looking into file: " + file.fileName();
         recursiveFileScan(file, dirName);
     }
+#endif
     return;
 }
