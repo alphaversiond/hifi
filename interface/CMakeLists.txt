@@ -77,7 +77,7 @@ if (ANDROID)
 
   set(ANDROID_SDK_ROOT $ENV{ANDROID_HOME})
   set(ANDROID_APP_DISPLAY_NAME Interface)
-  set(ANDROID_API_LEVEL 19)
+  set(ANDROID_API_LEVEL 21)
   set(ANDROID_APK_PACKAGE io.highfidelity.hifiinterface)
   set(ANDROID_ACTIVITY_NAME io.highfidelity.hifiinterface.InterfaceActivity)
   set(ANDROID_APK_VERSION_NAME "0.1")

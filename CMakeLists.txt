@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.2)
 
 if (USE_ANDROID_TOOLCHAIN)
   set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/android/android.toolchain.cmake")
-  set(ANDROID_NATIVE_API_LEVEL 19)
+  set(ANDROID_NATIVE_API_LEVEL 21)
   set(ANDROID_TOOLCHAIN_NAME arm-linux-androideabi-clang3.5)
   # the intention is still to use the shared library but for it only works
   # with the static one by now

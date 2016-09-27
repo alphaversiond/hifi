@@ -16,6 +16,7 @@
 
 //#include <GL/glew.h>
 #include "glewand.h"
+#include <GLES3/gl3.h>
 
 #if defined(__APPLE__)
 
