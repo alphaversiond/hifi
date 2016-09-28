@@ -57,6 +57,35 @@ BackendPointer GLBackend::createBackend() {
     return result;
 }
 
+void GLBackend::init() {
+    static std::once_flag once;
+    std::call_once(once, [] {
+        QString vendor{ (const char*)glGetString(GL_VENDOR) };
+        QString renderer{ (const char*)glGetString(GL_RENDERER) };
+        qCDebug(gpugllogging) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
+        qCDebug(gpugllogging) << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
+        qCDebug(gpugllogging) << "GL Vendor: " << vendor;
+        qCDebug(gpugllogging) << "GL Renderer: " << renderer;
+        GPUIdent* gpu = GPUIdent::getInstance(vendor, renderer); 
+        // From here on, GPUIdent::getInstance()->getMumble() should efficiently give the same answers.
+        qCDebug(gpugllogging) << "GPU:";
+        qCDebug(gpugllogging) << "\tcard:" << gpu->getName();
+        qCDebug(gpugllogging) << "\tdriver:" << gpu->getDriver();
+        qCDebug(gpugllogging) << "\tdedicated memory:" << gpu->getMemory() << "MB";
+
+        /*glewExperimental = true;
+        GLenum err = glewInit();
+        glGetError(); // clear the potential error from glewExperimental
+        if (GLEW_OK != err) {
+            // glewInit failed, something is seriously wrong.
+            qCDebug(gpugllogging, "Error: %s\n", glewGetErrorString(err));
+        }
+        qCDebug(gpugllogging, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
+        */
+
+    });
+}
+
 GLBackend& getBackend() {
     if (!INSTANCE) {
         INSTANCE = static_cast<GLBackend*>(qApp->property(GL_BACKEND_PROPERTY_NAME).value<void*>());

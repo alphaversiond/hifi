@@ -34,5 +34,5 @@ GLQuery* GLESBackend::syncGPUObject(const Query& query) {
 }
 
 GLuint GLESBackend::getQueryID(const QueryPointer& query) {
-    return GL41Query::getId<GLESQuery>(*this, query);
+    return GLESQuery::getId<GLESQuery>(*this, query);
 }

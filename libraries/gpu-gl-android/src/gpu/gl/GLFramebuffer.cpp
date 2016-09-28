@@ -34,12 +34,12 @@ bool GLFramebuffer::checkStatus(GLenum target) const {
     case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
         qCDebug(gpugllogging) << "GLFramebuffer::syncGPUObject : Framebuffer not valid, GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT.";
         break;
-    case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
+/* TODO:     case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
         qCDebug(gpugllogging) << "GLFramebuffer::syncGPUObject : Framebuffer not valid, GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER.";
         break;
     case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
         qCDebug(gpugllogging) << "GLFramebuffer::syncGPUObject : Framebuffer not valid, GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER.";
-        break;
+        break; */
     case GL_FRAMEBUFFER_UNSUPPORTED:
         qCDebug(gpugllogging) << "GLFramebuffer::syncGPUObject : Framebuffer not valid, GL_FRAMEBUFFER_UNSUPPORTED.";
         break;

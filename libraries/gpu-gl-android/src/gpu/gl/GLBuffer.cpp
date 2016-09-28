@@ -19,7 +19,7 @@ GLBuffer::~GLBuffer() {
             backend->releaseBuffer(_id, _size);
         }
     }
-}asdas
+} 
 
 GLBuffer::GLBuffer(const std::weak_ptr<GLBackend>& backend, const Buffer& buffer, GLuint id) :
     GLObject(backend, buffer, id),
