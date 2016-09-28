@@ -1,6 +1,6 @@
 //
-//  Created by Bradley Austin Davis on 2016/05/16
-//  Copyright 2014 High Fidelity, Inc.
+//  Created by Cristian Duarte & Gabriel Calero on 09/21/2016
+//  Copyright 2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -10,39 +10,37 @@
 
 #include <assert.h>
 #include <functional>
+#include <memory>
 #include <bitset>
 #include <queue>
 #include <utility>
 #include <list>
 #include <array>
 
+#include <QtCore/QLoggingCategory>
+
 #include <gl/Config.h>
 
-#include <QtCore/QLoggingCategory>
 #include <gpu/Forward.h>
-
 #include <gpu/Context.h>
+
 #include "GLShared.h"
 
 namespace gpu { namespace gl {
 
-//class GLBackend : public gpu::Backend {
 class GLBackend : public Backend, public std::enable_shared_from_this<GLBackend> {
-
-    using Parent = gpu::Backend;
     // Context Backend static interface required
     friend class gpu::Context;
-    static void init() {}
-    //static BackendPointer createBackend();
-    //static gpu::Backend* createBackend() { return new GLBackend(); }
+    static void init();
     static BackendPointer createBackend();
-    // making it public static bool makeProgram(Shader& shader, const Shader::BindingSet& slotBindings) { return true; }
 
+protected:
+    explicit GLBackend(bool syncCache);
+    GLBackend();
 public:
-    GLBackend() { } /*: Parent() { } was protected*/
-    ~GLBackend() { }
-
     static bool makeProgram(Shader& shader, const Shader::BindingSet& slotBindings = Shader::BindingSet());
+
+    ~GLBackend();
 
     void setCameraCorrection(const Mat4& correction);
     void render(const Batch& batch) final override;
@@ -57,6 +55,7 @@ public:
     // Just avoid using it, it's ugly and will break performances
     virtual void downloadFramebuffer(const FramebufferPointer& srcFramebuffer,
                                      const Vec4i& region, QImage& destImage) final override;
+
 
     static const int MAX_NUM_ATTRIBUTES = Stream::NUM_INPUT_SLOTS;
     static const int MAX_NUM_INPUT_BUFFERS = 16;
@@ -107,7 +106,7 @@ public:
     // Output stage
     virtual void do_setFramebuffer(const Batch& batch, size_t paramOffset) final;
     virtual void do_clearFramebuffer(const Batch& batch, size_t paramOffset) final;
-    virtual void do_blit(const Batch& batch, size_t paramOffset);
+    virtual void do_blit(const Batch& batch, size_t paramOffset) = 0;
 
     // Query section
     virtual void do_beginQuery(const Batch& batch, size_t paramOffset) final;
@@ -161,10 +160,10 @@ public:
     virtual void do_setStateBlendFactor(const Batch& batch, size_t paramOffset) final;
     virtual void do_setStateScissorRect(const Batch& batch, size_t paramOffset) final;
 
-    virtual GLuint getFramebufferID(const FramebufferPointer& framebuffer);
-    virtual GLuint getTextureID(const TexturePointer& texture, bool needTransfer = true);
-    virtual GLuint getBufferID(const Buffer& buffer);
-    virtual GLuint getQueryID(const QueryPointer& query);
+    virtual GLuint getFramebufferID(const FramebufferPointer& framebuffer) = 0;
+    virtual GLuint getTextureID(const TexturePointer& texture, bool needTransfer = true) = 0;
+    virtual GLuint getBufferID(const Buffer& buffer) = 0;
+    virtual GLuint getQueryID(const QueryPointer& query) = 0;
     virtual bool isTextureReady(const TexturePointer& texture);
 
     virtual void releaseBuffer(GLuint id, Size size) const;
@@ -175,14 +174,36 @@ public:
     virtual void releaseQuery(GLuint id) const;
 
 protected:
-    explicit GLBackend(bool syncCache) : Parent() { }
-    virtual void initInput() final;
 
     void recycle() const override;
+    virtual GLFramebuffer* syncGPUObject(const Framebuffer& framebuffer) = 0;
+    virtual GLBuffer* syncGPUObject(const Buffer& buffer) = 0;
+    virtual GLTexture* syncGPUObject(const TexturePointer& texture, bool sync = true) = 0;
+    virtual GLQuery* syncGPUObject(const Query& query) = 0;
+
     static const size_t INVALID_OFFSET = (size_t)-1;
+    bool _inRenderTransferPass { false };
+    int32_t _uboAlignment { 0 };
+    int _currentDraw { -1 };
+
+    std::list<std::string> profileRanges;
+    mutable Mutex _trashMutex;
+    mutable std::list<std::pair<GLuint, Size>> _buffersTrash;
+    mutable std::list<std::pair<GLuint, Size>> _texturesTrash;
+    mutable std::list<GLuint> _framebuffersTrash;
+    mutable std::list<GLuint> _shadersTrash;
+    mutable std::list<GLuint> _programsTrash;
+    mutable std::list<GLuint> _queriesTrash;
 
     void renderPassTransfer(const Batch& batch);
     void renderPassDraw(const Batch& batch);
+    void setupStereoSide(int side);
+
+    virtual void initInput() final;
+    virtual void killInput() final;
+    virtual void syncInputStateCache() final;
+    virtual void resetInputStage() final;
+    virtual void updateInput();
 
     struct InputStageState {
         bool _invalidFormat { true };
@@ -218,6 +239,12 @@ protected:
             _bufferVBOs(_invalidBuffers.size(), 0) {}
     } _input;
 
+    virtual void initTransform() = 0;
+    void killTransform();
+    // Synchronize the state cache of this Backend with the actual real state of the GL Context
+    void syncTransformStateCache();
+    void updateTransform(const Batch& batch);
+    void resetTransformStage();
 
     // Allows for correction of the camera pose to account for changes
     // between the time when a was recorded and the time(s) when it is 
@@ -264,16 +291,79 @@ protected:
         void bindCurrentCamera(int stereoSide) const;
     } _transform;
 
+    virtual void transferTransformState(const Batch& batch) const = 0;
+
+    struct UniformStageState {
+        std::array<BufferPointer, MAX_NUM_UNIFORM_BUFFERS> _buffers;
+        //Buffers _buffers {  };
+    } _uniform;
+
+    void releaseUniformBuffer(uint32_t slot);
+    void resetUniformStage();
+    
+    // update resource cache and do the gl unbind call with the current gpu::Texture cached at slot s
+    void releaseResourceTexture(uint32_t slot);
+
+    void resetResourceStage();
+
     struct ResourceStageState {
         std::array<TexturePointer, MAX_NUM_RESOURCE_TEXTURES> _textures;
         //Textures _textures { { MAX_NUM_RESOURCE_TEXTURES } };
         int findEmptyTextureSlot() const;
     } _resource;
 
+    size_t _commandIndex{ 0 };
+
+    // Standard update pipeline check that the current Program and current State or good to go for a
+    void updatePipeline();
+    // Force to reset all the state fields indicated by the 'toBeReset" signature
+    void resetPipelineState(State::Signature toBeReset);
+    // Synchronize the state cache of this Backend with the actual real state of the GL Context
+    void syncPipelineStateCache();
+    void resetPipelineStage();
+
+    struct PipelineStageState {
+        PipelinePointer _pipeline;
+
+        GLuint _program { 0 };
+        GLint _cameraCorrectionLocation { -1 };
+        GLShader* _programShader { nullptr };
+        bool _invalidProgram { false };
+
+        BufferView _cameraCorrectionBuffer { gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(CameraCorrection), nullptr )) };
+
+        State::Data _stateCache{ State::DEFAULT };
+        State::Signature _stateSignatureCache { 0 };
+
+        GLState* _state { nullptr };
+        bool _invalidState { false };
+
+        PipelineStageState() {
+            _cameraCorrectionBuffer.edit<CameraCorrection>() = CameraCorrection();
+        }
+    } _pipeline;
+
+    // Synchronize the state cache of this Backend with the actual real state of the GL Context
+    void syncOutputStateCache();
+    void resetOutputStage();
+    
+    struct OutputStageState {
+        FramebufferPointer _framebuffer { nullptr };
+        GLuint _drawFBO { 0 };
+    } _output;
+
+    void resetQueryStage();
+    struct QueryStageState {
+        
+    };
+
+    void resetStages();
+
+    typedef void (GLBackend::*CommandCall)(const Batch&, size_t);
+    static CommandCall _commandCalls[Batch::NUM_COMMANDS];
+    friend class GLState;
 };
 
 } }
-
-//gpu::BackendPointer gpu::gl::GLBackend::createBackend() { return std::make_shared<GLBackend>(); }
 
 #endif

@@ -1,42 +1,53 @@
 //
 //  GLBackend.cpp
-//  libraries/gpu/src/gpu
+//  libraries/gpu-gl-android/src/gpu/gl
 //
-//  Created by Sam Gateau on 10/27/2014.
-//  Copyright 2014 High Fidelity, Inc.
+//  Created by Cristian Duarte & Gabriel Calero on 9/21/2016.
+//  Copyright 2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "GLBackend.h"
 
-#include <gl/QOpenGLContextWrapper.h>
+#include <mutex>
+#include <queue>
+#include <list>
+#include <functional>
+#include <glm/gtc/type_ptr.hpp>
 
-/*  TODO: just to test, init glewForAndroid somewhere */
+#include "../gles/GLESBackend.h"
+
+#if defined(NSIGHT_FOUND)
+#include "nvToolsExt.h"
+#endif
+
+#include <GPUIdent.h>
+#include <gl/QOpenGLContextWrapper.h>
+#include <QtCore/QProcessEnvironment>
+
 #include <EGL/egl.h>
 #include <GLES3/gl3.h>
 #include <GLES3/gl3ext.h>
-/* */
 
 #include "GLShader.h"
-
 using namespace gpu;
 using namespace gpu::gl;
 
 static GLBackend* INSTANCE{ nullptr };
 static const char* GL_BACKEND_PROPERTY_NAME = "com.highfidelity.gl.backend";
 
-//static BackendPointer GLBackend::createBackend() { return std::make_shared<GLBackend>(); }
 BackendPointer GLBackend::createBackend() {
     // FIXME provide a mechanism to override the backend for testing
     // Where the gpuContext is initialized and where the TRUE Backend is created and assigned
     auto version = QOpenGLContextWrapper::currentContextVersion();
     std::shared_ptr<GLBackend> result;
-	qDebug() << "Current context version is " << version;
-	result = std::make_shared<gpu::gl::GLBackend>();
-   
-    result->initInput(); 
-    //result->initTransform(); // TODO: uncomment
+    
+    qDebug() << "Using OpenGL ES backend";
+    result = std::make_shared<gpu::gles::GLESBackend>();
+
+    result->initInput();
+    result->initTransform();
 
     INSTANCE = result.get();
     void* voidInstance = &(*result);
@@ -52,6 +63,21 @@ GLBackend& getBackend() {
     }
     return *INSTANCE;
 }
+
+GLBackend::GLBackend() {
+//    _pipeline._cameraCorrectionBuffer._buffer->flush();
+//    glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &_uboAlignment);
+}
+
+
+GLBackend::~GLBackend() {
+/*    resetStages();
+    killInput();
+    killTransform();
+*/
+}
+
+
 
 bool GLBackend::makeProgram(Shader& shader, const Shader::BindingSet& slotBindings) {
     return GLShader::makeProgram(getBackend(), shader, slotBindings);
