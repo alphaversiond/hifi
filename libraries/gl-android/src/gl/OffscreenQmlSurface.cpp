@@ -6,6 +6,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "OffscreenQmlSurface.h"
+// qDebug() << "TODO: OffscreenQmlSurface OglplusHelpers vs oglplus not in android?";
 // #include "OglplusHelpers.h" AND!!!
 
 #include <QtWidgets/QWidget>
@@ -52,21 +53,18 @@ class UrlHandler : public QObject {
     Q_OBJECT
 public:
     Q_INVOKABLE bool canHandleUrl(const QString& url) {
-        /*static auto handler = dynamic_cast<AbstractUriHandler*>(qApp);
-        return handler->canAcceptURL(url); AND !!! */
-        return true;
+        static auto handler = dynamic_cast<AbstractUriHandler*>(qApp);
+        return handler->canAcceptURL(url);
     }
 
     Q_INVOKABLE bool handleUrl(const QString& url) {
-        /*static auto handler = dynamic_cast<AbstractUriHandler*>(qApp);
-        return handler->acceptURL(url); AND !!! */
-        return false;
+        static auto handler = dynamic_cast<AbstractUriHandler*>(qApp);
+        return handler->acceptURL(url);
     }
 
     // FIXME hack for authentication, remove when we migrate to Qt 5.6
     Q_INVOKABLE QString fixupUrl(const QString& originalUrl) {
-        /*return fixupHifiUrl(originalUrl); AND !!! */
-        return originalUrl;
+        return fixupHifiUrl(originalUrl);
     }
 };
 
@@ -167,6 +165,7 @@ private:
     OffscreenQmlSurface* _surface{ nullptr };
     QQuickWindow* _quickWindow{ nullptr };
     QMyQuickRenderControl* _renderControl{ nullptr };
+    // qDebug() << "TODO: OffscreenQmlSurface:private FramebufferPtr RenderbufferPtr TextureRecycler due to OglplusHelpers";
     /* FramebufferPtr _fbo;
     RenderbufferPtr _depthStencil;
     TextureRecycler _textures { true }; AND!!! */
@@ -255,6 +254,7 @@ bool OffscreenQmlRenderThread::event(QEvent *e) {
 }
 
 void OffscreenQmlRenderThread::setupFbo() {
+    qDebug() << "TODO: OffscreenQmlSurface:setupFbo due to OglplusHelpers";
     /*using namespace oglplus;
     _textures.setSize(_size);
 
@@ -286,7 +286,7 @@ QJsonObject OffscreenQmlRenderThread::getGLContextData() {
 
 void OffscreenQmlRenderThread::init() {
     qDebug() << "Initializing QML Renderer";
-
+    qDebug() << "TODO: OffscreenQmlSurface:init due to OglplusHelpers";
     /*if (!_canvas.makeCurrent()) {
         qWarning("Failed to make context current on QML Renderer Thread");
         _quit = true;
@@ -309,6 +309,7 @@ void OffscreenQmlRenderThread::init() {
 }
 
 void OffscreenQmlRenderThread::cleanup() {
+    qDebug() << "TODO: OffscreenQmlSurface:cleanup due to OglplusHelpers";
     /*_renderControl->invalidate();
 
     _fbo.reset();
@@ -322,6 +323,7 @@ void OffscreenQmlRenderThread::cleanup() {
 }
 
 void OffscreenQmlRenderThread::resize() {
+    qDebug() << "TODO: OffscreenQmlSurface:resize due to OglplusHelpers";
     // Lock _newSize changes
     /*{
         QMutexLocker locker(&_mutex);
@@ -353,6 +355,7 @@ void OffscreenQmlRenderThread::resize() {
 }
 
 void OffscreenQmlRenderThread::render() {
+    qDebug() << "TODO: OffscreenQmlSurface:render due to OglplusHelpers";
     // Ensure we always release the main thread
     /*Finally releaseMainThread([this] {
         _waitCondition.wakeOne();

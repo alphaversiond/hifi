@@ -73,10 +73,10 @@ public:
         }
 
         bool signaled() const {
-            /* AND!!! auto result = glClientWaitSync(_sync, 0, 0);
+            auto result = glClientWaitSync(_sync, 0, 0);
             if (GL_TIMEOUT_EXPIRED != result && GL_WAIT_FAILED != result) {
                 return true;
-            }*/
+            }
             return false;
         }
     };
@@ -125,7 +125,7 @@ public:
     // producers should self-limit if they start producing more
     // work than is being consumed;
     size_t submit(T t, GLsync writeSync = 0) {
-        /*if (!writeSync) {
+        if (!writeSync) {
             // FIXME should the release and submit actually force the creation of a fence?
             writeSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
             glFlush();
@@ -134,8 +134,7 @@ public:
         withLock([&]{
             _submits.push_back(Item(t, writeSync));
         });
-        return cleanTrash(); AND!!! */
-        return 0;
+        return cleanTrash();
     }
 
     // Returns the next available resource provided by the submitter,
@@ -187,7 +186,7 @@ public:
     }
 
     bool fetchWithGpuWait(T& t) {
-        /*GLsync sync { 0 };
+        GLsync sync { 0 };
         if (fetchWithFence(t, sync)) {
             // Texture was updated, inject a wait into the GL command stream to ensure 
             // commands on this context until the commands to generate t are finished.
@@ -196,7 +195,7 @@ public:
                 glDeleteSync(sync);
             }
             return true;
-        } AND!!! */
+        }
         return false;
     }
 
@@ -240,7 +239,7 @@ public:
     // If fetch returns a non-zero value, it's the responsibility of the
     // client to release it at some point
     void release(const T& t, GLsync readSync = 0) {
-        /*if (!readSync) {
+        if (!readSync) {
             // FIXME should the release and submit actually force the creation of a fence?
             readSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
             glFlush();
@@ -248,7 +247,7 @@ public:
 
         withLock([&]{
             _releases.push_back(Item(t, readSync));
-        }); AND!!! */
+        });
     }
     
 private:

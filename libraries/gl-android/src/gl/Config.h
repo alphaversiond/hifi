@@ -15,8 +15,9 @@
 #define GL_GLEXT_PROTOTYPES 1
 
 //#include <GL/glew.h>
+#include <GLES3/gl31.h>
+#include <GLES3/gl3ext.h>
 #include "glewand.h"
-#include <GLES3/gl3.h>
 
 #if defined(__APPLE__)
 
