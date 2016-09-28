@@ -18,18 +18,40 @@ void GLBackend::do_setModelTransform(const Batch& batch, size_t paramOffset) {
 }
 
 void GLBackend::do_setViewTransform(const Batch& batch, size_t paramOffset) {
+    _transform._view = batch._transforms.get(batch._params[paramOffset]._uint);
+    _transform._viewIsCamera = batch._params[paramOffset + 1]._uint != 0;
+    _transform._invalidView = true;
 }
 
 void GLBackend::do_setProjectionTransform(const Batch& batch, size_t paramOffset) {
+    memcpy(&_transform._projection, batch.readData(batch._params[paramOffset]._uint), sizeof(Mat4));
+    _transform._invalidProj = true;
 }
 
 void GLBackend::do_setViewportTransform(const Batch& batch, size_t paramOffset) {
+    memcpy(&_transform._viewport, batch.readData(batch._params[paramOffset]._uint), sizeof(Vec4i));
+
+    if (!_inRenderTransferPass && !isStereo()) {
+        ivec4& vp = _transform._viewport;
+        glViewport(vp.x, vp.y, vp.z, vp.w);
+    }
+
+    // The Viewport is tagged invalid because the CameraTransformUBO is not up to date and will need update on next drawcall
+    _transform._invalidViewport = true;
 }
 
 void GLBackend::do_setDepthRangeTransform(const Batch& batch, size_t paramOffset) {
+
+    Vec2 depthRange(batch._params[paramOffset + 1]._float, batch._params[paramOffset + 0]._float);
+
+    if ((depthRange.x != _transform._depthRange.x) || (depthRange.y != _transform._depthRange.y)) {
+        _transform._depthRange = depthRange;
+        
+        glDepthRangef(depthRange.x, depthRange.y);
+    }
 }
 
-/*void GLBackend::killTransform() {
+void GLBackend::killTransform() {
     glDeleteBuffers(1, &_transform._objectBuffer);
     glDeleteBuffers(1, &_transform._cameraBuffer);
     glDeleteBuffers(1, &_transform._drawCallInfoBuffer);
@@ -49,7 +71,7 @@ void GLBackend::syncTransformStateCache() {
     auto modelViewInv = glm::inverse(modelView);
     _transform._view.evalFromRawMatrix(modelViewInv);
 }
-*/
+
 void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const StereoState& stereo) {
     // Check all the dirty flags and update the state accordingly
     if (_invalidViewport) {
@@ -109,11 +131,9 @@ void GLBackend::TransformStageState::update(size_t commandIndex, const StereoSta
 
 void GLBackend::TransformStageState::bindCurrentCamera(int eye) const {
     if (_currentCameraOffset != INVALID_OFFSET) {
-        qDebug() << "TODO: GLBackendTransform.cpp:TransformStageState glBindBufferRange";
-        //glBindBufferRange(GL_UNIFORM_BUFFER, TRANSFORM_CAMERA_SLOT, _cameraBuffer, _currentCameraOffset + eye * _cameraUboSize, sizeof(CameraBufferElement));
+        glBindBufferRange(GL_UNIFORM_BUFFER, TRANSFORM_CAMERA_SLOT, _cameraBuffer, _currentCameraOffset + eye * _cameraUboSize, sizeof(CameraBufferElement));
     }
 }
-    /*
 
 void GLBackend::updateTransform(const Batch& batch) {
     _transform.update(_commandIndex, _stereo);
@@ -122,7 +142,8 @@ void GLBackend::updateTransform(const Batch& batch) {
     if (batch._currentNamedCall.empty()) {
         auto& drawCallInfo = drawCallInfoBuffer[_currentDraw];
         glDisableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO); // Make sure attrib array is disabled
-        glVertexAttribI2i(gpu::Stream::DRAW_CALL_INFO, drawCallInfo.index, drawCallInfo.unused);
+        qDebug() << "TODO: GLBackendTransform.cpp:updateTransform glVertexAttribI2i";
+        //glVertexAttribI2i(gpu::Stream::DRAW_CALL_INFO, drawCallInfo.index, drawCallInfo.unused);
     } else {
         glEnableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO); // Make sure attrib array is enabled
         glBindBuffer(GL_ARRAY_BUFFER, _transform._drawCallInfoBuffer);
@@ -137,4 +158,3 @@ void GLBackend::updateTransform(const Batch& batch) {
 void GLBackend::resetTransformStage() {
     
 }
-    */

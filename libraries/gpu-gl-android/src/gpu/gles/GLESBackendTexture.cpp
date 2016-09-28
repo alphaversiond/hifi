@@ -23,12 +23,12 @@ using namespace gpu::gles;
 //using GL41TexelFormat = GLTexelFormat;
 using GLESTexture = GLESBackend::GLESTexture;
 
-GLuint GLESTexture::allocate() {/*
+GLuint GLESTexture::allocate() {
     Backend::incrementTextureGPUCount();
     GLuint result;
     glGenTextures(1, &result);
     return result;
-*/}
+}
 
 GLuint GLESBackend::getTextureID(const TexturePointer& texture, bool transfer) {
     return GLESTexture::getId<GLESTexture>(*this, texture, transfer);
@@ -42,7 +42,7 @@ GLESTexture::GLESTexture(const std::weak_ptr<GLBackend>& backend, const Texture&
 
 GLESTexture::GLESTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GLESTexture* original) : GLTexture(backend, texture, allocate(), original) {}
 
-void GLESTexture::withPreservedTexture(std::function<void()> f) const  { /*
+void GLESTexture::withPreservedTexture(std::function<void()> f) const  {
     GLint boundTex = -1;
     switch (_target) {
     case GL_TEXTURE_2D:
@@ -61,28 +61,28 @@ void GLESTexture::withPreservedTexture(std::function<void()> f) const  { /*
     glBindTexture(_target, _texture);
     f();
     glBindTexture(_target, boundTex);
-    (void)CHECK_GL_ERROR();*/
+    (void)CHECK_GL_ERROR();
 }
 
-void GLESTexture::generateMips() const {/*
+void GLESTexture::generateMips() const {
     withPreservedTexture([&] {
         glGenerateMipmap(_target);
     });
     (void)CHECK_GL_ERROR();
-*/}
+}
 
-void GLESTexture::allocateStorage() const {/*
+void GLESTexture::allocateStorage() const {
     GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat());
     glTexParameteri(_target, GL_TEXTURE_BASE_LEVEL, 0);
     (void)CHECK_GL_ERROR();
     glTexParameteri(_target, GL_TEXTURE_MAX_LEVEL, _maxMip - _minMip);
     (void)CHECK_GL_ERROR();
-    if (GLEW_VERSION_4_2 && !_gpuObject.getTexelFormat().isCompressed()) {
+/*    if (GLEW_VERSION_4_2 && !_gpuObject.getTexelFormat().isCompressed()) {
         // Get the dimensions, accounting for the downgrade level
         Vec3u dimensions = _gpuObject.evalMipDimensions(_minMip);
         glTexStorage2D(_target, usedMipLevels(), texelFormat.internalFormat, dimensions.x, dimensions.y);
         (void)CHECK_GL_ERROR();
-    } else {
+    } else {*/
         for (uint16_t l = _minMip; l <= _maxMip; l++) {
             // Get the mip level dimensions, accounting for the downgrade level
             Vec3u dimensions = _gpuObject.evalMipDimensions(l);
@@ -91,10 +91,10 @@ void GLESTexture::allocateStorage() const {/*
                 (void)CHECK_GL_ERROR();
             }
         }
-    }
-*/}
+    //}
+}
 
-void GLESTexture::updateSize() const {/*
+void GLESTexture::updateSize() const {
     setSize(_virtualSize);
     if (!_id) {
         return;
@@ -114,7 +114,8 @@ void GLESTexture::updateSize() const {/*
         if (gpuSize) {
             for (GLuint level = _minMip; level < _maxMip; level++) {
                 GLint levelSize{ 0 };
-                glGetTexLevelParameteriv(proxyType, level, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, &levelSize);
+                //glGetTexLevelParameteriv(proxyType, level, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, &levelSize);
+                qDebug() << "TODO: GLBackendTexture.cpp:updateSize GL_TEXTURE_COMPRESSED_IMAGE_SIZE";
                 levelSize *= numFaces;
                 
                 if (levelSize <= 0) {
@@ -127,10 +128,10 @@ void GLESTexture::updateSize() const {/*
             return;
         } 
     } 
-*/}
+}
 
 // Move content bits from the CPU to the GPU for a given mip / face
-void GLESTexture::transferMip(uint16_t mipLevel, uint8_t face) const {/*
+void GLESTexture::transferMip(uint16_t mipLevel, uint8_t face) const {
     auto mip = _gpuObject.accessStoredMipFace(mipLevel, face);
     GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat(), mip->getFormat());
     //GLenum target = getFaceTargets()[face];
@@ -138,9 +139,9 @@ void GLESTexture::transferMip(uint16_t mipLevel, uint8_t face) const {/*
     auto size = _gpuObject.evalMipDimensions(mipLevel);
     glTexSubImage2D(target, mipLevel, 0, 0, size.x, size.y, texelFormat.format, texelFormat.type, mip->readData());
     (void)CHECK_GL_ERROR();
-*/}
+}
 
-void GLESTexture::startTransfer() {/*
+void GLESTexture::startTransfer() {
     PROFILE_RANGE(__FUNCTION__);
     Parent::startTransfer();
 
@@ -179,16 +180,17 @@ void GLESTexture::startTransfer() {/*
             }
         }
     }
-*/}
+}
 
-void GLESBackend::GLESTexture::syncSampler() const {/*
+void GLESBackend::GLESTexture::syncSampler() const {
     const Sampler& sampler = _gpuObject.getSampler();
     const auto& fm = FILTER_MODES[sampler.getFilter()];
     glTexParameteri(_target, GL_TEXTURE_MIN_FILTER, fm.minFilter);
     glTexParameteri(_target, GL_TEXTURE_MAG_FILTER, fm.magFilter);
 
     if (sampler.doComparison()) {
-        glTexParameteri(_target, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
+        //glTexParameteri(_target, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
+        qDebug() << "TODO: GLBackendTexture.cpp:syncSampler GL_COMPARE_R_TO_TEXTURE";
         glTexParameteri(_target, GL_TEXTURE_COMPARE_FUNC, COMPARISON_TO_GL[sampler.getComparisonFunction()]);
     } else {
         glTexParameteri(_target, GL_TEXTURE_COMPARE_MODE, GL_NONE);
@@ -198,11 +200,14 @@ void GLESBackend::GLESTexture::syncSampler() const {/*
     glTexParameteri(_target, GL_TEXTURE_WRAP_T, WRAP_MODES[sampler.getWrapModeV()]);
     glTexParameteri(_target, GL_TEXTURE_WRAP_R, WRAP_MODES[sampler.getWrapModeW()]);
 
-    glTexParameterfv(_target, GL_TEXTURE_BORDER_COLOR, (const float*)&sampler.getBorderColor());
+    //glTexParameterfv(_target, GL_TEXTURE_BORDER_COLOR, (const float*)&sampler.getBorderColor());
+    qDebug() << "TODO: GLBackendTexture.cpp:syncSampler GL_TEXTURE_BORDER_COLOR";
+
     glTexParameteri(_target, GL_TEXTURE_BASE_LEVEL, (uint16)sampler.getMipOffset());
     glTexParameterf(_target, GL_TEXTURE_MIN_LOD, (float)sampler.getMinMip());
     glTexParameterf(_target, GL_TEXTURE_MAX_LOD, (sampler.getMaxMip() == Sampler::MAX_MIP_LEVEL ? 1000.f : sampler.getMaxMip()));
-    glTexParameterf(_target, GL_TEXTURE_MAX_ANISOTROPY_EXT, sampler.getMaxAnisotropy());
-    */
+    //glTexParameterf(_target, GL_TEXTURE_MAX_ANISOTROPY_EXT, sampler.getMaxAnisotropy());
+    qDebug() << "TODO: GLBackendTexture.cpp:syncSampler GL_TEXTURE_MAX_ANISOTROPY_EXT";
+
 }
 

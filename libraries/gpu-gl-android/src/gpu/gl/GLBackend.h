@@ -5,8 +5,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#ifndef hifi_gpu_Android_Backend_h
-#define hifi_gpu_Android_Backend_h
+#ifndef hifi_gpu_gles_Backend_h
+#define hifi_gpu_gles_Backend_h
 
 #include <assert.h>
 #include <functional>
@@ -73,12 +73,12 @@ public:
     size_t getMaxNumResourceTextures() const { return MAX_NUM_RESOURCE_TEXTURES; }
 
     // Draw Stage
-    virtual void do_draw(const Batch& batch, size_t paramOffset);
-    virtual void do_drawIndexed(const Batch& batch, size_t paramOffset);
-    virtual void do_drawInstanced(const Batch& batch, size_t paramOffset);
-    virtual void do_drawIndexedInstanced(const Batch& batch, size_t paramOffset);
-    virtual void do_multiDrawIndirect(const Batch& batch, size_t paramOffset);
-    virtual void do_multiDrawIndexedIndirect(const Batch& batch, size_t paramOffset);
+    virtual void do_draw(const Batch& batch, size_t paramOffset) = 0;
+    virtual void do_drawIndexed(const Batch& batch, size_t paramOffset) = 0;
+    virtual void do_drawInstanced(const Batch& batch, size_t paramOffset) = 0;
+    virtual void do_drawIndexedInstanced(const Batch& batch, size_t paramOffset) = 0;
+    virtual void do_multiDrawIndirect(const Batch& batch, size_t paramOffset) = 0;
+    virtual void do_multiDrawIndexedIndirect(const Batch& batch, size_t paramOffset) = 0;
 
     // Input Stage
     virtual void do_setInputFormat(const Batch& batch, size_t paramOffset) final;

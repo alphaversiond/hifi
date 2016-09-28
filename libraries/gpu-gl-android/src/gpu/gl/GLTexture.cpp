@@ -30,15 +30,17 @@ const GLenum GLTexture::CUBE_FACE_LAYOUT[6] = {
 };
 
 const GLenum GLTexture::WRAP_MODES[Sampler::NUM_WRAP_MODES] = {
-/*    GL_REPEAT,                         // WRAP_REPEAT,
+    GL_REPEAT,                         // WRAP_REPEAT,
     GL_MIRRORED_REPEAT,                // WRAP_MIRROR,
     GL_CLAMP_TO_EDGE,                  // WRAP_CLAMP,
-    GL_CLAMP_TO_BORDER,                // WRAP_BORDER,
-    GL_MIRROR_CLAMP_TO_EDGE_EXT        // WRAP_MIRROR_ONCE,
-    */
+    //GL_CLAMP_TO_BORDER,                // WRAP_BORDER,
+    //    qDebug() << "TODO: GLTexture.cpp:WRAP_MODES GL_CLAMP_TO_BORDER";
+
+    //GL_MIRROR_CLAMP_TO_EDGE_EXT        // WRAP_MIRROR_ONCE,
+//    qDebug() << "TODO: GLTexture.cpp:WRAP_MODES GL_MIRROR_CLAMP_TO_EDGE_EXT";    
 };     
 
-const GLFilterMode GLTexture::FILTER_MODES[Sampler::NUM_FILTERS] = {/*
+const GLFilterMode GLTexture::FILTER_MODES[Sampler::NUM_FILTERS] = {
     { GL_NEAREST, GL_NEAREST },  //FILTER_MIN_MAG_POINT,
     { GL_NEAREST, GL_LINEAR },  //FILTER_MIN_POINT_MAG_LINEAR,
     { GL_LINEAR, GL_NEAREST },  //FILTER_MIN_LINEAR_MAG_POINT,
@@ -52,10 +54,10 @@ const GLFilterMode GLTexture::FILTER_MODES[Sampler::NUM_FILTERS] = {/*
     { GL_LINEAR_MIPMAP_LINEAR, GL_NEAREST },  //FILTER_MIN_LINEAR_MAG_POINT_MIP_LINEAR,
     { GL_LINEAR_MIPMAP_NEAREST, GL_LINEAR },  //FILTER_MIN_MAG_LINEAR_MIP_POINT,
     { GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR },  //FILTER_MIN_MAG_MIP_LINEAR,
-    { GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR }  //FILTER_ANISOTROPIC,*/
+    { GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR }  //FILTER_ANISOTROPIC,
 };
 
-GLenum GLTexture::getGLTextureType(const Texture& texture) {/*
+GLenum GLTexture::getGLTextureType(const Texture& texture) {
     switch (texture.getType()) {
     case Texture::TEX_2D:
         return GL_TEXTURE_2D;
@@ -69,11 +71,11 @@ GLenum GLTexture::getGLTextureType(const Texture& texture) {/*
         qFatal("Unsupported texture type");
     }
     Q_UNREACHABLE();
-    return GL_TEXTURE_2D;*/
+    return GL_TEXTURE_2D;
 }
 
 
-const std::vector<GLenum>& GLTexture::getFaceTargets(GLenum target) {/*
+const std::vector<GLenum>& GLTexture::getFaceTargets(GLenum target) {
     static std::vector<GLenum> cubeFaceTargets {
         GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
         GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
@@ -92,10 +94,10 @@ const std::vector<GLenum>& GLTexture::getFaceTargets(GLenum target) {/*
         break;
     }
     Q_UNREACHABLE();
-    return faceTargets;*/
+    return faceTargets;
 }
 
-float GLTexture::getMemoryPressure() {/*
+float GLTexture::getMemoryPressure() {
     // Check for an explicit memory limit
     auto availableTextureMemory = Texture::getAllowedGPUMemoryUsage();
 
@@ -116,7 +118,7 @@ float GLTexture::getMemoryPressure() {/*
 
     // Return the consumed texture memory divided by the available texture memory.
     auto consumedGpuMemory = Context::getTextureGPUMemoryUsage();
-    return (float)consumedGpuMemory / (float)availableTextureMemory;*/
+    return (float)consumedGpuMemory / (float)availableTextureMemory;
 }
 
 GLTexture::DownsampleSource::DownsampleSource(const std::weak_ptr<GLBackend>& backend, GLTexture* oldTexture) :
@@ -128,13 +130,13 @@ GLTexture::DownsampleSource::DownsampleSource(const std::weak_ptr<GLBackend>& ba
 {
 }
 
-GLTexture::DownsampleSource::~DownsampleSource() {/*
+GLTexture::DownsampleSource::~DownsampleSource() {
     if (_texture) {
         auto backend = _backend.lock();
         if (backend) {
             backend->releaseTexture(_texture, _size);
         }
-    }*/
+    }
 }
 
 GLTexture::GLTexture(const std::weak_ptr<GLBackend>& backend, const gpu::Texture& texture, GLuint id, GLTexture* originalTexture, bool transferrable) :
@@ -146,7 +148,7 @@ GLTexture::GLTexture(const std::weak_ptr<GLBackend>& backend, const gpu::Texture
     _virtualSize(texture.evalTotalSize()),
     _transferrable(transferrable),
     _downsampleSource(backend, originalTexture)
-{/*
+{
     if (_transferrable) {
         uint16 mipCount = usedMipLevels();
         _currentMaxMipCount = std::max(_currentMaxMipCount, mipCount);
@@ -157,7 +159,7 @@ GLTexture::GLTexture(const std::weak_ptr<GLBackend>& backend, const gpu::Texture
         }
     } 
     Backend::incrementTextureGPUCount();
-    Backend::updateTextureGPUVirtualMemoryUsage(0, _virtualSize);*/
+    Backend::updateTextureGPUVirtualMemoryUsage(0, _virtualSize);
 }
 
 

@@ -20,12 +20,12 @@ namespace gpu { namespace gles {
 class GLESFramebuffer : public gl::GLFramebuffer {
     using Parent = gl::GLFramebuffer;
     static GLuint allocate() {
-        /*GLuint result;
+        GLuint result;
         glGenFramebuffers(1, &result);
-        return result;*/
+        return result;
     }
 public:
-    void update() override {/*
+    void update() override {
         GLint currentFBO = -1;
         glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &currentFBO);
         glBindFramebuffer(GL_FRAMEBUFFER, _fbo);
@@ -99,7 +99,8 @@ public:
         if (!_colorBuffers.empty()) {
             glDrawBuffers((GLsizei)_colorBuffers.size(), _colorBuffers.data());
         } else {
-            glDrawBuffer(GL_NONE);
+            //glDrawBuffer(GL_NONE);
+            qDebug() << "TODO: GLESBackendOutput.cpp:override glDrawBuffer";
         }
 
         // Now check for completness
@@ -110,7 +111,7 @@ public:
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, currentFBO);
         }
 
-        checkStatus(GL_DRAW_FRAMEBUFFER);*/
+        checkStatus(GL_DRAW_FRAMEBUFFER);
     }
 
 
@@ -120,14 +121,14 @@ public:
 };
 
 gl::GLFramebuffer* gpu::gles::GLESBackend::syncGPUObject(const Framebuffer& framebuffer) {
-    //return GLESFramebuffer::sync<GLESFramebuffer>(*this, framebuffer);
+    return GLESFramebuffer::sync<GLESFramebuffer>(*this, framebuffer);
 }
 
 GLuint GLESBackend::getFramebufferID(const FramebufferPointer& framebuffer) {
     return framebuffer ? GLESFramebuffer::getId<GLESFramebuffer>(*this, *framebuffer) : 0;
 }
 
-void GLESBackend::do_blit(const Batch& batch, size_t paramOffset) {/*
+void GLESBackend::do_blit(const Batch& batch, size_t paramOffset) {
     auto srcframebuffer = batch._framebuffers.get(batch._params[paramOffset]._uint);
     Vec4i srcvp;
     for (auto i = 0; i < 4; ++i) {
@@ -162,7 +163,7 @@ void GLESBackend::do_blit(const Batch& batch, size_t paramOffset) {/*
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _output._drawFBO);
     }
 
-    (void) CHECK_GL_ERROR();*/
+    (void) CHECK_GL_ERROR();
 }
 
 

@@ -7,14 +7,10 @@
 //
 #ifndef hifi_gpu_gl_GLQuery_h
 #define hifi_gpu_gl_GLQuery_h
-/*  TODO: just to test, init glewForAndroid somewhere */
-//#include <EGL/egl.h>
-#include <GLES3/gl3.h>
-#include <GLES3/gl3ext.h>
-/* */
 
 #include "GLShared.h"
 #include "GLBackend.h"
+
 namespace gpu { namespace gl {
 
 class GLQuery : public GLObject<Query> {
@@ -51,16 +47,15 @@ public:
 
     const GLuint& _endqo = { _id };
     const GLuint _beginqo = { 0 };
-    khronos_uint64_t _result { (khronos_uint64_t)-1 };
-    khronos_uint64_t _batchElapsedTime { (khronos_uint64_t) 0 };
+    GLuint64 _result { (GLuint64)-1 };
+    GLuint64 _batchElapsedTime { (GLuint64) 0 };
 
 protected:
     GLQuery(const std::weak_ptr<GLBackend>& backend, const Query& query, GLuint endId, GLuint beginId) : Parent(backend, query, endId), _beginqo(beginId) {}
     ~GLQuery() {
         if (_id) {
             GLuint ids[2] = { _endqo, _beginqo };
-            qDebug() << "TODO: GLQuery.cpp:~GLQuery glDeleteQueries";
-            //glDeleteQueries(2, ids);
+            glDeleteQueries(2, ids);
         }
     }
 };
