@@ -401,6 +401,8 @@ static const QString STATE_GROUNDED = "Grounded";
 static const QString STATE_NAV_FOCUSED = "NavigationFocused";
 
 bool setupEssentials(int& argc, char** argv) {
+        qDebug() << "setupEssentials";
+
     const char** constArgv = const_cast<const char**>(argv);
     const char* portStr = getCmdOption(argc, constArgv, "--listenPort");
     const int listenPort = portStr ? atoi(portStr) : INVALID_PORT;
@@ -529,6 +531,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _lastFaceTrackerUpdate(0)
 {
 
+        qDebug() << "Application::Application";
 
     PluginContainer* pluginContainer = dynamic_cast<PluginContainer*>(this); // set the container for any plugins that care
     PluginManager::getInstance()->setContainer(pluginContainer);
@@ -5330,6 +5333,8 @@ void Application::postLambdaEvent(std::function<void()> f) {
 }
 
 void Application::initPlugins(const QStringList& arguments) {
+            qDebug() << "Application::initPlugins";
+
     QCommandLineOption display("display", "Preferred displays", "displays");
     QCommandLineOption disableDisplays("disable-displays", "Displays to disable", "displays");
     QCommandLineOption disableInputs("disable-inputs", "Inputs to disable", "inputs");
@@ -5357,6 +5362,7 @@ void Application::initPlugins(const QStringList& arguments) {
         qInfo() << "Disabling following input plugins:" << disabledInputs;
         PluginManager::getInstance()->disableInputs(disabledInputs);
     }
+    qDebug() << "Application::end initPlugins";
 }
 
 void Application::shutdownPlugins() {

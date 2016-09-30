@@ -36,9 +36,12 @@ int glVersionToInteger(QString glVersion) {
 
 QJsonObject getGLContextData() {
     QString glVersion = QString((const char*)glGetString(GL_VERSION));
+    glVersion = glVersion.split(QRegularExpression("[\\s]"))[2];
     QString glslVersion = QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
     QString glVendor = QString((const char*) glGetString(GL_VENDOR));
     QString glRenderer = QString((const char*)glGetString(GL_RENDERER));
+
+    qDebug() << "getGLContextData";
 
     return QJsonObject {
         { "version", glVersion },

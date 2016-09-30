@@ -11,7 +11,7 @@
 
 #include "OpenGLVersionChecker.h"
 #include "Config.h"
-
+#include <QDebug>
 #include <mutex>
 
 #include <QtCore/QRegularExpression>
@@ -26,6 +26,8 @@
 OpenGLVersionChecker::OpenGLVersionChecker(int& argc, char** argv) :
     QApplication(argc, argv)
 {
+        qDebug() << "X1";
+
 }
 
 const QGLFormat& getDefaultGLFormat() {
@@ -48,11 +50,16 @@ const QGLFormat& getDefaultGLFormat() {
 QJsonObject OpenGLVersionChecker::checkVersion(bool& valid, bool& override) {
     valid = true;
     override = false;
+        qDebug() << "B1";
 
     QGLWidget* glWidget = new QGLWidget();
+        qDebug() << "B2";
     valid = glWidget->isValid();
+    qDebug() << "B3";
     // Inform user if no OpenGL support
     if (!valid) {
+                qDebug() << "B4";
+
         QMessageBox messageBox;
         messageBox.setWindowTitle("Missing OpenGL Support");
         messageBox.setIcon(QMessageBox::Warning);
@@ -60,14 +67,23 @@ QJsonObject OpenGLVersionChecker::checkVersion(bool& valid, bool& override) {
         messageBox.setInformativeText("Press OK to exit.");
         messageBox.setStandardButtons(QMessageBox::Ok);
         messageBox.setDefaultButton(QMessageBox::Ok);
+                qDebug() << "B5";
+
         messageBox.exec();
+                qDebug() << "B6";
+
         return QJsonObject();
     }
-    
+            qDebug() << "B7";
+
     // Retrieve OpenGL version
     // glWidget->initializeGL();
     glWidget->makeCurrent();
+            qDebug() << "B8";
+
     QJsonObject glData = getGLContextData();
+            qDebug() << "B9";
+
     delete glWidget;
 
     // Compare against minimum
@@ -76,12 +92,16 @@ QJsonObject OpenGLVersionChecker::checkVersion(bool& valid, bool& override) {
     // - major_number.minor_number.release_number
     // Reference: https://www.opengl.org/sdk/docs/man/docbook4/xhtml/glGetString.xml
     const QString version { "version" };
+qDebug() << "B10";
     QString glVersion = glData[version].toString();
+    qDebug() << "B11" << glVersion;
     QStringList versionParts = glVersion.split(QRegularExpression("[\\.\\s]"));
+    qDebug() << "B11bis" << versionParts;
     int majorNumber = versionParts[0].toInt();
     int minorNumber = versionParts[1].toInt();
     int minimumMajorNumber = (MINIMUM_GL_VERSION >> 16);
     int minimumMinorNumber = (MINIMUM_GL_VERSION & 0xFF);
+    qDebug (" FOUND %d.%d MIN %d.%d", majorNumber, minorNumber, minimumMajorNumber, minimumMinorNumber);
     valid = (majorNumber > minimumMajorNumber
         || (majorNumber == minimumMajorNumber && minorNumber >= minimumMinorNumber));
 

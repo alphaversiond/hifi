@@ -49,6 +49,7 @@ macro(qt_create_apk)
   # add our dependencies to the deployment file
   get_property(_DEPENDENCIES TARGET ${TARGET_NAME} PROPERTY INTERFACE_LINK_LIBRARIES)
   
+  MESSAGE (STATUS "IS THIS IGNORED??? ${IGNORE_COPY_LIBS}")
   foreach(_IGNORE_COPY IN LISTS IGNORE_COPY_LIBS)
     list(REMOVE_ITEM _DEPENDENCIES ${_IGNORE_COPY})
   endforeach()
@@ -102,6 +103,11 @@ macro(qt_create_apk)
   elseif()
       # Not happening when compiling release..
   endif()
+  foreach(_IGNORE_COPY IN LISTS IGNORE_COPY_LIBS)
+    list(REMOVE_ITEM _DEPS_LIST ${_IGNORE_COPY})
+  endforeach()
+  MESSAGE (STATUS "IS THIS IGNORED??? ${_DEPS_LIST}")
+
   string(REPLACE ";" "," _DEPS "${_DEPS_LIST}")
   
   configure_file("${ANDROID_THIS_DIRECTORY}/deployment-file.json.in" "${TARGET_NAME}-deployment.json")
