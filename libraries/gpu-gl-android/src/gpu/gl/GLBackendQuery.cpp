@@ -25,14 +25,14 @@ void GLBackend::do_beginQuery(const Batch& batch, size_t paramOffset) {
     auto query = batch._queries.get(batch._params[paramOffset]._uint);
     GLQuery* glquery = syncGPUObject(*query);
     if (glquery) {
-        //glGetInteger64v(GL_TIMESTAMP, (GLint64*)&glquery->_batchElapsedTime);
-        qDebug() << "TODO: GLBackendQuery.cpp:do_beginQuery GL_TIMESTAMP";
+        glGetInteger64v(GL_TIMESTAMP_EXT, (GLint64*)&glquery->_batchElapsedTime);
         if (timeElapsed) {
-            //glBeginQuery(GL_TIME_ELAPSED, glquery->_endqo);
-            qDebug() << "TODO: GLBackendQuery.cpp:do_beginQuery GL_TIME_ELAPSED";
+            glBeginQuery(GL_TIME_ELAPSED_EXT, glquery->_endqo);
         } else {
-            // glQueryCounter(glquery->_beginqo, GL_TIMESTAMP);
-            qDebug() << "TODO: GLBackendQuery.cpp:do_beginQuery GL_TIMESTAMP";
+            PFNGLQUERYCOUNTEREXTPROC glQueryCounterEXT = (PFNGLQUERYCOUNTEREXTPROC) eglGetProcAddress("glQueryCounterEXT");
+            if (glQueryCounterEXT != NULL) {
+                glQueryCounterEXT(glquery->_beginqo, GL_TIMESTAMP_EXT);
+            }
         }
         (void)CHECK_GL_ERROR();
     }
@@ -43,15 +43,15 @@ void GLBackend::do_endQuery(const Batch& batch, size_t paramOffset) {
     GLQuery* glquery = syncGPUObject(*query);
     if (glquery) {
         if (timeElapsed) {
-            //glEndQuery(GL_TIME_ELAPSED);
-            qDebug() << "TODO: GLBackendQuery.cpp:do_endQuery GL_TIME_ELAPSED";
+            glEndQuery(GL_TIME_ELAPSED_EXT);
         } else {
-            //glQueryCounter(glquery->_endqo, GL_TIMESTAMP);
-            qDebug() << "TODO: GLBackendQuery.cpp:do_endQuery GL_TIMESTAMP";
+            PFNGLQUERYCOUNTEREXTPROC glQueryCounterEXT = (PFNGLQUERYCOUNTEREXTPROC) eglGetProcAddress("glQueryCounterEXT");
+            if (glQueryCounterEXT != NULL) {
+                glQueryCounterEXT(glquery->_endqo, GL_TIMESTAMP_EXT);
+            }
         }
         GLint64 now;
-        //glGetInteger64v(GL_TIMESTAMP, &now);
-        qDebug() << "TODO: GLBackendQuery.cpp:do_endQuery GL_TIMESTAMP";
+        glGetInteger64v(GL_TIMESTAMP_EXT, &now);
         glquery->_batchElapsedTime = now - glquery->_batchElapsedTime;
 
         (void)CHECK_GL_ERROR();

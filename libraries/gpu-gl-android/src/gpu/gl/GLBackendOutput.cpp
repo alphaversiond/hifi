@@ -32,8 +32,7 @@ void GLBackend::resetOutputStage() {
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     }
 
-    //glEnable(GL_FRAMEBUFFER_SRGB);
-    qDebug() << "TODO: GLBackendOutput.cpp:resetOutputStage GL_FRAMEBUFFER_SRGB";
+    glEnable(GL_FRAMEBUFFER_SRGB_EXT);
 }
 
 void GLBackend::do_setFramebuffer(const Batch& batch, size_t paramOffset) {

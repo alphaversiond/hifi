@@ -33,8 +33,7 @@ const GLenum GLTexture::WRAP_MODES[Sampler::NUM_WRAP_MODES] = {
     GL_REPEAT,                         // WRAP_REPEAT,
     GL_MIRRORED_REPEAT,                // WRAP_MIRROR,
     GL_CLAMP_TO_EDGE,                  // WRAP_CLAMP,
-    //GL_CLAMP_TO_BORDER,                // WRAP_BORDER,
-    //    qDebug() << "TODO: GLTexture.cpp:WRAP_MODES GL_CLAMP_TO_BORDER";
+    GL_CLAMP_TO_BORDER_EXT,            // WRAP_BORDER,
 
     //GL_MIRROR_CLAMP_TO_EDGE_EXT        // WRAP_MIRROR_ONCE,
 //    qDebug() << "TODO: GLTexture.cpp:WRAP_MODES GL_MIRROR_CLAMP_TO_EDGE_EXT";    

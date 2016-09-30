@@ -200,14 +200,13 @@ void GLESBackend::GLESTexture::syncSampler() const {
     glTexParameteri(_target, GL_TEXTURE_WRAP_T, WRAP_MODES[sampler.getWrapModeV()]);
     glTexParameteri(_target, GL_TEXTURE_WRAP_R, WRAP_MODES[sampler.getWrapModeW()]);
 
-    //glTexParameterfv(_target, GL_TEXTURE_BORDER_COLOR, (const float*)&sampler.getBorderColor());
-    qDebug() << "TODO: GLBackendTexture.cpp:syncSampler GL_TEXTURE_BORDER_COLOR";
+    glTexParameterfv(_target, GL_TEXTURE_BORDER_COLOR_EXT, (const float*)&sampler.getBorderColor());
+    
 
     glTexParameteri(_target, GL_TEXTURE_BASE_LEVEL, (uint16)sampler.getMipOffset());
     glTexParameterf(_target, GL_TEXTURE_MIN_LOD, (float)sampler.getMinMip());
     glTexParameterf(_target, GL_TEXTURE_MAX_LOD, (sampler.getMaxMip() == Sampler::MAX_MIP_LEVEL ? 1000.f : sampler.getMaxMip()));
-    //glTexParameterf(_target, GL_TEXTURE_MAX_ANISOTROPY_EXT, sampler.getMaxAnisotropy());
-    qDebug() << "TODO: GLBackendTexture.cpp:syncSampler GL_TEXTURE_MAX_ANISOTROPY_EXT";
+    glTexParameterf(_target, GL_TEXTURE_MAX_ANISOTROPY_EXT, sampler.getMaxAnisotropy());
 
 }
 

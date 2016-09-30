@@ -38,8 +38,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                 break;
 
             case gpu::DEPTH:
-                qDebug() << "TODO: GLTexelFormat.cpp:evalGLTexelFormat GL_DEPTH_COMPONENT32";
-                //texel.internalFormat = GL_DEPTH_COMPONENT32;
+                texel.internalFormat = GL_DEPTH_COMPONENT32_OES;
                 break;
             case gpu::DEPTH_STENCIL:
                 texel.type = GL_UNSIGNED_INT_24_8;
@@ -260,15 +259,13 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
 
             case gpu::DEPTH:
                 texel.format = GL_DEPTH_COMPONENT; // It's depth component to load it
-                //texel.internalFormat = GL_DEPTH_COMPONENT32;
-                qDebug() << "TODO: GLTexelFormat.cpp:evalGLTexelFormat GL_DEPTH_COMPONENT32";
+                texel.internalFormat = GL_DEPTH_COMPONENT32_OES;
                 switch (dstFormat.getType()) {
                 case gpu::UINT32:
                 case gpu::INT32:
                 case gpu::NUINT32:
                 case gpu::NINT32: {
-                    //texel.internalFormat = GL_DEPTH_COMPONENT32;
-                    qDebug() << "TODO: GLTexelFormat.cpp:evalGLTexelFormat GL_DEPTH_COMPONENT32";
+                    texel.internalFormat = GL_DEPTH_COMPONENT32_OES;
                     break;
                 }
                 case gpu::FLOAT: {

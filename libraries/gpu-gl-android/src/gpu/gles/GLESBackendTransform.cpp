@@ -43,10 +43,9 @@ void GLESBackend::transferTransformState(const Batch& batch) const {
         glBufferData(GL_SHADER_STORAGE_BUFFER, sysmem.getSize(), sysmem.readData(), GL_STREAM_DRAW);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 #else
-        //glBindBuffer(GL_TEXTURE_BUFFER, _transform._objectBuffer);
-        //glBufferData(GL_TEXTURE_BUFFER, batch._objects.size() * sizeof(Batch::TransformObject), batch._objects.data(), GL_DYNAMIC_DRAW);
-        //glBindBuffer(GL_TEXTURE_BUFFER, 0);
-        qDebug() << "TODO: GLESBackendTransform.cpp:transferTransformState GL_TEXTURE_BUFFER";
+        glBindBuffer(GL_TEXTURE_BUFFER_EXT, _transform._objectBuffer);
+        glBufferData(GL_TEXTURE_BUFFER_EXT, batch._objects.size() * sizeof(Batch::TransformObject), batch._objects.data(), GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_TEXTURE_BUFFER_EXT, 0);
 #endif
     }
 
@@ -69,12 +68,11 @@ void GLESBackend::transferTransformState(const Batch& batch) const {
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, TRANSFORM_OBJECT_SLOT, _transform._objectBuffer);
 #else
     glActiveTexture(GL_TEXTURE0 + TRANSFORM_OBJECT_SLOT);
-    //glBindTexture(GL_TEXTURE_BUFFER, _transform._objectBufferTexture);
-    qDebug() << "TODO: GLESBackendTransform.cpp:transferTransformState GL_TEXTURE_BUFFER";
+    glBindTexture(GL_TEXTURE_BUFFER_EXT, _transform._objectBufferTexture);
 
     if (!batch._objects.empty()) {
-        //glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, _transform._objectBuffer);
-        qDebug() << "TODO: GLESBackendTransform.cpp:transferTransformState GL_TEXTURE_BUFFER";
+        //glTexBuffer(GL_TEXTURE_BUFFER_EXT, GL_RGBA32F, _transform._objectBuffer);
+        qDebug() << "TODO: GLESBackendTransform.cpp:transferTransformState glTexBuffer";
     }
 #endif
 
