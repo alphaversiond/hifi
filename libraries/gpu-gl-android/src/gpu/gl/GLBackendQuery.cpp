@@ -29,7 +29,6 @@ void GLBackend::do_beginQuery(const Batch& batch, size_t paramOffset) {
         if (timeElapsed) {
             glBeginQuery(GL_TIME_ELAPSED_EXT, glquery->_endqo);
         } else {
-            PFNGLQUERYCOUNTEREXTPROC glQueryCounterEXT = (PFNGLQUERYCOUNTEREXTPROC) eglGetProcAddress("glQueryCounterEXT");
             if (glQueryCounterEXT != NULL) {
                 glQueryCounterEXT(glquery->_beginqo, GL_TIMESTAMP_EXT);
             }
@@ -45,7 +44,6 @@ void GLBackend::do_endQuery(const Batch& batch, size_t paramOffset) {
         if (timeElapsed) {
             glEndQuery(GL_TIME_ELAPSED_EXT);
         } else {
-            PFNGLQUERYCOUNTEREXTPROC glQueryCounterEXT = (PFNGLQUERYCOUNTEREXTPROC) eglGetProcAddress("glQueryCounterEXT");
             if (glQueryCounterEXT != NULL) {
                 glQueryCounterEXT(glquery->_endqo, GL_TIMESTAMP_EXT);
             }
@@ -60,21 +58,18 @@ void GLBackend::do_endQuery(const Batch& batch, size_t paramOffset) {
 
 void GLBackend::do_getQuery(const Batch& batch, size_t paramOffset) {
     auto query = batch._queries.get(batch._params[paramOffset]._uint);
+    if (glGetQueryObjectui64vEXT == NULL)
+        return;
     GLQuery* glquery = syncGPUObject(*query);
     if (glquery) { 
-        //glGetQueryObjectui64v(glquery->_endqo, GL_QUERY_RESULT_AVAILABLE, &glquery->_result);
-        qDebug() << "TODO: GLBackendQuery.cpp.cpp:do_getQuery glGetQueryObjectui64v";
+        glGetQueryObjectui64vEXT(glquery->_endqo, GL_QUERY_RESULT_AVAILABLE, &glquery->_result);
         if (glquery->_result == GL_TRUE) {
             if (timeElapsed) {
-                //glGetQueryObjectui64v(glquery->_endqo, GL_QUERY_RESULT, &glquery->_result);
-                qDebug() << "TODO: GLBackendQuery.cpp.cpp:do_getQuery glGetQueryObjectui64v";
+                glGetQueryObjectui64vEXT(glquery->_endqo, GL_QUERY_RESULT, &glquery->_result);
             } else {
                 GLuint64 start, end;
-                //glGetQueryObjectui64v(glquery->_beginqo, GL_QUERY_RESULT, &start);
-                qDebug() << "TODO: GLBackendQuery.cpp.cpp:do_getQuery glGetQueryObjectui64v";
-                //glGetQueryObjectui64v(glquery->_endqo, GL_QUERY_RESULT, &end);
-                qDebug() << "TODO: GLBackendQuery.cpp.cpp:do_getQuery glGetQueryObjectui64v";
-
+                glGetQueryObjectui64vEXT(glquery->_beginqo, GL_QUERY_RESULT, &start);
+                glGetQueryObjectui64vEXT(glquery->_endqo, GL_QUERY_RESULT, &end);
                 glquery->_result = end - start;
             }
             query->triggerReturnHandler(glquery->_result, glquery->_batchElapsedTime);

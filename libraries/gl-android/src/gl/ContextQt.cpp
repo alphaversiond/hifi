@@ -15,6 +15,8 @@
 #include <QtPlatformHeaders/QWGLNativeContext>
 #endif
 
+#include "Config.h"
+
 using namespace gl;
 
 void Context::destroyContext(QOpenGLContext* context) {
@@ -70,6 +72,7 @@ void Context::create() {
     }
     _context->setFormat(getDefaultOpenGLSurfaceFormat());
     _context->create();
+    glewInit();
 }
 
 #endif

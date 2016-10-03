@@ -12,11 +12,11 @@
 #ifndef hifi_gpu_GPUConfig_h
 #define hifi_gpu_GPUConfig_h
 
+#ifndef ANDROID
 #define GL_GLEXT_PROTOTYPES 1
+#endif
 
-#include <GLES2/gl2ext.h>
-#include <GLES3/gl31.h>
-#include <EGL/egl.h>
+#include "glewand.h"
 
 #if defined(__APPLE__)
 
