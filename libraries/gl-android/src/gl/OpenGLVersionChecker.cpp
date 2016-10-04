@@ -21,7 +21,7 @@
 
 #include "GLHelpers.h"
 
-#define MINIMUM_GL_VERSION 0x0401
+#define MINIMUM_GL_VERSION 0x0301
 
 OpenGLVersionChecker::OpenGLVersionChecker(int& argc, char** argv) :
     QApplication(argc, argv)
@@ -99,9 +99,9 @@ qDebug() << "B10";
     qDebug() << "B11bis" << versionParts;
     int majorNumber = versionParts[0].toInt();
     int minorNumber = versionParts[1].toInt();
-    int minimumMajorNumber = (MINIMUM_GL_VERSION >> 16);
+    int minimumMajorNumber = (MINIMUM_GL_VERSION >> 8);
     int minimumMinorNumber = (MINIMUM_GL_VERSION & 0xFF);
-    qDebug (" FOUND %d.%d MIN %d.%d", majorNumber, minorNumber, minimumMajorNumber, minimumMinorNumber);
+    qDebug ("FOUND %d.%d MIN %d.%d", majorNumber, minorNumber, minimumMajorNumber, minimumMinorNumber);
     valid = (majorNumber > minimumMajorNumber
         || (majorNumber == minimumMajorNumber && minorNumber >= minimumMinorNumber));
 

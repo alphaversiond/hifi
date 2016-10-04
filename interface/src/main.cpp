@@ -131,9 +131,6 @@ int main(int argc, const char* argv[]) {
     bool override = false;
     QJsonObject glData;
     {
-        QApplication app2(argc, const_cast<char**>(argv));
-        qDebug("A10 - %d" , argc);
-        qDebug("A10 - %s" , argv);
         OpenGLVersionChecker openGLVersionChecker(argc, const_cast<char**>(argv));
         qDebug() << "A11";
         bool valid = true;

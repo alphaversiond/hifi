@@ -463,8 +463,15 @@ int ResourceCache::getPendingRequestCount() {
 
 bool ResourceCache::attemptRequest(QSharedPointer<Resource> resource) {
     Q_ASSERT(!resource.isNull());
+    qCDebug(networking) << "ResourceCache::attemptRequest getting ResourceCacheSharedItems";
     auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
 
+    qCDebug(networking) << "ResourceCache::attemptRequest got ResourceCacheSharedItems: " << sharedItems;
+    // qDebug() << "TODO: ResourceCache::attemptRequest why DependencyManager::get<ResourceCacheSharedItems> is null?!?!";
+    // the following was added just to continue
+    if (!sharedItems) {
+        return false;
+    }
     if (_requestsActive >= _requestLimit) {
         // wait until a slot becomes available
         sharedItems->appendPendingRequest(resource);
