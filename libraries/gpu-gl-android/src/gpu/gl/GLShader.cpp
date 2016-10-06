@@ -66,7 +66,10 @@ GLShader* compileBackendShader(GLBackend& backend, const Shader& shader) {
     for (int version = 0; version < GLShader::NumVersions; version++) {
         auto& shaderObject = shaderObjects[version];
         qCDebug(gpugllogging) << "shaderDefines values: version " << version;
-        std::string shaderDefines = glslVersion + "\n" + DOMAIN_DEFINES[shader.getType()] + "\n" + VERSION_DEFINES[version] + "\n" + "#extension GL_EXT_texture_buffer : enable";
+        std::string shaderDefines = glslVersion + "\n" + DOMAIN_DEFINES[shader.getType()] + "\n" + VERSION_DEFINES[version] 
+        + "\n" + "#extension GL_EXT_texture_buffer : enable"
+        + "\nprecision lowp float; // check precision 2"
+        + "\nprecision lowp samplerBuffer;";
         qCDebug(gpugllogging) << "shaderDefines " << shaderDefines.c_str();
         bool result = compileShader(shaderDomain, shaderSource, shaderDefines, shaderObject.glshader, shaderObject.glprogram);
         if (!result) {
