@@ -42,8 +42,11 @@ void MainWindow::restoreGeometry() {
     // Did not use setGeometry() on purpose,
     // see http://doc.qt.io/qt-5/qsettings.html#restoring-the-state-of-a-gui-application
     QRect geometry = _windowGeometry.get(qApp->desktop()->availableGeometry());
+    qDebug() << "MainWindow::restoreGeometry geometry: " << geometry;
     move(geometry.topLeft());
+    qDebug() << "MainWindow::restoreGeometry size: " << geometry.size();
     resize(geometry.size());
+    qDebug() << "MainWindow::restoreGeometry resize: " << geometry.size();
 
     // Restore to maximized or full screen after restoring to windowed so that going windowed goes to good position and sizes.
     Qt::WindowStates state = (Qt::WindowStates)_windowState.get(Qt::WindowNoState);

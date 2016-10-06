@@ -666,6 +666,7 @@ int makeOutputSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Sh
 
 
 bool compileShader(GLenum shaderDomain, const std::string& shaderSource, const std::string& defines, GLuint &shaderObject, GLuint &programObject) {
+    qCDebug(gpugllogging) << "GLShader::compileShader - START shaderDomain: " << shaderDomain;
     if (shaderSource.empty()) {
         qCDebug(gpugllogging) << "GLShader::compileShader - no GLSL shader source code ? so failed to create";
         return false;
@@ -784,7 +785,7 @@ bool compileShader(GLenum shaderDomain, const std::string& shaderSource, const s
 
     shaderObject = glshader;
     programObject = glprogram;
-
+    qCDebug(gpugllogging) << "GLShader::compileShader - END";
     return true;
 }
 

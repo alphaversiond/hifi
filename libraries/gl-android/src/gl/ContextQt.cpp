@@ -17,6 +17,8 @@
 
 #include "Config.h"
 
+#include <QDebug>
+
 using namespace gl;
 
 void Context::destroyContext(QOpenGLContext* context) {
@@ -64,15 +66,23 @@ const QSurfaceFormat& getDefaultOpenGLSurfaceFormat();
 
 
 void Context::create() {
+    qDebug() << "Context::create";
     _context = new QOpenGLContext();
+    qDebug() << "Context::create _context " << _context;
     if (PRIMARY) {
         _context->setShareContext(PRIMARY->qglContext());
+        qDebug() << "Context::create was PRIMARY using " << PRIMARY->qglContext();
     } else {
         PRIMARY = this;
+        qDebug() << "Context::create was not PRIMARY";
     }
+    qDebug() << "Context::create setFormat " << getDefaultOpenGLSurfaceFormat();
     _context->setFormat(getDefaultOpenGLSurfaceFormat());
+    qDebug() << "Context::create creating.. ";
     _context->create();
+    qDebug() << "Context::create glewInit().. ";
     glewInit();
+    qDebug() << "Context::create END";
 }
 
 #endif

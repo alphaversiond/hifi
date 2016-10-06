@@ -2,6 +2,7 @@
 
 #include <mutex>
 
+#include <QDebug>
 #include <QtCore/QObject>
 #include <QtCore/QThread>
 #include <QtCore/QRegularExpression>
@@ -15,10 +16,14 @@
 
 const QSurfaceFormat& getDefaultOpenGLSurfaceFormat() {
     static QSurfaceFormat format;
+    qDebug() << "QSurfaceFormat (original): "  << format << " renderable type: " << format.renderableType();
     static std::once_flag once;
     std::call_once(once, [] {
+        format.setRenderableType(QSurfaceFormat::OpenGLES);
+        format.setVersion(3,1);
         // Qt Quick may need a depth and stencil buffer. Always make sure these are available.
         format.setDepthBufferSize(DEFAULT_GL_DEPTH_BUFFER_BITS);
+        //format.setDepthBufferSize(24);
         format.setStencilBufferSize(DEFAULT_GL_STENCIL_BUFFER_BITS);
         setGLFormatVersion(format);
         format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);

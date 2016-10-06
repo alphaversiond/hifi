@@ -117,7 +117,8 @@ TransformObject getTransformObject() {
     return _object[_drawCallInfo.x];
 }
 <@else@>
-uniform samplerBuffer transformObjectBuffer;
+// highp defined for android only?
+uniform highp samplerBuffer transformObjectBuffer;
 
 TransformObject getTransformObject() {
     int offset = 8 * _drawCallInfo.x;

@@ -186,6 +186,7 @@ namespace controller {
 
 
     QObject* ScriptingInterface::parseMapping(const QString& json) {
+        qCDebug(controllers) << "ScriptingInterface::parseMapping";
         auto userInputMapper = DependencyManager::get<UserInputMapper>();
         auto mapping = userInputMapper->parseMapping(json);
         return new MappingBuilderProxy(*userInputMapper, mapping);

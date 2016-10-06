@@ -14,6 +14,7 @@
 
 #include <mutex>
 
+#include <QDebug>
 #include <QtGlobal>
 #include <QtCore/QMimeData>
 #include <QtCore/QUrl>
@@ -64,11 +65,17 @@ int GLWidget::getDeviceHeight() const {
 }
 
 void GLWidget::createContext() {
+    qDebug() << "GLWidget::createContext new gl::Context()";
     _context = new gl::Context();
+    qDebug() << "GLWidget::createContext setWindow";
     _context->setWindow(windowHandle());
+    qDebug() << "GLWidget::createContext create";
     _context->create();
+    qDebug() << "GLWidget::createContext clear";
     _context->clear();
+    qDebug() << "GLWidget::createContext makeCurrent";
     _context->makeCurrent();
+    qDebug() << "GLWidget::createContext END";
 }
 
 bool GLWidget::makeCurrent() {

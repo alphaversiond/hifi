@@ -30,7 +30,7 @@ GLShader::~GLShader() {
 
 // GLSL version
 static const std::string glslVersion {
-    "#version 410 core"
+    "#version 310 es"
 };
 
 // Shader domain
@@ -65,9 +65,9 @@ GLShader* compileBackendShader(GLBackend& backend, const Shader& shader) {
 
     for (int version = 0; version < GLShader::NumVersions; version++) {
         auto& shaderObject = shaderObjects[version];
-
-        std::string shaderDefines = glslVersion + "\n" + DOMAIN_DEFINES[shader.getType()] + "\n" + VERSION_DEFINES[version];
-
+        qCDebug(gpugllogging) << "shaderDefines values: version " << version;
+        std::string shaderDefines = glslVersion + "\n" + DOMAIN_DEFINES[shader.getType()] + "\n" + VERSION_DEFINES[version] + "\n" + "#extension GL_EXT_texture_buffer : enable";
+        qCDebug(gpugllogging) << "shaderDefines " << shaderDefines.c_str();
         bool result = compileShader(shaderDomain, shaderSource, shaderDefines, shaderObject.glshader, shaderObject.glprogram);
         if (!result) {
             return nullptr;
@@ -122,7 +122,6 @@ GLShader* compileBackendProgram(GLBackend& backend, const Shader& program) {
 
 GLShader* GLShader::sync(GLBackend& backend, const Shader& shader) {
     GLShader* object = Backend::getGPUObject<GLShader>(shader);
-
     // If GPU object already created then good
     if (object) {
         return object;

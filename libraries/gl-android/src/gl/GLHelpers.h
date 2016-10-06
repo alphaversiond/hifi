@@ -24,7 +24,7 @@ class QSurfaceFormat;
 class QGLFormat;
 
 template<class F>
-void setGLFormatVersion(F& format, int major = 4, int minor = 5) { format.setVersion(major, minor); }
+void setGLFormatVersion(F& format, int major = 3, int minor = 1) { format.setVersion(major, minor); }
 
 const QSurfaceFormat& getDefaultOpenGLSurfaceFormat();
 QJsonObject getGLContextData();
