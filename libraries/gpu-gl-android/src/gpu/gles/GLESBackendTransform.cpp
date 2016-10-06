@@ -71,8 +71,7 @@ void GLESBackend::transferTransformState(const Batch& batch) const {
     glBindTexture(GL_TEXTURE_BUFFER_EXT, _transform._objectBufferTexture);
 
     if (!batch._objects.empty()) {
-        //glTexBuffer(GL_TEXTURE_BUFFER_EXT, GL_RGBA32F, _transform._objectBuffer);
-        qDebug() << "TODO: GLESBackendTransform.cpp:transferTransformState glTexBuffer";
+        glTexBufferEXT(GL_TEXTURE_BUFFER_EXT, GL_RGBA32F, _transform._objectBuffer);
     }
 #endif
 

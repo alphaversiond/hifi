@@ -84,17 +84,14 @@ void GLESBackend::do_drawInstanced(const Batch& batch, size_t paramOffset) {
         GLint trueNumInstances = 2 * numInstances;
 
         setupStereoSide(0);
-        //glDrawArraysInstancedARB(mode, startVertex, numVertices, numInstances);
-        qDebug() << "TODO: GLESBackend.cpp:do_drawInstanced glDrawArraysInstancedARB";
+        glDrawArraysInstancedEXT(mode, startVertex, numVertices, numInstances);
         setupStereoSide(1);
-        //glDrawArraysInstancedARB(mode, startVertex, numVertices, numInstances);
-        qDebug() << "TODO: GLESBackend.cpp:do_drawInstanced glDrawArraysInstancedARB";
+        glDrawArraysInstancedEXT(mode, startVertex, numVertices, numInstances);
 
         _stats._DSNumTriangles += (trueNumInstances * numVertices) / 3;
         _stats._DSNumDrawcalls += trueNumInstances;
     } else {
-        //glDrawArraysInstancedARB(mode, startVertex, numVertices, numInstances);
-        qDebug() << "TODO: GLESBackend.cpp:do_drawInstanced glDrawArraysInstancedARB";
+        glDrawArraysInstancedEXT(mode, startVertex, numVertices, numInstances);
         _stats._DSNumTriangles += (numInstances * numVertices) / 3;
         _stats._DSNumDrawcalls += numInstances;
     }
@@ -106,7 +103,6 @@ void GLESBackend::do_drawInstanced(const Batch& batch, size_t paramOffset) {
 void glbackend_glDrawElementsInstancedBaseVertexBaseInstance(GLenum mode, GLsizei count, GLenum type, const GLvoid *indices, GLsizei primcount, GLint basevertex, GLuint baseinstance) {
 //#if (GPU_INPUT_PROFILE == GPU_CORE_43)
     //glDrawElementsInstancedBaseVertexBaseInstance(mode, count, type, indices, primcount, basevertex, baseinstance);
-    qDebug() << "TODO: GLESBackend.cpp:glbackend_glDrawElementsInstancedBaseVertexBaseInstance glDrawElementsInstancedBaseVertexBaseInstance";
 //#else
     glDrawElementsInstanced(mode, count, type, indices, primcount);
 //#endif

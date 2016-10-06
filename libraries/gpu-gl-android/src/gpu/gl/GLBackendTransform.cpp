@@ -142,8 +142,9 @@ void GLBackend::updateTransform(const Batch& batch) {
     if (batch._currentNamedCall.empty()) {
         auto& drawCallInfo = drawCallInfoBuffer[_currentDraw];
         glDisableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO); // Make sure attrib array is disabled
-        qDebug() << "TODO: GLBackendTransform.cpp:updateTransform glVertexAttribI2i";
         //glVertexAttribI2i(gpu::Stream::DRAW_CALL_INFO, drawCallInfo.index, drawCallInfo.unused);
+        int values[] = {drawCallInfo.index, drawCallInfo.unused};
+        glVertexAttribIPointer(gpu::Stream::DRAW_CALL_INFO, 2, GL_INT, 0, (const GLvoid *) values);
     } else {
         glEnableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO); // Make sure attrib array is enabled
         glBindBuffer(GL_ARRAY_BUFFER, _transform._drawCallInfoBuffer);

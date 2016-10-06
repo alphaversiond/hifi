@@ -99,8 +99,7 @@ public:
         if (!_colorBuffers.empty()) {
             glDrawBuffers((GLsizei)_colorBuffers.size(), _colorBuffers.data());
         } else {
-            //glDrawBuffer(GL_NONE);
-            qDebug() << "TODO: GLESBackendOutput.cpp:override glDrawBuffer";
+            glDrawBuffers(1, {GL_NONE});
         }
 
         // Now check for completness

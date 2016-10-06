@@ -72,8 +72,8 @@ void GLBackend::do_clearFramebuffer(const Batch& batch, size_t paramOffset) {
 
     bool restoreDepthMask = false;
     if (masks & Framebuffer::BUFFER_DEPTH) {
-        //glClearDepth(depth);
-        qDebug() << "TODO: GLBackendOutput.cpp:do_clearFramebuffer glClearDepthf";
+        glClearDepthf(depth);
+        qDebug() << "TODO: GLBackendOutput.cpp:do_clearFramebuffer glClearDepth";
 
         glmask |= GL_DEPTH_BUFFER_BIT;
         
