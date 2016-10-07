@@ -12,9 +12,12 @@ using namespace gpu;
 using namespace gpu::gl;
 
 
-GLTexelFormat GLTexelFormat::evalGLTexelFormatInternal(const gpu::Element& dstFormat) {
-    GLTexelFormat texel = { GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE };
-    return texel;
+GLenum GLTexelFormat::evalGLTexelFormatInternal(const gpu::Element& dstFormat) {
+    // OLD IMPL GLTexelFormat texel = { GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE };
+    // return texel;
+    qDebug() << "TODO: GLTexelFormat.cpp GLTexelFormat::evalGLTexelFormatInternal (see cases in gpu-gl/GLTexelFormat:::evalGLTexelFormatInternal";
+    GLenum result = GL_RGBA;
+    return result;
 }
 
 GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const Element& srcFormat) {

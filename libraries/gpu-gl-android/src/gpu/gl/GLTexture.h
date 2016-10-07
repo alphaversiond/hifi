@@ -32,6 +32,42 @@ public:
     template <typename GLTextureType>
     static GLTextureType* sync(GLBackend& backend, const TexturePointer& texturePointer, bool needTransfer) {
         const Texture& texture = *texturePointer;
+
+        // Special case external textures
+        if (texture.getUsage().isExternal()) {
+            Texture::ExternalUpdates updates = texture.getUpdates();
+            if (!updates.empty()) {
+                Texture::ExternalRecycler recycler = texture.getExternalRecycler();
+                Q_ASSERT(recycler);
+                // Discard any superfluous updates
+                while (updates.size() > 1) {
+                    const auto& update = updates.front();
+                    // Superfluous updates will never have been read, but we want to ensure the previous 
+                    // writes to them are complete before they're written again, so return them with the 
+                    // same fences they arrived with.  This can happen on any thread because no GL context 
+                    // work is involved
+                    recycler(update.first, update.second);
+                    updates.pop_front();
+                }
+
+                // The last texture remaining is the one we'll use to create the GLTexture
+                const auto& update = updates.front();
+                // Check for a fence, and if it exists, inject a wait into the command stream, then destroy the fence
+                if (update.second) {
+                    GLsync fence = static_cast<GLsync>(update.second);
+                    glWaitSync(fence, 0, GL_TIMEOUT_IGNORED);
+                    glDeleteSync(fence);
+                }
+
+                // Create the new texture object (replaces any previous texture object)
+                new GLTextureType(backend.shared_from_this(), texture, update.first);
+            }
+
+            // Return the texture object (if any) associated with the texture, without extensive logic
+            // (external textures are 
+            return Backend::getGPUObject<GLTextureType>(texture);
+        }
+
         if (!texture.isDefined()) {
             // NO texture definition yet so let's avoid thinking
             return nullptr;
@@ -73,14 +109,7 @@ public:
             return nullptr;
         }
 
-        // Do we need to reduce texture memory usage?
-        if (object->isOverMaxMemory() && texturePointer->incremementMinMip()) {
-            // WARNING, this code path will essentially `delete this`, 
-            // so no dereferencing of this instance should be done past this point
-            object = new GLTextureType(backend.shared_from_this(), texture, object);
-            _textureTransferHelper->transferTexture(texturePointer);
-            return nullptr;
-        }
+        ((GLTexture*)object)->updateMips();
 
         return object;
     }
@@ -96,57 +125,40 @@ public:
         } else {
             object = Backend::getGPUObject<GLTextureType>(*texture);
         }
+
         if (!object) {
             return 0;
         }
 
-        GLuint result = object->_id;
+        if (!shouldSync) {
+            return object->_id;
+        }
 
         // Don't return textures that are in transfer state
-        if (shouldSync) {
-            if ((object->getSyncState() != GLSyncState::Idle) ||
-                // Don't return transferrable textures that have never completed transfer
-                (!object->_transferrable || 0 != object->_transferCount)) {
-                // Will be either 0 or the original texture being downsampled.
-                result = object->_downsampleSource._texture;
-            }
+        if ((object->getSyncState() != GLSyncState::Idle) ||
+            // Don't return transferrable textures that have never completed transfer
+            (!object->_transferrable || 0 != object->_transferCount)) {
+            return 0;
         }
         
-        return result;
-    }
-
-    // Used by derived classes and helpers to ensure the actual GL object exceeds the lifetime of `this`
-    GLuint takeOwnership() {
-        GLuint result = _id;
-        const_cast<GLuint&>(_id) = 0;
-        return result;
+        return object->_id;
     }
 
     ~GLTexture();
 
+    // Is this texture generated outside the GPU library?
+    const bool _external;
     const GLuint& _texture { _id };
+    const std::string _source;
     const Stamp _storageStamp;
     const GLenum _target;
+    const GLenum _internalFormat;
     const uint16 _maxMip;
-    const uint16 _minMip;
+    uint16 _minMip;
     const GLuint _virtualSize; // theoretical size as expected
     Stamp _contentStamp { 0 };
     const bool _transferrable;
     Size _transferCount { 0 };
-
-    struct DownsampleSource {
-        using Pointer = std::shared_ptr<DownsampleSource>;
-        DownsampleSource(const std::weak_ptr<gl::GLBackend>& backend) : _backend(backend), _size(0), _texture(0), _minMip(0), _maxMip(0) {}
-        DownsampleSource(const std::weak_ptr<gl::GLBackend>& backend, GLTexture* originalTexture);
-        ~DownsampleSource();
-        void reset() const { const_cast<GLuint&>(_texture) = 0; }
-        const std::weak_ptr<gl::GLBackend>& _backend;
-        const GLuint _size { 0 };
-        const GLuint _texture { 0 };
-        const uint16 _minMip { 0 };
-        const uint16 _maxMip { 0 };
-    } _downsampleSource;
-
     GLuint size() const { return _size; }
     GLSyncState getSyncState() const { return _syncState; }
 
@@ -160,9 +172,7 @@ public:
     bool isReady() const;
 
     // Execute any post-move operations that must occur only on the main thread
-    void postTransfer();
-
-    bool isOverMaxMemory() const;
+    virtual void postTransfer();
 
     uint16 usedMipLevels() const { return (_maxMip - _minMip) + 1; }
 
@@ -170,33 +180,35 @@ public:
     static const GLenum CUBE_FACE_LAYOUT[6];
     static const GLFilterMode FILTER_MODES[Sampler::NUM_FILTERS];
     static const GLenum WRAP_MODES[Sampler::NUM_WRAP_MODES];
-protected:
 
-    static const std::vector<GLenum>& getFaceTargets(GLenum textureType);
-
-    static GLenum getGLTextureType(const Texture& texture);
     // Return a floating point value indicating how much of the allowed 
     // texture memory we are currently consuming.  A value of 0 indicates 
     // no texture memory usage, while a value of 1 indicates all available / allowed memory
     // is consumed.  A value above 1 indicates that there is a problem.
     static float getMemoryPressure();
+protected:
+
+    static const std::vector<GLenum>& getFaceTargets(GLenum textureType);
+
+    static GLenum getGLTextureType(const Texture& texture);
 
 
     const GLuint _size { 0 }; // true size as reported by the gl api
     std::atomic<GLSyncState> _syncState { GLSyncState::Idle };
 
     GLTexture(const std::weak_ptr<gl::GLBackend>& backend, const Texture& texture, GLuint id, bool transferrable);
-    GLTexture(const std::weak_ptr<gl::GLBackend>& backend, const Texture& texture, GLuint id, GLTexture* originalTexture);
+    GLTexture(const std::weak_ptr<gl::GLBackend>& backend, const Texture& texture, GLuint id);
 
     void setSyncState(GLSyncState syncState) { _syncState = syncState; }
 
     void createTexture();
-    
+
+    virtual void updateMips() {}
     virtual void allocateStorage() const = 0;
     virtual void updateSize() const = 0;
     virtual void syncSampler() const = 0;
     virtual void generateMips() const = 0;
-    virtual void withPreservedTexture(std::function<void()> f) const = 0;
+    virtual void withPreservedTexture(std::function<void()> f) const;
 
 protected:
     void setSize(GLuint size) const;
@@ -207,9 +219,6 @@ protected:
     virtual void finishTransfer();
 
 private:
-
-    GLTexture(const std::weak_ptr<GLBackend>& backend, const gpu::Texture& gpuTexture, GLuint id, GLTexture* originalTexture, bool transferrable);
-
     friend class GLTextureTransferHelper;
     friend class GLBackend;
 };

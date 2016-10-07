@@ -142,7 +142,8 @@ void GLESTexture::transferMip(uint16_t mipLevel, uint8_t face) const {
 }
 
 void GLESTexture::startTransfer() {
-    PROFILE_RANGE(__FUNCTION__);
+    qDebug() << "TODO: GLESBackendTexture.cpp GLESTexture::startTransfer _downsampleSource not defined (check rewrite file based on GL4X)";
+    /*PROFILE_RANGE(__FUNCTION__);
     Parent::startTransfer();
 
     glBindTexture(_target, _id);
@@ -179,7 +180,7 @@ void GLESTexture::startTransfer() {
                 }
             }
         }
-    }
+    }*/
 }
 
 void GLESBackend::GLESTexture::syncSampler() const {

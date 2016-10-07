@@ -23,7 +23,6 @@ const QSurfaceFormat& getDefaultOpenGLSurfaceFormat() {
         format.setVersion(3,1);
         // Qt Quick may need a depth and stencil buffer. Always make sure these are available.
         format.setDepthBufferSize(DEFAULT_GL_DEPTH_BUFFER_BITS);
-        //format.setDepthBufferSize(24);
         format.setStencilBufferSize(DEFAULT_GL_STENCIL_BUFFER_BITS);
         setGLFormatVersion(format);
         format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
@@ -45,8 +44,6 @@ QJsonObject getGLContextData() {
     QString glslVersion = QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
     QString glVendor = QString((const char*) glGetString(GL_VENDOR));
     QString glRenderer = QString((const char*)glGetString(GL_RENDERER));
-
-    qDebug() << "getGLContextData";
 
     return QJsonObject {
         { "version", glVersion },

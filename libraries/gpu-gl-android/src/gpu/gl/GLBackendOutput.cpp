@@ -153,7 +153,7 @@ void GLBackend::downloadFramebuffer(const FramebufferPointer& srcFramebuffer, co
           return;
     }
     
-    GLenum format = 0;
+    GLenum format = GL_RGBA;
     //GLenum format = GL_BGRA;
     qDebug() << "TODO: GLBackendOutput.cpp:do_clearFramebuffer GL_BGRA";
 
