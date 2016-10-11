@@ -291,8 +291,8 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
 
     _canvas = new OffscreenGLCanvas();
     if (!_canvas->create(shareContext)) {
-        qFatal("Failed to create OffscreenGLCanvas");
-        return;
+        //qFatal("Failed to create OffscreenGLCanvas");
+        //return;
     };
 
     connect(_quickWindow, &QQuickWindow::focusObjectChanged, this, &OffscreenQmlSurface::onFocusObjectChanged);
@@ -322,10 +322,12 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
         qWarning("Failed to make context current for QML Renderer");
         return;
     }
+
     _glData = ::getGLContextData();
+    qCDebug(glLogging) << "OffscreenQmlSurface::create initializing render control..";
     _renderControl->initialize(_canvas->getContext());
     setupFbo();
-
+    qCDebug(glLogging) << "OffscreenQmlSurface::create fbo set";
     // When Quick says there is a need to render, we will not render immediately. Instead,
     // a timer with a small interval is used to get better performance.
     QObject::connect(&_updateTimer, &QTimer::timeout, this, &OffscreenQmlSurface::updateQuick);
@@ -333,9 +335,13 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
     _updateTimer.setInterval(MIN_TIMER_MS);
     _updateTimer.start();
 
+    qCDebug(glLogging) << "OffscreenQmlSurface::create Url? " << QUrl::fromLocalFile(PathUtils::resourcesPath());
+    qCDebug(glLogging) << "OffscreenQmlSurface::create Url (no local)? " << QUrl(PathUtils::resourcesPath());
     auto rootContext = getRootContext();
     rootContext->setContextProperty("urlHandler", new UrlHandler());
-    rootContext->setContextProperty("resourceDirectoryUrl", QUrl::fromLocalFile(PathUtils::resourcesPath()));
+    rootContext->setContextProperty("resourceDirectoryUrl", QUrl(PathUtils::resourcesPath()));
+
+    qCDebug(glLogging) << "OffscreenQmlSurface::create END";
 }
 
 void OffscreenQmlSurface::resize(const QSize& newSize_, bool forceResize) {
@@ -400,17 +406,18 @@ void OffscreenQmlSurface::setBaseUrl(const QUrl& baseUrl) {
 QObject* OffscreenQmlSurface::load(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f) {
     // Synchronous loading may take a while; restart the deadlock timer
     QMetaObject::invokeMethod(qApp, "updateHeartbeat", Qt::DirectConnection);
-
+    qDebug() << "OffscreenQmlSurface::load qmlSource: " << qmlSource;
     _qmlComponent->loadUrl(qmlSource, QQmlComponent::PreferSynchronous);
-
+    qDebug() << "OffscreenQmlSurface::loadUrl called";
     if (_qmlComponent->isLoading()) {
         connect(_qmlComponent, &QQmlComponent::statusChanged, this,
             [this, f](QQmlComponent::Status){
                 finishQmlLoad(f);
             });
+        qDebug() << "OffscreenQmlSurface::loadUrl was loading, returning nullptr";
         return nullptr;
     }
-
+    qDebug() << "OffscreenQmlSurface::load ending..";
     return finishQmlLoad(f);
 }
 
@@ -419,6 +426,7 @@ void OffscreenQmlSurface::clearCache() {
 }
 
 QObject* OffscreenQmlSurface::finishQmlLoad(std::function<void(QQmlContext*, QObject*)> f) {
+    qDebug() << "OffscreenQmlSurface::finishQmlLoad start";
     disconnect(_qmlComponent, &QQmlComponent::statusChanged, this, 0);
     if (_qmlComponent->isError()) {
         QList<QQmlError> errorList = _qmlComponent->errors();
@@ -427,20 +435,28 @@ QObject* OffscreenQmlSurface::finishQmlLoad(std::function<void(QQmlContext*, QOb
         }
         return nullptr;
     }
-
+    qDebug() << "OffscreenQmlSurface::finishQmlLoad web channel stuff";
     // FIXME: Refactor with similar code in RenderableWebEntityItem
     QString javaScriptToInject;
     QFile webChannelFile(":qtwebchannel/qwebchannel.js");
+    qDebug() << "OffscreenQmlSurface::finishQmlLoad created web channel file";
     QFile createGlobalEventBridgeFile(PathUtils::resourcesPath() + "/html/createGlobalEventBridge.js");
-    if (webChannelFile.open(QFile::ReadOnly | QFile::Text) &&
+    qDebug() << "OffscreenQmlSurface::finishQmlLoad created global event bridge file";
+    qDebug() << "OffscreenQmlSurface::finishQmlLoad QQmlContext";
+    /*if (webChannelFile.open(QFile::ReadOnly | QFile::Text) &&
         createGlobalEventBridgeFile.open(QFile::ReadOnly | QFile::Text)) {
+        qDebug() << "OffscreenQmlSurface::finishQmlLoad opened webChannelFile";
         QString webChannelStr = QTextStream(&webChannelFile).readAll();
+        qDebug() << "OffscreenQmlSurface::finishQmlLoad webChannelStr read";
         QString createGlobalEventBridgeStr = QTextStream(&createGlobalEventBridgeFile).readAll();
+        qDebug() << "OffscreenQmlSurface::finishQmlLoad createGlobalEventBridgeStr " << createGlobalEventBridgeStr;
         javaScriptToInject = webChannelStr + createGlobalEventBridgeStr;
+        qDebug() << "OffscreenQmlSurface::finishQmlLoad javaScriptToInject " << javaScriptToInject;
     } else {
+        qDebug() << "Unable to find qwebchannel.js or createGlobalEventBridge.js";
         qWarning() << "Unable to find qwebchannel.js or createGlobalEventBridge.js";
-    }
-
+    }*/
+    qDebug() << "OffscreenQmlSurface::finishQmlLoad QQmlContext";
     QQmlContext* newContext = new QQmlContext(_qmlEngine, qApp);
     QObject* newObject = _qmlComponent->beginCreate(newContext);
     if (_qmlComponent->isError()) {
@@ -458,7 +474,7 @@ QObject* OffscreenQmlSurface::finishQmlLoad(std::function<void(QQmlContext*, QOb
 
     f(newContext, newObject);
     _qmlComponent->completeCreate();
-
+    qDebug() << "OffscreenQmlSurface::finishQmlLoad _qmlComponent create completed";
 
     // All quick items should be focusable
     QQuickItem* newItem = qobject_cast<QQuickItem*>(newObject);
@@ -467,7 +483,7 @@ QObject* OffscreenQmlSurface::finishQmlLoad(std::function<void(QQmlContext*, QOb
         // supporting keyboard shortcuts)
         newItem->setFlag(QQuickItem::ItemIsFocusScope, true);
     }
-
+    qDebug() << "OffscreenQmlSurface::finishQmlLoad newItem set";
     // If we already have a root, just set a couple of flags and the ancestry
     if (_rootItem) {
         // Allow child windows to be destroyed from JS
@@ -476,6 +492,7 @@ QObject* OffscreenQmlSurface::finishQmlLoad(std::function<void(QQmlContext*, QOb
         if (newItem) {
             newItem->setParentItem(_rootItem);
         }
+        qDebug() << "OffscreenQmlSurface::finishQmlLoad had _rootItem returning";
         return newObject;
     }
 
@@ -483,10 +500,12 @@ QObject* OffscreenQmlSurface::finishQmlLoad(std::function<void(QQmlContext*, QOb
         qFatal("Could not load object as root item");
         return nullptr;
     }
+    qDebug() << "OffscreenQmlSurface::finishQmlLoad root item ready";
     // The root item is ready. Associate it with the window.
     _rootItem = newItem;
     _rootItem->setParentItem(_quickWindow->contentItem());
     _rootItem->setSize(_quickWindow->renderTargetSize());
+    qDebug() << "OffscreenQmlSurface::finishQmlLoad end";
     return _rootItem;
 }
 

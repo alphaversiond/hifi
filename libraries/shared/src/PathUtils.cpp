@@ -18,11 +18,16 @@
 #include <QUrl>
 #include "PathUtils.h"
 #include <QtCore/QStandardPaths>
-
+#include <QDebug>
 
 const QString& PathUtils::resourcesPath() {
 #ifdef Q_OS_MAC
     static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/../Resources/";
+#elif defined (ANDROID)
+    /*qDebug() << QCoreApplication::applicationDirPath();
+    qDebug() << QCoreApplication::applicationFilePath();
+    qDebug() << QCoreApplication::libraryPaths();*/
+    static QString staticResourcePath = "assets:/resources";
 #else
     static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/resources/";
 #endif

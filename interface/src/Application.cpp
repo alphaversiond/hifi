@@ -97,7 +97,9 @@
 #include <ScriptEngines.h>
 #include <ScriptCache.h>
 #include <SoundCache.h>
+#ifndef ANDROID
 #include <steamworks-wrapper/SteamClient.h>
+#endif
 #include <Tooltip.h>
 #include <udt/PacketHeaders.h>
 #include <UserActivityLogger.h>
@@ -205,7 +207,7 @@ static const QString INFO_HELP_PATH = "html/help.html";
 static const unsigned int THROTTLED_SIM_FRAMERATE = 15;
 static const int THROTTLED_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / THROTTLED_SIM_FRAMERATE;
 
-static const uint32_t INVALID_FRAME = UINT32_MAX;
+static const uint32_t INVALID_FRAME = std::numeric_limits<std::uint32_t>::max();
 
 static const float PHYSICS_READY_RANGE = 3.0f; // how far from avatar to check for entities that aren't ready for simulation
 
@@ -1598,12 +1600,12 @@ void Application::initializeGL() {
     initializeUi();
     qCDebug(interfaceapp, "Initialized Offscreen UI.");
     _glWidget->makeCurrent();
-
+    qCDebug(interfaceapp, "Application::initializeGL glWidget made current");
 
     // call Menu getInstance static method to set up the menu
     // Needs to happen AFTER the QML UI initialization
     _window->setMenuBar(Menu::getInstance());
-
+    qCDebug(interfaceapp, "Application::initializeGL menu bar set");
     init();
     qCDebug(interfaceapp, "init() complete.");
 
@@ -1613,15 +1615,19 @@ void Application::initializeGL() {
     _entityEditSender.initialize(_enableProcessOctreeThread);
 
     _idleLoopStdev.reset();
-
+    qCDebug(interfaceapp, "OffscreenGLCanvas before");
     _offscreenContext = new OffscreenGLCanvas();
+    qCDebug(interfaceapp, "OffscreenGLCanvas instanced");
     _offscreenContext->setObjectName("MainThreadContext");
+    qCDebug(interfaceapp, "_offscreenContext name set");
     _offscreenContext->create(_glWidget->qglContext());
+    qCDebug(interfaceapp, "_offscreenContext created");
     _offscreenContext->makeCurrent();
+    qCDebug(interfaceapp, "_offscreenContext madeCurrent");
 
     // update before the first render
     update(0);
-
+    qCDebug(interfaceapp, "update called");
 }
 
 FrameTimingsScriptingInterface _frameTimingsScriptingInterface;
@@ -1643,11 +1649,13 @@ void Application::initializeUi() {
     auto rootContext = offscreenUi->getRootContext();
 
     offscreenUi->setProxyWindow(_window->windowHandle());
-    offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
+    //offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
+    offscreenUi->setBaseUrl(QUrl(PathUtils::resourcesPath() + "/qml/"));
     // OffscreenUi is a subclass of OffscreenQmlSurface specifically designed to
     // support the window management and scripting proxies for VR use
-    offscreenUi->createDesktop(QString("hifi/Desktop.qml"));
-
+    qDebug() << "Application::initializeUi creating desktop..";
+    //offscreenUi->createDesktop(QString("hifi/Desktop.qml"));
+    qDebug() << "Application::initializeUi desktop created";
     // FIXME either expose so that dialogs can set this themselves or
     // do better detection in the offscreen UI of what has focus
     offscreenUi->setNavigationFocused(false);
@@ -1658,7 +1666,7 @@ void Application::initializeUi() {
     });
 
     setupPreferences();
-
+    qDebug() << "Application::initializeUi preferences set";
     // For some reason there is already an "Application" object in the QML context,
     // though I can't find it. Hence, "ApplicationInterface"
     rootContext->setContextProperty("ApplicationInterface", this);
@@ -1720,7 +1728,7 @@ void Application::initializeUi() {
     rootContext->setContextProperty("ApplicationCompositor", &getApplicationCompositor());
 
     rootContext->setContextProperty("Steam", new SteamScriptingInterface(engine));
-    
+#endif
 
     _glWidget->installEventFilter(offscreenUi.data());
     offscreenUi->setMouseTranslator([=](const QPointF& pt) {
@@ -1734,6 +1742,7 @@ void Application::initializeUi() {
         return result.toPoint();
     });
     offscreenUi->resume();
+    qDebug() << "Application::initializeUi offscreenUi resumed";
     connect(_window, &MainWindow::windowGeometryChanged, [this](const QRect& r){
         resizeGL();
     });
@@ -1749,16 +1758,18 @@ void Application::initializeUi() {
         }
     }
     _window->setMenuBar(new Menu());
-
+    qDebug() << "Application::initializeUi _window menubar set";
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
     connect(compositorHelper.data(), &CompositorHelper::allowMouseCaptureChanged, [=] {
         if (isHMDMode()) {
             showCursor(compositorHelper->getAllowMouseCapture() ? Qt::BlankCursor : Qt::ArrowCursor);
         }
     });
+    qDebug() << "Application::initializeUi DONE";
 }
 
 void Application::paintGL() {
+    qDebug() << "Application::paintGL Start";
     // Some plugins process message events, allowing paintGL to be called reentrantly.
     if (_inPaint || _aboutToQuit) {
         return;
@@ -2018,6 +2029,7 @@ void Application::paintGL() {
 
     uint64_t lastPaintDuration = usecTimestampNow() - lastPaintBegin;
     _frameTimingsScriptingInterface.addValue(lastPaintDuration);
+    qDebug() << "Application::paintGL END";
 }
 
 void Application::runTests() {
@@ -3449,19 +3461,23 @@ void Application::pushPostUpdateLambda(void* key, std::function<void()> func) {
 // The principal result is to call updateLookAtTargetAvatar() and then setLookAtPosition().
 // Note that it is called BEFORE we update position or joints based on sensors, etc.
 void Application::updateMyAvatarLookAtPosition() {
+    qDebug() << "Application::updateMyAvatarLookAtPosition start";
     PerformanceTimer perfTimer("lookAt");
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateMyAvatarLookAtPosition()");
-
+    qDebug() << "Application::updateMyAvatarLookAtPosition 0002";
     auto myAvatar = getMyAvatar();
     myAvatar->updateLookAtTargetAvatar();
     FaceTracker* faceTracker = getActiveFaceTracker();
     auto eyeTracker = DependencyManager::get<EyeTracker>();
-
+    qDebug() << "Application::updateMyAvatarLookAtPosition 0003 (qApp: " << qApp;
     bool isLookingAtSomeone = false;
     bool isHMD = qApp->isHMDMode();
+    qDebug() << "Application::updateMyAvatarLookAtPosition isHMD? " << isHMD;
     glm::vec3 lookAtSpot;
+    qDebug() << "Application::updateMyAvatarLookAtPosition 0004";
     if (eyeTracker->isTracking() && (isHMD || eyeTracker->isSimulating())) {
+        qDebug() << "Application::updateMyAvatarLookAtPosition looking at a point";
         //  Look at the point that the user is looking at.
         glm::vec3 lookAtPosition = eyeTracker->getLookAtPosition();
         if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
@@ -3476,6 +3492,7 @@ void Application::updateMyAvatarLookAtPosition() {
                 + (myAvatar->getHead()->getFinalOrientationInWorldFrame() * lookAtPosition);
         }
     } else {
+        qDebug() << "Application::updateMyAvatarLookAtPosition looking at someone?";
         AvatarSharedPointer lookingAt = myAvatar->getLookAtTargetAvatar().lock();
         if (lookingAt && myAvatar.get() != lookingAt.get()) {
             //  If I am looking at someone else, look directly at one of their eyes
@@ -3535,6 +3552,7 @@ void Application::updateMyAvatarLookAtPosition() {
     }
 
     myAvatar->getHead()->setLookAtPosition(lookAtSpot);
+    qDebug() << "Application::updateMyAvatarLookAtPosition end";
 }
 
 void Application::updateThreads(float deltaTime) {
@@ -3727,15 +3745,16 @@ void Application::updateDialogs(float deltaTime) const {
 }
 
 void Application::update(float deltaTime) {
-
+    qDebug() << "Application::update " << deltaTime;
     PROFILE_RANGE_EX(__FUNCTION__, 0xffff0000, (uint64_t)_frameCount + 1);
-
+    qDebug() << "Application::update 0001";
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::update()");
-
+    qDebug() << "Application::update 0002";
     updateLOD();
 
     if (!_physicsEnabled) {
+        qDebug() << "Application::update 0003a";
         // we haven't yet enabled physics.  we wait until we think we have all the collision information
         // for nearby entities before starting bullet up.
         quint64 now = usecTimestampNow();
@@ -3765,8 +3784,9 @@ void Application::update(float deltaTime) {
                 }
             }
         }
+        qDebug() << "Application::update 0003b";
     }
-
+    qDebug() << "Application::update 0004";
     {
         PerformanceTimer perfTimer("devices");
         DeviceTracker::updateAll();
@@ -3799,7 +3819,7 @@ void Application::update(float deltaTime) {
         } else {
             _lastFaceTrackerUpdate = 0;
         }
-
+        qDebug() << "Application::update 0006";
     }
 
     auto myAvatar = getMyAvatar();
@@ -3810,7 +3830,7 @@ void Application::update(float deltaTime) {
         createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition()),
         myAvatar->getHMDSensorMatrix()
     };
-
+    qDebug() << "Application::update 0007";
     InputPluginPointer keyboardMousePlugin;
     for (auto inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
         if (inputPlugin->getName() == KeyboardMouseDevice::NAME) {
@@ -3819,7 +3839,7 @@ void Application::update(float deltaTime) {
             inputPlugin->pluginUpdate(deltaTime, calibrationData);
         }
     }
-
+    qDebug() << "Application::update 0008";
     userInputMapper->update(deltaTime);
 
     if (keyboardMousePlugin && keyboardMousePlugin->isActive()) {
@@ -3827,7 +3847,7 @@ void Application::update(float deltaTime) {
     }
 
     _controllerScriptingInterface->updateInputControllers();
-
+    qDebug() << "Application::update 0009";
     // Transfer the user inputs to the driveKeys
     // FIXME can we drop drive keys and just have the avatar read the action states directly?
     myAvatar->clearDriveKeys();
@@ -3844,7 +3864,7 @@ void Application::update(float deltaTime) {
         }
         myAvatar->setDriveKeys(ZOOM, userInputMapper->getActionState(controller::Action::TRANSLATE_CAMERA_Z));
     }
-
+    qDebug() << "Application::update 0010";
     controller::Pose leftHandPose = userInputMapper->getPoseState(controller::Action::LEFT_HAND);
     controller::Pose rightHandPose = userInputMapper->getPoseState(controller::Action::RIGHT_HAND);
     auto myAvatarMatrix = createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition());
@@ -3856,7 +3876,7 @@ void Application::update(float deltaTime) {
     updateDialogs(deltaTime); // update various stats dialogs if present
 
     QSharedPointer<AvatarManager> avatarManager = DependencyManager::get<AvatarManager>();
-
+    qDebug() << "Application::update 0011";
     if (_physicsEnabled) {
         PROFILE_RANGE_EX("Physics", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
 
@@ -3934,23 +3954,24 @@ void Application::update(float deltaTime) {
             }
         }
     }
-
+    qDebug() << "Application::update 0012";
     // AvatarManager update
     {
         PerformanceTimer perfTimer("AvatarManger");
         _avatarSimCounter.increment();
-
+        qDebug() << "Application::update 0012b";
         {
             PROFILE_RANGE_EX("OtherAvatars", 0xffff00ff, (uint64_t)getActiveDisplayPlugin()->presentCount());
             avatarManager->updateOtherAvatars(deltaTime);
         }
-
+        qDebug() << "Application::update 0012c";
         qApp->updateMyAvatarLookAtPosition();
-
+        qDebug() << "Application::update 0012d";
         {
             PROFILE_RANGE_EX("MyAvatar", 0xffff00ff, (uint64_t)getActiveDisplayPlugin()->presentCount());
             avatarManager->updateMyAvatar(deltaTime);
         }
+        qDebug() << "Application::update 0012e";
     }
 
     {
@@ -3969,7 +3990,7 @@ void Application::update(float deltaTime) {
         QMutexLocker viewLocker(&_viewMutex);
         loadViewFrustum(_myCamera, _viewFrustum);
     }
-
+    qDebug() << "Application::update 0014";
     quint64 now = usecTimestampNow();
 
     // Update my voxel servers with my current voxel query...
@@ -3990,7 +4011,7 @@ void Application::update(float deltaTime) {
             _lastQueriedViewFrustum = _viewFrustum;
         }
     }
-
+    qDebug() << "Application::update 0015";
     // sent nack packets containing missing sequence numbers of received packets from nodes
     {
         quint64 sinceLastNack = now - _lastNackTime;
@@ -4022,7 +4043,7 @@ void Application::update(float deltaTime) {
         }
         _postUpdateLambdas.clear();
     }
-
+    qDebug() << "Application::update 0016";
     AnimDebugDraw::getInstance().update();
 }
 
@@ -5492,13 +5513,16 @@ qreal Application::getDevicePixelRatio() {
 DisplayPluginPointer Application::getActiveDisplayPlugin() const {
     if (QThread::currentThread() != thread()) {
         std::unique_lock<std::mutex> lock(_displayPluginLock);
+        qDebug() << "Application::getActiveDisplayPlugin() not called from main thread";
         return _displayPlugin;
     }
 
     if (!_displayPlugin) {
+        qDebug() << "Application::getActiveDisplayPlugin() no _displayPlugin";
         const_cast<Application*>(this)->updateDisplayMode();
         Q_ASSERT(_displayPlugin);
     }
+    qDebug() << "Application::getActiveDisplayPlugin() _displayPlugin? " << (_displayPlugin?"non null":"null");
     return _displayPlugin;
 }
 
@@ -5541,11 +5565,12 @@ static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool acti
 }
 
 void Application::updateDisplayMode() {
+    qDebug() << "Application::updateDisplayMode start";
     // Unsafe to call this method from anything but the main thread
     if (QThread::currentThread() != thread()) {
         qFatal("Attempted to switch display plugins from a non-main thread");
     }
-
+    qDebug() << "Application::updateDisplayMode 00100";
     // Some plugins *cough* Oculus *cough* process message events from inside their
     // display function, and we don't want to change the display plugin underneath
     // the paintGL call, so we need to guard against that
@@ -5553,10 +5578,10 @@ void Application::updateDisplayMode() {
     if (_inPaint) {
         qFatal("Attempted to switch display plugins while in painting");
     }
-
+    qDebug() << "Application::updateDisplayMode 00200";
     auto menu = Menu::getInstance();
     auto displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
-
+    qDebug() << "Application::updateDisplayMode 00300";
     static std::once_flag once;
     std::call_once(once, [&] {
         bool first = true;
@@ -5600,10 +5625,12 @@ void Application::updateDisplayMode() {
         parent->addSeparator();
     });
 
-
+    qDebug() << "Application::updateDisplayMode 00500";
     // Default to the first item on the list, in case none of the menu items match
     DisplayPluginPointer newDisplayPlugin = displayPlugins.at(0);
+    qDebug() << "Application::updateDisplayMode 00600";
     foreach(DisplayPluginPointer displayPlugin, PluginManager::getInstance()->getDisplayPlugins()) {
+        qDebug() << "Application::updateDisplayMode 00700";
         QString name = displayPlugin->getName();
         QAction* action = menu->getActionForOption(name);
         // Menu might have been removed if the display plugin lost
@@ -5615,20 +5642,21 @@ void Application::updateDisplayMode() {
             break;
         }
     }
-
+    qDebug() << "Application::updateDisplayMode 00800";
     if (newDisplayPlugin == _displayPlugin) {
         return;
     }
-
+    qDebug() << "Application::updateDisplayMode 00900";
     UserActivityLogger::getInstance().logAction("changed_display_mode", {
         { "previous_display_mode", _displayPlugin ? _displayPlugin->getName() : "" },
         { "display_mode", newDisplayPlugin ? newDisplayPlugin->getName() : "" }
     });
-
+    qDebug() << "Application::updateDisplayMode 01000";
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
 
     // Make the switch atomic from the perspective of other threads
     {
+        qDebug() << "Application::updateDisplayMode 01100";
         std::unique_lock<std::mutex> lock(_displayPluginLock);
 
         auto oldDisplayPlugin = _displayPlugin;
@@ -5666,14 +5694,16 @@ void Application::updateDisplayMode() {
         _offscreenContext->makeCurrent();
         getApplicationCompositor().setDisplayPlugin(newDisplayPlugin);
         _displayPlugin = newDisplayPlugin;
+        qDebug() << "Application::updateDisplayMode 01200";
     }
-
+    qDebug() << "Application::updateDisplayMode 01400";
     emit activeDisplayPluginChanged();
 
     // reset the avatar, to set head and hand palms back to a reasonable default pose.
     getMyAvatar()->reset(false);
 
     Q_ASSERT_X(_displayPlugin, "Application::updateDisplayMode", "could not find an activated display plugin");
+    qDebug() << "Application::updateDisplayMode end";
 }
 
 mat4 Application::getEyeProjection(int eye) const {
