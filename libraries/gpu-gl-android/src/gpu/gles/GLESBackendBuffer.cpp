@@ -52,9 +52,8 @@ namespace gpu {
                 _gpuObject._renderPages._flags &= ~PageManager::DIRTY;
             }
         };
-
-} }
-
+    }
+}
 
 using namespace gpu;
 using namespace gpu::gl;

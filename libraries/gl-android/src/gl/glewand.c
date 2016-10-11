@@ -17,6 +17,7 @@ PFNGLQUERYCOUNTEREXTPROC __glewQueryCounterEXT = NULL;
 PFNGLGETQUERYOBJECTUI64VEXTPROC __glewGetQueryObjectui64vEXT = NULL;
 PFNGLTEXBUFFEREXTPROC __glTexBufferEXT = NULL;
 PFNGLDRAWARRAYSINSTANCEDEXTPROC __glewDrawArraysInstancedEXT;
+PFNGLFRAMEBUFFERTEXTUREEXTPROC __glewFrameBufferTextureEXT;
 
 GLenum GLEWAPIENTRY glewInit (void)
 {
@@ -26,6 +27,7 @@ GLenum GLEWAPIENTRY glewInit (void)
   r = ((glGetQueryObjectui64vEXT = (PFNGLGETQUERYOBJECTUI64VEXTPROC)glewGetProcAddress("glGetQueryObjectui64vEXT")) == NULL) || r;
   r = ((glTexBufferEXT = (PFNGLTEXBUFFEREXTPROC)glewGetProcAddress("glTexBufferEXT")) == NULL) || r;
   r = ((glDrawArraysInstancedEXT = (PFNGLDRAWARRAYSINSTANCEDEXTPROC) glewGetProcAddress("glDrawArraysInstancedEXT")) == NULL) || r;
+  r = ((glFrameBufferTextureEXT = (PFNGLFRAMEBUFFERTEXTUREEXTPROC) glewGetProcAddress("glFrameBufferTextureEXT")) == NULL) || r;
   //return r;
   return GLEW_OK; // Manage cases
 }

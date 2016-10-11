@@ -38,30 +38,12 @@ GLTexture* GLESBackend::syncGPUObject(const TexturePointer& texture, bool transf
     return GLESTexture::sync<GLESTexture>(*this, texture, transfer);
 }
 
-GLESTexture::GLESTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, bool transferrable) : GLTexture(backend, texture, allocate(), transferrable) {}
+GLESTexture::GLESTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GLuint externalId) 
+    : GLTexture(backend, texture, externalId) { 
+}
 
-GLESTexture::GLESTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GLESTexture* original) : GLTexture(backend, texture, allocate(), original) {}
-
-void GLESTexture::withPreservedTexture(std::function<void()> f) const  {
-    GLint boundTex = -1;
-    switch (_target) {
-    case GL_TEXTURE_2D:
-        glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTex);
-        break;
-
-    case GL_TEXTURE_CUBE_MAP:
-        glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &boundTex);
-        break;
-
-    default:
-        qFatal("Unsupported texture type");
-    }
-    (void)CHECK_GL_ERROR();
-
-    glBindTexture(_target, _texture);
-    f();
-    glBindTexture(_target, boundTex);
-    (void)CHECK_GL_ERROR();
+GLESTexture::GLESTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, bool transferrable) 
+    : GLTexture(backend, texture, allocate(), transferrable) {
 }
 
 void GLESTexture::generateMips() const {
@@ -142,45 +124,21 @@ void GLESTexture::transferMip(uint16_t mipLevel, uint8_t face) const {
 }
 
 void GLESTexture::startTransfer() {
-    qDebug() << "TODO: GLESBackendTexture.cpp GLESTexture::startTransfer _downsampleSource not defined (check rewrite file based on GL4X)";
-    /*PROFILE_RANGE(__FUNCTION__);
+    PROFILE_RANGE(__FUNCTION__);
     Parent::startTransfer();
 
     glBindTexture(_target, _id);
     (void)CHECK_GL_ERROR();
 
-    if (_downsampleSource._texture) {
-        GLuint fbo { 0 };
-        glGenFramebuffers(1, &fbo);
-        (void)CHECK_GL_ERROR();
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
-        (void)CHECK_GL_ERROR();
-        // Find the distance between the old min mip and the new one
-        uint16 mipOffset = _minMip - _downsampleSource._minMip;
-        for (uint16 i = _minMip; i <= _maxMip; ++i) {
-            uint16 targetMip = i - _minMip;
-            uint16 sourceMip = targetMip + mipOffset;
-            Vec3u dimensions = _gpuObject.evalMipDimensions(i);
-            for (GLenum target : getFaceTargets(_target)) {
-                glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, target, _downsampleSource._texture, sourceMip);
-                (void)CHECK_GL_ERROR();
-                glCopyTexSubImage2D(target, targetMip, 0, 0, 0, 0, dimensions.x, dimensions.y);
-                (void)CHECK_GL_ERROR();
+    // transfer pixels from each faces
+    uint8_t numFaces = (Texture::TEX_CUBE == _gpuObject.getType()) ? CUBE_NUM_FACES : 1;
+    for (uint8_t f = 0; f < numFaces; f++) {
+        for (uint16_t i = 0; i < Sampler::MAX_MIP_LEVEL; ++i) {
+            if (_gpuObject.isStoredMipFaceAvailable(i, f)) {
+                transferMip(i, f);
             }
         }
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-        glDeleteFramebuffers(1, &fbo);
-    } else {
-        // transfer pixels from each faces
-        uint8_t numFaces = (Texture::TEX_CUBE == _gpuObject.getType()) ? CUBE_NUM_FACES : 1;
-        for (uint8_t f = 0; f < numFaces; f++) {
-            for (uint16_t i = 0; i < Sampler::MAX_MIP_LEVEL; ++i) {
-                if (_gpuObject.isStoredMipFaceAvailable(i, f)) {
-                    transferMip(i, f);
-                }
-            }
-        }
-    }*/
+    }
 }
 
 void GLESBackend::GLESTexture::syncSampler() const {
@@ -190,8 +148,7 @@ void GLESBackend::GLESTexture::syncSampler() const {
     glTexParameteri(_target, GL_TEXTURE_MAG_FILTER, fm.magFilter);
 
     if (sampler.doComparison()) {
-        //glTexParameteri(_target, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
-        qDebug() << "TODO: GLBackendTexture.cpp:syncSampler GL_COMPARE_R_TO_TEXTURE";
+        glTexParameteri(_target, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
         glTexParameteri(_target, GL_TEXTURE_COMPARE_FUNC, COMPARISON_TO_GL[sampler.getComparisonFunction()]);
     } else {
         glTexParameteri(_target, GL_TEXTURE_COMPARE_MODE, GL_NONE);

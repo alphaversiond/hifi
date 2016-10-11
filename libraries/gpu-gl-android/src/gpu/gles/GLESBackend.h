@@ -34,8 +34,8 @@ public:
         using Parent = GLTexture;
         GLuint allocate();
     public:
+        GLESTexture(const std::weak_ptr<GLBackend>& backend, const Texture& buffer, GLuint externalId);
         GLESTexture(const std::weak_ptr<GLBackend>& backend, const Texture& buffer, bool transferrable);
-        GLESTexture(const std::weak_ptr<GLBackend>& backend, const Texture& buffer, GLESTexture* original);
 
     protected:
         void transferMip(uint16_t mipLevel, uint8_t face) const;
@@ -44,7 +44,6 @@ public:
         void updateSize() const override;
         void syncSampler() const override;
         void generateMips() const override;
-        void withPreservedTexture(std::function<void()> f) const override;
     };
 
 
@@ -69,13 +68,17 @@ protected:
     void do_multiDrawIndirect(const Batch& batch, size_t paramOffset) override;
     void do_multiDrawIndexedIndirect(const Batch& batch, size_t paramOffset) override;
 
+    // Input Stage
+    void updateInput() override;
+
     // Synchronize the state cache of this Backend with the actual real state of the GL Context
     void transferTransformState(const Batch& batch) const override;
     void initTransform() override;
+    void updateTransform(const Batch& batch);
+    void resetTransformStage();
 
     // Output stage
     void do_blit(const Batch& batch, size_t paramOffset) override;
-
 };
 
 } }

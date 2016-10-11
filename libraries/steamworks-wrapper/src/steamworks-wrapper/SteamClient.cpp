@@ -231,7 +231,7 @@ bool SteamClient::isRunning() {
 }
 
 bool SteamClient::init() {
-    qDebug() << "SteamClient::init" << url;
+    qDebug() << "SteamClient::init";
 
     if (SteamAPI_IsSteamRunning() && !initialized) {
         initialized = SteamAPI_Init();
@@ -240,7 +240,7 @@ bool SteamClient::init() {
 }
 
 void SteamClient::shutdown() {
-        qDebug() << "SteamClient::shutdown" << url;
+        qDebug() << "SteamClient::shutdown";
 
     if (initialized) {
         SteamAPI_Shutdown();
