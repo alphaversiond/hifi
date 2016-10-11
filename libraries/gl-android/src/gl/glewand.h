@@ -119,7 +119,7 @@ typedef void (GL_APIENTRYP PFNGLFRAMEBUFFERTEXTUREEXTPROC) (GLenum target, GLenu
 #define glTexBufferEXT GLEW_GET_FUN(__glTexBufferEXT)
 
 #define glDrawArraysInstancedEXT GLEW_GET_FUN(__glewDrawArraysInstancedEXT)
-#define glFrameBufferTextureEXT GLEW_GET_FUN(__glewFrameBufferTextureEXT)
+#define glFrameBufferTextureEXT GLEW_GET_FUN(__glewFramebufferTextureEXT)
 
 #ifdef GL_GLEXT_PROTOTYPES
 GL_APICALL void GL_APIENTRY glGenQueriesEXT (GLsizei n, GLuint *ids);

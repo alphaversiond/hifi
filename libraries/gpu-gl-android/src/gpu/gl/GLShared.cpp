@@ -40,10 +40,9 @@ bool checkGLError(const char* name) {
         case GL_OUT_OF_MEMORY:
             qCDebug(gpugllogging) << "GLBackend" << name << ": There is not enough memory left to execute the command.The state of the GL is undefined, except for the state of the error flags, after this error is recorded.";
             break;
-        // qDebug() << "TODO: GLShared.cpp:checkGLError GL_STACK_UNDERFLOW";
-        //case GL_STACK_UNDERFLOW:
-        //    qCDebug(gpugllogging) << "GLBackend" << name << ": An attempt has been made to perform an operation that would cause an internal stack to underflow.";
-        //    break;
+        default:
+            qCDebug(gpugllogging) << "GLBackend" << name << ": Unknown error: " << error;
+            break;
         }
         return true;
     }
