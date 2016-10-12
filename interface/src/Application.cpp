@@ -1667,8 +1667,8 @@ void Application::initializeUi() {
     auto rootContext = offscreenUi->getRootContext();
 
     offscreenUi->setProxyWindow(_window->windowHandle());
-    //offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
-    offscreenUi->setBaseUrl(QUrl(PathUtils::resourcesPath() + "/qml/"));
+    offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
+    //offscreenUi->setBaseUrl(QUrl(PathUtils::resourcesPath() + "/qml/"));
     // OffscreenUi is a subclass of OffscreenQmlSurface specifically designed to
     // support the window management and scripting proxies for VR use
     qDebug() << "Application::initializeUi creating desktop..";

@@ -28,7 +28,7 @@ const QString& PathUtils::resourcesPath() {
     /*qDebug() << QCoreApplication::applicationDirPath();
     qDebug() << QCoreApplication::applicationFilePath();
     qDebug() << QCoreApplication::libraryPaths();*/
-    static QString staticResourcePath = "/data/data/io.highfidelity.hifiinterface/resources";
+    static QString staticResourcePath = "/data/data/io.highfidelity.hifiinterface/resources/";
 #else
     static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/resources/";
 #endif

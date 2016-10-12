@@ -400,6 +400,7 @@ QQuickItem* OffscreenQmlSurface::getRootItem() {
 }
 
 void OffscreenQmlSurface::setBaseUrl(const QUrl& baseUrl) {
+    qDebug() << "OffscreenQmlSurface::setBaseUrl " << baseUrl.toString();
     _qmlEngine->setBaseUrl(baseUrl);
 }
 
@@ -710,7 +711,7 @@ void OffscreenQmlSurface::focusDestroyed(QObject *obj) {
 }
 
 void OffscreenQmlSurface::onFocusObjectChanged(QObject* object) {
-    QQuickItem* item = dynamic_cast<QQuickItem*>(object);
+    QQuickItem* item = static_cast<QQuickItem*>(object);
     if (!item) {
         setFocusText(false);
         _currentFocusItem = nullptr;
@@ -797,6 +798,7 @@ void OffscreenQmlSurface::synthesizeKeyPress(QString key) {
 }
 
 void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool numeric) {
+    /*
     if (!object) {
         return;
     }
@@ -814,7 +816,7 @@ void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool n
             return;
         }
         item = dynamic_cast<QQuickItem*>(item->parentItem());
-    }
+    }*/
 }
 
 void OffscreenQmlSurface::emitScriptEvent(const QVariant& message) {
