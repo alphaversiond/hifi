@@ -9,7 +9,7 @@
 //
 
 #include "ScriptsModel.h"
-
+#include <QStandardPaths>
 #include <QUrl>
 #include <QUrlQuery>
 #include <QXmlStreamReader>

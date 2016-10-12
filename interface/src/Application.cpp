@@ -548,6 +548,23 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _lastFaceTrackerUpdate(0)
 {
 
+    QFile scriptsDest("/data/data/io.highfidelity.hifiinterface/scripts");
+    if (!scriptsDest.exists()) {
+        // TODO: move this to application first init
+        copyDirDeep("assets:/scripts", "/data/data/io.highfidelity.hifiinterface/scripts");
+    }else {
+        qDebug() << "Scripts dir already exists";
+    }
+
+    QFile resourcesDest("/data/data/io.highfidelity.hifiinterface/resources");
+    if (!resourcesDest.exists()) {
+        // TODO: move this to application first init
+        copyDirDeep("assets:/resources", "/data/data/io.highfidelity.hifiinterface/resources");
+    }else {
+        qDebug() << "Resources dir already exists";
+    }
+
+
     qDebug() << "Application::Application";
 
     PluginContainer* pluginContainer = dynamic_cast<PluginContainer*>(this); // set the container for any plugins that care

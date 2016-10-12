@@ -137,7 +137,7 @@ QUrl AvatarData::_defaultFullAvatarModelUrl = {}; // In C++, if this initializat
 const QUrl& AvatarData::defaultFullAvatarModelUrl() {
     if (_defaultFullAvatarModelUrl.isEmpty()) {
 #ifdef ANDROID
-        _defaultFullAvatarModelUrl = QUrl(PathUtils::resourcesPath() + "/meshes/defaultAvatar_full.fst");   
+        _defaultFullAvatarModelUrl = QUrl::fromLocalFile(PathUtils::resourcesPath() + "/meshes/defaultAvatar_full.fst");
 #elif
         _defaultFullAvatarModelUrl = QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_full.fst");
 #endif
