@@ -89,6 +89,7 @@ QScriptValue TypedArrayPrototype::get(quint32 index) {
                                                                name,
                                                                QScriptClass::HandlesReadAccess, &id);
     if (QScriptClass::HandlesReadAccess & flags) {
+        qDebug() << "->property from " << "TypedArrayPrototype";
         return typedArray->property(thisObject(), name, id);
     }
     return QScriptValue();

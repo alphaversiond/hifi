@@ -123,17 +123,26 @@ QObject* VrMenu::findMenuObject(const QString& menuOption) {
 
 
 void VrMenu::addMenu(QMenu* menu) {
+    qDebug() << "VrMenu::addMenu start menu: " << menu;
     Q_ASSERT(!MenuUserData::hasData(menu->menuAction()));
     QObject* parent = menu->parent();
     QObject* qmlParent = nullptr;
+#ifdef ANDROID
+    QMenu* parentMenu = static_cast<QMenu*>(parent);
+#else
     QMenu* parentMenu = dynamic_cast<QMenu*>(parent);
+#endif
     if (parentMenu) {
         MenuUserData* userData = MenuUserData::forObject(parentMenu->menuAction());
         if (!userData) {
             return;
         }
         qmlParent = findMenuObject(userData->uuid.toString());
+#ifdef ANDROID
+    } else if (static_cast<QMenuBar*>(parent)) {
+#else
     } else if (dynamic_cast<QMenuBar*>(parent)) {
+#endif
         qmlParent = _rootMenu;
     } else {
         Q_ASSERT(false);
@@ -153,6 +162,7 @@ void VrMenu::addMenu(QMenu* menu) {
 
     // Bind the QML and Widget together
     new MenuUserData(menu->menuAction(), result);
+    qDebug() << "VrMenu::addMenu END";
 }
 
 void bindActionToQmlAction(QObject* qmlAction, QAction* action) {

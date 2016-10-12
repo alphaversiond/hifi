@@ -1672,7 +1672,7 @@ void Application::initializeUi() {
     // OffscreenUi is a subclass of OffscreenQmlSurface specifically designed to
     // support the window management and scripting proxies for VR use
     qDebug() << "Application::initializeUi creating desktop..";
-    //offscreenUi->createDesktop(QString("hifi/Desktop.qml"));
+    offscreenUi->createDesktop(QString("hifi/Desktop.qml"));
     qDebug() << "Application::initializeUi desktop created";
     // FIXME either expose so that dialogs can set this themselves or
     // do better detection in the offscreen UI of what has focus
@@ -1762,9 +1762,11 @@ void Application::initializeUi() {
     offscreenUi->resume();
     qDebug() << "Application::initializeUi offscreenUi resumed";
     connect(_window, &MainWindow::windowGeometryChanged, [this](const QRect& r){
+        qDebug() << "Application::initializeUi before calling resizeGL";
         resizeGL();
+        qDebug() << "Application::initializeUi after calling resizeGL";
     });
-
+    qDebug() << "Application::initializeUi after connecting windowGeometryChanged";
     // This will set up the input plugins UI
     _activeInputPlugins.clear();
     foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
@@ -1775,6 +1777,7 @@ void Application::initializeUi() {
             _touchscreenDevice = std::dynamic_pointer_cast<TouchscreenDevice>(inputPlugin);
         }
     }
+    qDebug() << "Application::initializeUi setting menubar to _window";
     _window->setMenuBar(new Menu());
     qDebug() << "Application::initializeUi _window menubar set";
     auto compositorHelper = DependencyManager::get<CompositorHelper>();

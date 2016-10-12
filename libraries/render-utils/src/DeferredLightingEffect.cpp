@@ -334,7 +334,9 @@ model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
 }
 
 void PreparePrimaryFramebuffer::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, gpu::FramebufferPointer& primaryFramebuffer) {
-
+    if (!DependencyManager::isSet<FramebufferCache>()) {
+        DependencyManager::set<FramebufferCache>();
+    }
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     auto framebufferSize = framebufferCache->getFrameBufferSize();
     glm::uvec2 frameSize(framebufferSize.width(), framebufferSize.height());
@@ -409,70 +411,76 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
     const SurfaceGeometryFramebufferPointer& surfaceGeometryFramebuffer,
     const AmbientOcclusionFramebufferPointer& ambientOcclusionFramebuffer,
     const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource) {
-    
+    qDebug() << "RenderDeferredSetup::run start";
     auto args = renderContext->args;
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
-        
+        qDebug() << "RenderDeferredSetup::run 000100";
         // Framebuffer copy operations cannot function as multipass stereo operations.
         batch.enableStereo(false);
-        
+        qDebug() << "RenderDeferredSetup::run 000200";
         // perform deferred lighting, rendering to free fbo
         auto framebufferCache = DependencyManager::get<FramebufferCache>();
-            
+        qDebug() << "RenderDeferredSetup::run 000300";
         auto textureCache = DependencyManager::get<TextureCache>();
         auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
-
+        deferredLightingEffect->init();
+        qDebug() << "RenderDeferredSetup::run 000400";
         // binding the first framebuffer
         auto lightingFBO = deferredFramebuffer->getLightingFramebuffer();
         batch.setFramebuffer(lightingFBO);
-        
+        qDebug() << "RenderDeferredSetup::run 000500";
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
-        
+        qDebug() << "RenderDeferredSetup::run 000600";
         
         // Bind the G-Buffer surfaces
         batch.setResourceTexture(DEFERRED_BUFFER_COLOR_UNIT, deferredFramebuffer->getDeferredColorTexture());
         batch.setResourceTexture(DEFERRED_BUFFER_NORMAL_UNIT, deferredFramebuffer->getDeferredNormalTexture());
         batch.setResourceTexture(DEFERRED_BUFFER_EMISSIVE_UNIT, deferredFramebuffer->getDeferredSpecularTexture());
         batch.setResourceTexture(DEFERRED_BUFFER_DEPTH_UNIT, deferredFramebuffer->getPrimaryDepthTexture());
-        
+        qDebug() << "RenderDeferredSetup::run 000700";
         // FIXME: Different render modes should have different tasks
         if (args->_renderMode == RenderArgs::DEFAULT_RENDER_MODE && deferredLightingEffect->isAmbientOcclusionEnabled()) {
+            qDebug() << "RenderDeferredSetup::run 000800a";
             batch.setResourceTexture(DEFERRED_BUFFER_OBSCURANCE_UNIT, ambientOcclusionFramebuffer->getOcclusionTexture());
         } else {
+            qDebug() << "RenderDeferredSetup::run 000800b";
             // need to assign the white texture if ao is off
             batch.setResourceTexture(DEFERRED_BUFFER_OBSCURANCE_UNIT, textureCache->getWhiteTexture());
         }
-
+        qDebug() << "RenderDeferredSetup::run 000900";
         // The Deferred Frame Transform buffer
         batch.setUniformBuffer(DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT, frameTransform->getFrameTransformBuffer());
-
+        qDebug() << "RenderDeferredSetup::run 001000";
         // THe lighting model
         batch.setUniformBuffer(LIGHTING_MODEL_BUFFER_SLOT, lightingModel->getParametersBuffer());
-
+        qDebug() << "RenderDeferredSetup::run 001100";
         // Subsurface scattering specific
         if (surfaceGeometryFramebuffer) {
             batch.setResourceTexture(DEFERRED_BUFFER_CURVATURE_UNIT, surfaceGeometryFramebuffer->getCurvatureTexture());
             batch.setResourceTexture(DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT, surfaceGeometryFramebuffer->getLowCurvatureTexture());
         }
+        qDebug() << "RenderDeferredSetup::run 001200";
         if (subsurfaceScatteringResource) {
             batch.setUniformBuffer(SCATTERING_PARAMETERS_BUFFER_SLOT, subsurfaceScatteringResource->getParametersBuffer());
             batch.setResourceTexture(SCATTERING_LUT_UNIT, subsurfaceScatteringResource->getScatteringTable());
             batch.setResourceTexture(SCATTERING_SPECULAR_UNIT, subsurfaceScatteringResource->getScatteringSpecular());
         }
-
+        qDebug() << "RenderDeferredSetup::run 001300 deferredLightingEffect?" << (deferredLightingEffect?1:0);
+        qDebug() << "RenderDeferredSetup::run 001300 deferredLightingEffect->getLightStage().lights.size()?" << (deferredLightingEffect->getLightStage().lights.size());
         // Global directional light and ambient pass
 
         assert(deferredLightingEffect->getLightStage().lights.size() > 0);
+        qDebug() << "RenderDeferredSetup::run 001350";
         const auto& globalShadow = deferredLightingEffect->getLightStage().lights[0]->shadow;
-
+        qDebug() << "RenderDeferredSetup::run 001400";
         // Bind the shadow buffer
         batch.setResourceTexture(SHADOW_MAP_UNIT, globalShadow.map);
 
         auto& program = deferredLightingEffect->_shadowMapEnabled ? deferredLightingEffect->_directionalLightShadow : deferredLightingEffect->_directionalLight;
         LightLocationsPtr locations = deferredLightingEffect->_shadowMapEnabled ? deferredLightingEffect->_directionalLightShadowLocations : deferredLightingEffect->_directionalLightLocations;
         const auto& keyLight = deferredLightingEffect->_allocatedLights[deferredLightingEffect->_globalLights.front()];
-
+        qDebug() << "RenderDeferredSetup::run 001500";
         // Setup the global directional pass pipeline
         {
             if (deferredLightingEffect->_shadowMapEnabled) {
@@ -496,29 +504,30 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
                     locations = deferredLightingEffect->_directionalAmbientSphereLightLocations;
                 }
             }
-
+            qDebug() << "RenderDeferredSetup::run 001530";
             if (locations->shadowTransformBuffer >= 0) {
                 batch.setUniformBuffer(locations->shadowTransformBuffer, globalShadow.getBuffer());
             }
             batch.setPipeline(program);
         }
-
+        qDebug() << "RenderDeferredSetup::run 001600";
         // Adjust the texcoordTransform in the case we are rendeirng a sub region(mini mirror)
         auto textureFrameTransform = gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(deferredFramebuffer->getFrameSize(), args->_viewport);
         batch._glUniform4fv(locations->texcoordFrameTransform, 1, reinterpret_cast< const float* >(&textureFrameTransform));
-
+        qDebug() << "RenderDeferredSetup::run 001700";
         { // Setup the global lighting
             deferredLightingEffect->setupKeyLightBatch(batch, locations->lightBufferUnit, SKYBOX_MAP_UNIT);
         }
-
+        qDebug() << "RenderDeferredSetup::run 001800";
         batch.draw(gpu::TRIANGLE_STRIP, 4);
-
+        qDebug() << "RenderDeferredSetup::run 001900";
         if (keyLight->getAmbientMap()) {
             batch.setResourceTexture(SKYBOX_MAP_UNIT, nullptr);
         }
         batch.setResourceTexture(SHADOW_MAP_UNIT, nullptr);
+        qDebug() << "RenderDeferredSetup::run 002000";
     });
-    
+    qDebug() << "RenderDeferredSetup::run end";
 }
 
 void RenderDeferredLocals::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
