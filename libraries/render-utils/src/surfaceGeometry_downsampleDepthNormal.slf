@@ -1,7 +1,7 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
-//
+//  surfaceGeometry_donwsampleDepthNormal
 //  Created by Sam Gateau on 6/3/16.
 //  Copyright 2016 High Fidelity, Inc.
 //
