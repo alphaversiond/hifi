@@ -154,11 +154,20 @@ extern DisplayPluginList getDisplayPlugins();
 extern InputPluginList getInputPlugins();
 
 extern void saveInputPluginSettings(const InputPluginList& plugins);
+#if defined(ANDROID)
+void PluginManager::loadDisplayPlugins(DisplayPlugin* pool[]) {
+    for (int i = 0; pool[i]; ++i) {
+        DisplayPlugin * plugin = pool[i];
+        if (plugin->isSupported()) {
+            plugin->init();
+            _androidPlugins.push_back(DisplayPluginPointer(plugin));
+            qDebug() << "Plugin supported " << i;
+        }
+    }
+}
 
-#if defined(ANDROID) 
 DisplayPluginList getDisplayPlugins() {
-    DisplayPluginList result;
-    return result;
+    return PluginManager::getInstance()->_androidPlugins;
 }
 
 InputPluginList getInputPlugins() {
@@ -197,6 +206,7 @@ const DisplayPluginList& PluginManager::getDisplayPlugins() {
             }
         }
         for (auto plugin : displayPlugins) {
+            qDebug() << "getDisplayPlugins plugin.get()" << plugin.get();
             connect(plugin.get(), &Plugin::deviceConnected, this, deviceAddedCallback, Qt::QueuedConnection);
             connect(plugin.get(), &Plugin::subdeviceConnected, this, subdeviceAddedCallback, Qt::QueuedConnection);
             plugin->setContainer(_container);

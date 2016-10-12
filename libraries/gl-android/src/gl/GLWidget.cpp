@@ -72,6 +72,9 @@ void GLWidget::createContext() {
     qDebug() << "GLWidget::createContext create";
     _context->create();
     qDebug() << "GLWidget::createContext clear";
+ #ifdef ANDROID   
+    _context->makeCurrent();
+#endif
     _context->clear();
     qDebug() << "GLWidget::createContext makeCurrent";
     _context->makeCurrent();

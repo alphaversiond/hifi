@@ -93,7 +93,7 @@ protected:
     virtual void uncustomizeContext();
 
     // Returns true on successful activation
-    virtual bool internalActivate() { return true; }
+    virtual bool internalActivate() { qDebug() << "internalActivate true"; return true; }
     virtual void internalDeactivate() {}
 
     // Plugin specific functionality to send the composed scene to the output window or device

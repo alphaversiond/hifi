@@ -28,6 +28,9 @@ GLenum GLEWAPIENTRY glewInit (void)
   r = ((glTexBufferEXT = (PFNGLTEXBUFFEREXTPROC)glewGetProcAddress("glTexBufferEXT")) == NULL) || r;
   r = ((glDrawArraysInstancedEXT = (PFNGLDRAWARRAYSINSTANCEDEXTPROC) glewGetProcAddress("glDrawArraysInstancedEXT")) == NULL) || r;
   r = ((glFrameBufferTextureEXT = (PFNGLFRAMEBUFFERTEXTUREEXTPROC) glewGetProcAddress("glFrameBufferTextureEXT")) == NULL) || r;
-  //return r;
-  return GLEW_OK; // Manage cases
+  if (r) {
+  	return GLEW_OK;
+  } else {
+  	return GLEW_ERR;
+  }
 }

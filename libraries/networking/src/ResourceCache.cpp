@@ -454,18 +454,41 @@ void ResourceCache::updateTotalSize(const qint64& deltaSize) {
 }
  
 QList<QSharedPointer<Resource>> ResourceCache::getLoadingRequests() {
-    return DependencyManager::get<ResourceCacheSharedItems>()->getLoadingRequests();
+    auto cache = DependencyManager::get<ResourceCacheSharedItems>();
+    if (!cache) {
+        DependencyManager::set<ResourceCacheSharedItems>();    
+        cache = DependencyManager::get<ResourceCacheSharedItems>();
+        if (cache) {
+            qDebug() << "cache is not null anymore" ;
+        } else {
+            qDebug() << "cache is still null" ;
+        }
+    }
+    return cache->getLoadingRequests();
 }
 
 int ResourceCache::getPendingRequestCount() {
-    return DependencyManager::get<ResourceCacheSharedItems>()->getPendingRequestsCount();
+    auto cache = DependencyManager::get<ResourceCacheSharedItems>();
+    if (!cache) {
+        DependencyManager::set<ResourceCacheSharedItems>();    
+        cache = DependencyManager::get<ResourceCacheSharedItems>();
+        if (cache) {
+            qDebug() << "cache is not null anymore" ;
+        } else {
+            qDebug() << "cache is still null" ;
+        }
+    }
+    return cache->getPendingRequestsCount();
 }
 
 bool ResourceCache::attemptRequest(QSharedPointer<Resource> resource) {
     Q_ASSERT(!resource.isNull());
     qCDebug(networking) << "ResourceCache::attemptRequest getting ResourceCacheSharedItems";
     auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
-
+    if (!sharedItems) {
+        DependencyManager::set<ResourceCacheSharedItems>();
+        sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
+    }  
     qCDebug(networking) << "ResourceCache::attemptRequest got ResourceCacheSharedItems: " << sharedItems;
     // qDebug() << "TODO: ResourceCache::attemptRequest why DependencyManager::get<ResourceCacheSharedItems> is null?!?!";
     // the following was added just to continue
@@ -486,6 +509,12 @@ bool ResourceCache::attemptRequest(QSharedPointer<Resource> resource) {
 
 void ResourceCache::requestCompleted(QWeakPointer<Resource> resource) {
     auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
+    if (!sharedItems) {
+        DependencyManager::set<ResourceCacheSharedItems>();
+        sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
+    }  
+    qCDebug(networking) << "ResourceCache::requestCompleted got ResourceCacheSharedItems: " << sharedItems;
+
     sharedItems->removeRequest(resource);
     --_requestsActive;
 

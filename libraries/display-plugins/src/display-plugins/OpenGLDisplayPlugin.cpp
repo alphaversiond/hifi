@@ -103,10 +103,20 @@ public:
 
     void setNewDisplayPlugin(OpenGLDisplayPlugin* plugin) {
         Lock lock(_mutex);
+        qDebug()<<"setNewDisplayPlugin 00102";
         if (isRunning()) {
+            qDebug()<<"setNewDisplayPlugin 00104 " << plugin;
             _newPluginQueue.push(plugin);
-            _condition.wait(lock, [=]()->bool { return _newPluginQueue.empty(); });
+            qDebug()<<"setNewDisplayPlugin 00106 " << _newPluginQueue.size();
+            _condition.wait(lock, [=]()->bool {
+                     qDebug()<<"setNewDisplayPlugin 001xxx";
+                     bool isEmpty = _newPluginQueue.empty(); 
+                     qDebug()<<"Isempty: "<< isEmpty;
+                     return true;
+                });
         }
+        qDebug()<<"setNewDisplayPlugin 00111";
+
     }
 
     void setContext(gl::Context* context) {
@@ -123,9 +133,12 @@ public:
         // have higher priority on rendering (although we could say that the Oculus plugin
         // doesn't need that since it has async timewarp).
         // A higher priority here 
+        qDebug()<<"RUN 00100";
+
         setPriority(QThread::HighPriority);
         OpenGLDisplayPlugin* currentPlugin{ nullptr };
         Q_ASSERT(_context);
+        qDebug()<<"RUN 00105";
         _context->makeCurrent();
         while (!_shutdown) {
             if (_pendingMainThreadOperation) {
@@ -156,6 +169,7 @@ public:
                     auto newPlugin = _newPluginQueue.front();
                     if (newPlugin != currentPlugin) {
                         // Deactivate the old plugin
+
                         if (currentPlugin != nullptr) {
                             _context->makeCurrent();
                             currentPlugin->uncustomizeContext();
@@ -173,20 +187,25 @@ public:
 #elif defined(Q_OS_MAC)
                             GLint interval = wantVsync ? 1 : 0;
                             newPlugin->swapBuffers();
+
                             CGLSetParameter(CGLGetCurrentContext(), kCGLCPSwapInterval, &interval);
                             newPlugin->swapBuffers();
                             CGLGetParameter(CGLGetCurrentContext(), kCGLCPSwapInterval, &interval);
                             hasVsync = interval != 0;
+
 #else
                             // TODO: Fill in for linux
-                            Q_UNUSED(wantVsync);
+                            //Q_UNUSED(wantVsync);
 #endif
+
                             newPlugin->setVsyncEnabled(hasVsync);
                             newPlugin->customizeContext();
+
                             CHECK_GL_ERROR();
                             _context->doneCurrent();
                         }
                         currentPlugin = newPlugin;
+
                         _newPluginQueue.pop();
                         _condition.notify_one();
                     }
@@ -207,6 +226,7 @@ public:
                 currentPlugin->present();
                 CHECK_GL_ERROR();
             }
+
             _context->doneCurrent();
         }
 
@@ -254,64 +274,106 @@ private:
 };
 
 bool OpenGLDisplayPlugin::activate() {
+    qDebug() << "OpenGLDisplayPlugin::activate 00100";
     if (!_cursorsData.size()) {
+        qDebug() << "OpenGLDisplayPlugin::activate 00102";
         auto& cursorManager = Cursor::Manager::instance();
+        qDebug() << "OpenGLDisplayPlugin::activate 00103";
         for (const auto iconId : cursorManager.registeredIcons()) {
+            qDebug() << "OpenGLDisplayPlugin::activate 00104";
             auto& cursorData = _cursorsData[iconId];
+            qDebug() << "OpenGLDisplayPlugin::activate 00105";
             auto iconPath = cursorManager.getIconImage(iconId);
+            qDebug() << "OpenGLDisplayPlugin::activate 00106";
             auto image = QImage(iconPath);
+            qDebug() << "OpenGLDisplayPlugin::activate 00107";
             image = image.mirrored();
+            qDebug() << "OpenGLDisplayPlugin::activate 00108";
             image = image.convertToFormat(QImage::Format_RGBA8888);
+            qDebug() << "OpenGLDisplayPlugin::activate 00109";
             cursorData.image = image;
+            qDebug() << "OpenGLDisplayPlugin::activate 00110";
             cursorData.size = toGlm(image.size());
+            qDebug() << "OpenGLDisplayPlugin::activate 00111";
             cursorData.hotSpot = vec2(0.5f);
+            qDebug() << "OpenGLDisplayPlugin::activate 00112";
         }
     }
     if (!_container) {
+        qDebug() << "OpenGLDisplayPlugin::activate 00114";
         return false;
     }
 
     // Start the present thread if necessary
     QSharedPointer<PresentThread> presentThread;
     if (DependencyManager::isSet<PresentThread>()) {
+        qDebug() << "OpenGLDisplayPlugin::activate 00115";
         presentThread = DependencyManager::get<PresentThread>();
+        qDebug() << "OpenGLDisplayPlugin::activate 00116";
     } else {
+        qDebug() << "OpenGLDisplayPlugin::activate 00118";
         auto widget = _container->getPrimaryWidget();
+        qDebug() << "OpenGLDisplayPlugin::activate 00119";
         DependencyManager::set<PresentThread>();
+        qDebug() << "OpenGLDisplayPlugin::activate 00120";
         presentThread = DependencyManager::get<PresentThread>();
+        qDebug() << "OpenGLDisplayPlugin::activate 00121";
         presentThread->setObjectName("Presentation Thread");
+        qDebug() << "OpenGLDisplayPlugin::activate 00122";
         presentThread->setContext(widget->context());
+        qDebug() << "OpenGLDisplayPlugin::activate 00123";
         // Start execution
         presentThread->start();
+        qDebug() << "OpenGLDisplayPlugin::activate 00124";
     }
+
+    qDebug() << "OpenGLDisplayPlugin::activate 00125";
+
     _presentThread = presentThread.data();
     if (!RENDER_THREAD) {
+    qDebug() << "OpenGLDisplayPlugin::activate 00126";
         RENDER_THREAD = _presentThread;
     }
     
     // Child classes may override this in order to do things like initialize
     // libraries, etc
+        qDebug() << "OpenGLDisplayPlugin::activate 00127";
+
     if (!internalActivate()) {
+            qDebug() << "OpenGLDisplayPlugin::activate 00128";
+
         return false;
     }
 
 
     // This should not return until the new context has been customized
     // and the old context (if any) has been uncustomized
+    qDebug() << "OpenGLDisplayPlugin::activate 00127bis";
+
     presentThread->setNewDisplayPlugin(this);
+    qDebug() << "OpenGLDisplayPlugin::activate 00129";
 
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
     connect(compositorHelper.data(), &CompositorHelper::alphaChanged, [this] {
+    qDebug() << "OpenGLDisplayPlugin::activate 00130";
         auto compositorHelper = DependencyManager::get<CompositorHelper>();
         auto animation = new QPropertyAnimation(this, "overlayAlpha");
         animation->setDuration(200);
         animation->setEndValue(compositorHelper->getAlpha());
+            qDebug() << "OpenGLDisplayPlugin::activate 00131";
+
         animation->start();
+            qDebug() << "OpenGLDisplayPlugin::activate 00132";
+
     });
+    qDebug() << "OpenGLDisplayPlugin::activate 00133";
 
     if (isHmd() && (getHmdScreen() >= 0)) {
+            qDebug() << "OpenGLDisplayPlugin::activate 00133";
+
         _container->showDisplayPluginsTools();
     }
+    qDebug() << "OpenGLDisplayPlugin::activate 00134";
 
     return Parent::activate();
 }
@@ -337,19 +399,28 @@ void OpenGLDisplayPlugin::deactivate() {
 }
 
 void OpenGLDisplayPlugin::customizeContext() {
+    qDebug() << "customizeContext A0100";
     auto presentThread = DependencyManager::get<PresentThread>();
+    qDebug() << "customizeContext A0101" << presentThread; 
     Q_ASSERT(thread() == presentThread->thread());
-
+    qDebug() << "customizeContext A0102 asserte passed " << getGLBackend();
     getGLBackend()->setCameraCorrection(mat4());
+
+    qDebug() << "customizeContext A0105";
 
     for (auto& cursorValue : _cursorsData) {
         auto& cursorData = cursorValue.second;
         if (!cursorData.texture) {
+            qDebug() << "customizeContext A0110";
+
             auto image = cursorData.image;
+            qDebug() << "customizeContext A0111" << image;
+
             if (image.format() != QImage::Format_ARGB32) {
                 image = image.convertToFormat(QImage::Format_ARGB32);
             }
             if ((image.width() > 0) && (image.height() > 0)) {
+                qDebug() << "customizeContext A0120";
 
                 cursorData.texture.reset(
                     gpu::Texture::create2D(
@@ -736,16 +807,19 @@ ivec4 OpenGLDisplayPlugin::eyeViewport(Eye eye) const {
 }
 
 gpu::gl::GLBackend* OpenGLDisplayPlugin::getGLBackend() {
+    qDebug() << "Getting GL Backend " << (_gpuContext?1:0);
     if (!_gpuContext || !_gpuContext->getBackend()) {
         return nullptr;
     }
     auto backend = _gpuContext->getBackend().get();
-#if defined(Q_OS_MAC)
+    qDebug() << "Getting GL Backend 2 " << (backend?1:0);
+#if defined(Q_OS_MAC) || defined(ANDROID)
     // Should be dynamic_cast, but that doesn't work in plugins on OSX
     auto glbackend = static_cast<gpu::gl::GLBackend*>(backend);
 #else
     auto glbackend = dynamic_cast<gpu::gl::GLBackend*>(backend);
 #endif
+    qDebug() << "Getting GL Backend 3 " << (glbackend?1:0);
 
     return glbackend;
 }

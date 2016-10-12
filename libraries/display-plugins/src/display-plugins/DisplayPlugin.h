@@ -8,3 +8,23 @@
 
 #include <plugins/DisplayPlugin.h>
 
+#if defined(ANDROID)
+#ifndef hifi_display_plugins_DisplayPlugin_h
+#define hifi_display_plugins_DisplayPlugin_h
+
+class LibInstance {
+public:
+  LibInstance(); 
+  ~LibInstance() {
+    qDebug() << __FILE__ << "has been unloaded";
+  }
+};
+
+Q_GLOBAL_STATIC(LibInstance, libInstance)
+
+class LibExecutor {
+  public: LibExecutor() { libInstance(); }
+};
+static LibExecutor libExecutor;
+#endif
+#endif

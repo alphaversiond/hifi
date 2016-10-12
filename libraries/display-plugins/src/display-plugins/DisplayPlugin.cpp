@@ -19,6 +19,16 @@ const QString& DisplayPlugin::MENU_PATH() {
     static const QString value = "Display";
     return value;
 }
+#if defined(ANDROID)
+LibInstance::LibInstance(){
+    qDebug() << __FILE__ << "has been initialized";
+    DisplayPlugin* PLUGIN_POOL[] = {
+        new Basic2DWindowOpenGLDisplayPlugin(),
+        nullptr
+    };
+    PluginManager::getInstance()->loadDisplayPlugins(PLUGIN_POOL);
+  }
+#endif
 
 // TODO migrate to a DLL model where plugins are discovered and loaded at runtime by the PluginManager class
 DisplayPluginList getDisplayPlugins() {

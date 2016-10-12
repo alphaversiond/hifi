@@ -79,9 +79,9 @@ void Context::create() {
     qDebug() << "Context::create setFormat " << getDefaultOpenGLSurfaceFormat();
     _context->setFormat(getDefaultOpenGLSurfaceFormat());
     qDebug() << "Context::create creating.. ";
-    _context->create();
-    qDebug() << "Context::create glewInit().. ";
-    glewInit();
+    bool created = _context->create();
+    qDebug() << "Context::create glewInit().. created? " << created;
+    qDebug() << "GLEWINIT WAS " << glewInit();
     qDebug() << "Context::create END";
 }
 

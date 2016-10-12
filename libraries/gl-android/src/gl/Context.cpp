@@ -258,10 +258,15 @@ void Context::create() {
 #endif
 
 void Context::clear() {
+    qDebug() << "Context::clear 000100";
     glClearColor(0, 0, 0, 1);
+    qDebug() << "Context::clear 000101";
     QSize windowSize = _window->size() * _window->devicePixelRatio();
+    qDebug() << "Context::clear 000102";
     glViewport(0, 0, windowSize.width(), windowSize.height());
+    qDebug() << "Context::clear 000103";
     glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    qDebug() << "Context::clear 000104";
     swapBuffers();
 }
 

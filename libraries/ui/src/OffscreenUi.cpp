@@ -478,7 +478,9 @@ private:
         auto windows = qApp->topLevelWindows();
         QWindow* result = nullptr;
         for (auto window : windows) {
+            qDebug() << "findMainWindow 00010";
             QVariant isMainWindow = window->property("MainWindow");
+            qDebug() << "findMainWindow 00012";
             if (!qobject_cast<QQuickWindow*>(window)) {
                 result = window;
                 break;

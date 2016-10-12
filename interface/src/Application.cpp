@@ -913,6 +913,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     qDebug() << "Application::Application 00013";
     // Setup the userInputMapper with the actions
+    /*
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     connect(userInputMapper.data(), &UserInputMapper::actionEvent, [this](int action, float state) {
         using namespace controller;
@@ -1059,7 +1060,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     if (_touchscreenDevice) {
         userInputMapper->registerDevice(_touchscreenDevice->getInputDevice());
     }
-
+*/
     qDebug() << "Application::Application 00014";
     // force the model the look at the correct directory (weird order of operations issue)
     scriptEngines->setScriptsLocation(scriptEngines->getScriptsLocation());
@@ -1074,7 +1075,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // we can unlock the desktop repositioning code, since all the positions will be 
     // relative to the desktop size for this plugin
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    offscreenUi->getDesktop()->setProperty("repositionLocked", false);
+    //offscreenUi->getDesktop()->setProperty("repositionLocked", false);
 
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
@@ -3010,16 +3011,20 @@ bool Application::shouldPaint(float nsecsElapsed) {
 }
 
 void Application::idle(float nsecsElapsed) {
+    qDebug() << "idle 3014" ;
 
     // Update the deadlock watchdog
     updateHeartbeat();
+    qDebug() << "idle 3018" ;
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
 
+qDebug() << "idle" << offscreenUi;
     // These tasks need to be done on our first idle, because we don't want the showing of
     // overlay subwindows to do a showDesktop() until after the first time through
     static bool firstIdle = true;
     if (firstIdle) {
+        qDebug() << "idle 3025";
         firstIdle = false;
         connect(offscreenUi.data(), &OffscreenUi::showDesktop, this, &Application::showDesktop);
     }
@@ -3030,29 +3035,43 @@ void Application::idle(float nsecsElapsed) {
 
     float secondsSinceLastUpdate = nsecsElapsed / NSECS_PER_MSEC / MSECS_PER_SECOND;
 
+        qDebug() << "idle 3036" << offscreenUi->getWindow();
+/*
     // If the offscreen Ui has something active that is NOT the root, then assume it has keyboard focus.
     if (_keyboardDeviceHasFocus && offscreenUi && offscreenUi->getWindow()->activeFocusItem() != offscreenUi->getRootItem()) {
         _keyboardMouseDevice->pluginFocusOutEvent();
         _keyboardDeviceHasFocus = false;
+                qDebug() << "idle 3042";
+
     } else if (offscreenUi && offscreenUi->getWindow()->activeFocusItem() == offscreenUi->getRootItem()) {
         _keyboardDeviceHasFocus = true;
+        qDebug() << "idle 3046";
     }
+    */
+    qDebug() << "idle 3048";
 
     checkChangeCursor();
+    qDebug() << "idle 3051";
 
     Stats::getInstance()->updateStats();
+    qDebug() << "idle 3054";
 
     _simCounter.increment();
+    qDebug() << "idle 3057";
 
     PerformanceTimer perfTimer("idle");
+    qDebug() << "idle 3060";
 
     // Normally we check PipelineWarnings, but since idle will often take more than 10ms we only show these idle timing
     // details if we're in ExtraDebugging mode. However, the ::update() and its subcomponents will show their timing
     // details normally.
     bool showWarnings = getLogger()->extraDebugging();
+    qDebug() << "idle 3066";
     PerformanceWarning warn(showWarnings, "idle()");
 
     {
+            qDebug() << "idle 3070";
+
         PerformanceTimer perfTimer("update");
         PerformanceWarning warn(showWarnings, "Application::idle()... update()");
         static const float BIGGEST_DELTA_TIME_SECS = 0.25f;
@@ -4045,6 +4064,8 @@ void Application::update(float deltaTime) {
     }
     qDebug() << "Application::update 0016";
     AnimDebugDraw::getInstance().update();
+    qDebug() << "Application::update 0016++";
+
 }
 
 
@@ -5660,11 +5681,15 @@ void Application::updateDisplayMode() {
         std::unique_lock<std::mutex> lock(_displayPluginLock);
 
         auto oldDisplayPlugin = _displayPlugin;
+        qDebug() << "Application::updateDisplayMode 01103";
         if (_displayPlugin) {
+            qDebug() << "Application::updateDisplayMode 01104";
             _displayPlugin->deactivate();
+            qDebug() << "Application::updateDisplayMode 01105";
         }
 
         bool active = newDisplayPlugin->activate();
+        qDebug() << "Application::updateDisplayMode 01110";
 
         if (!active) {
             // If the new plugin fails to activate, fallback to last display
@@ -5699,8 +5724,11 @@ void Application::updateDisplayMode() {
     qDebug() << "Application::updateDisplayMode 01400";
     emit activeDisplayPluginChanged();
 
+    qDebug() << "Application::updateDisplayMode 01405";
+
     // reset the avatar, to set head and hand palms back to a reasonable default pose.
     getMyAvatar()->reset(false);
+    qDebug() << "Application::updateDisplayMode 01410";
 
     Q_ASSERT_X(_displayPlugin, "Application::updateDisplayMode", "could not find an activated display plugin");
     qDebug() << "Application::updateDisplayMode end";
@@ -5865,7 +5893,9 @@ static const int UI_RESERVED_THREADS = 1;
 static const int OS_RESERVED_THREADS = 1;
 
 void Application::updateThreadPoolCount() const {
+    qDebug() << "updateThreadPoolCount 00200";
     auto reservedThreads = UI_RESERVED_THREADS + OS_RESERVED_THREADS + _displayPlugin->getRequiredThreadCount();
+    qDebug() << "updateThreadPoolCount 00200 + " << reservedThreads;
     auto availableThreads = QThread::idealThreadCount() - reservedThreads;
     auto threadPoolSize = std::max(MIN_PROCESSING_THREAD_POOL_SIZE, availableThreads);
     qCDebug(interfaceapp) << "Ideal Thread Count " << QThread::idealThreadCount();
