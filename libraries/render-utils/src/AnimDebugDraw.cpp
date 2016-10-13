@@ -311,7 +311,6 @@ static void addLine(const glm::vec3& start, const glm::vec3& end, const glm::vec
 }
 
 void AnimDebugDraw::update() {
-    qDebug() << "AnimDebugDraw::update START";
     render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
     if (!scene) {
         return;
@@ -356,7 +355,6 @@ void AnimDebugDraw::update() {
         if (numVerts) {
             v = &vertices[0];
         }
-    qDebug() << "AnimDebugDraw::update MID";
 
         // draw absolute poses
         for (auto& iter : _absolutePoses) {
@@ -423,6 +421,4 @@ void AnimDebugDraw::update() {
         }
     });
     scene->enqueuePendingChanges(pendingChanges);
-    qDebug() << "AnimDebugDraw::update END";
-
 }

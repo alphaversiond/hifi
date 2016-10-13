@@ -381,7 +381,6 @@ public:
 };
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
-    qDebug() << "messageHandler 00";
     QString logMessage = LogHandler::getInstance().printMessage((LogMsgType) type, context, message);
 
     if (!logMessage.isEmpty()) {
@@ -391,7 +390,6 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
 #endif
         qApp->getLogger()->addMessage(qPrintable(logMessage + "\n"));
     }
-    qDebug() << "messageHandler 03";
 }
 
 static const QString STATE_IN_HMD = "InHMD";
@@ -405,8 +403,6 @@ static const QString STATE_GROUNDED = "Grounded";
 static const QString STATE_NAV_FOCUSED = "NavigationFocused";
 
 bool setupEssentials(int& argc, char** argv) {
-    qDebug() << "setupEssentials";
-
     const char** constArgv = const_cast<const char**>(argv);
     const char* portStr = getCmdOption(argc, constArgv, "--listenPort");
     const int listenPort = portStr ? atoi(portStr) : INVALID_PORT;
@@ -430,20 +426,17 @@ bool setupEssentials(int& argc, char** argv) {
 
     Setting::init();
 
-    qDebug() << "Setting dependencies...";
     // Set dependencies
     DependencyManager::set<AccountManager>(std::bind(&Application::getUserAgent, qApp));
     DependencyManager::set<ScriptEngines>();
     DependencyManager::set<Preferences>();
     DependencyManager::set<recording::Deck>();
     DependencyManager::set<recording::Recorder>();
-    qDebug() << "Setting dependencies (until recording::Recorder)...";
     DependencyManager::set<AddressManager>();
     DependencyManager::set<NodeList>(NodeType::Agent, listenPort);
     DependencyManager::set<GeometryCache>();
     DependencyManager::set<ModelCache>();
     DependencyManager::set<ScriptCache>();
-    qDebug() << "Setting dependencies (until ScriptCache)...";
     DependencyManager::set<SoundCache>();
     DependencyManager::set<Faceshift>();
     DependencyManager::set<DdeFaceTracker>();
@@ -451,7 +444,6 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<AudioClient>();
     DependencyManager::set<AudioScope>();
     DependencyManager::set<DeferredLightingEffect>();
-    qDebug() << "Setting dependencies (until DeferredLightingEffect)... saved? "  << DependencyManager::get<DeferredLightingEffect>();;
     DependencyManager::set<TextureCache>();
     DependencyManager::set<FramebufferCache>();
     DependencyManager::set<AnimationCache>();
@@ -459,14 +451,10 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<UsersScriptingInterface>();
     DependencyManager::set<AvatarManager>();
     DependencyManager::set<LODManager>();
-    qDebug() << "Setting dependencies (until LODManager)...";
     DependencyManager::set<StandAloneJSConsole>();
     DependencyManager::set<DialogsManager>();
     DependencyManager::set<BandwidthRecorder>();
-    qDebug() << "Setting dependencies check BandwidthRecorder " << DependencyManager::get<BandwidthRecorder>();
-    qDebug() << "Setting dependencies check ResourceCacheSharedItems (not yet set)" << DependencyManager::get<ResourceCacheSharedItems>();
     DependencyManager::set<ResourceCacheSharedItems>();
-    qDebug() << "Setting dependencies check ResourceCacheSharedItems " << DependencyManager::get<ResourceCacheSharedItems>();
     DependencyManager::set<DesktopScriptingInterface>();
     DependencyManager::set<EntityScriptingInterface>(true);
     DependencyManager::set<RecordingScriptingInterface>();
@@ -476,7 +464,6 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<ToolbarScriptingInterface>();
     DependencyManager::set<UserActivityLoggerScriptingInterface>();
 
-    qDebug() << "Setting dependencies (until UserActivityLoggerScriptingInterface)...";
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     DependencyManager::set<SpeechRecognizer>();
 #endif
@@ -488,18 +475,14 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<InterfaceActionFactory>();
     DependencyManager::set<AudioInjectorManager>();
     DependencyManager::set<MessagesClient>();
-    qDebug() << "Setting dependencies (until MessagesClient)...";
     controller::StateController::setStateVariables({ { STATE_IN_HMD, STATE_CAMERA_FULL_SCREEN_MIRROR,
                     STATE_CAMERA_FIRST_PERSON, STATE_CAMERA_THIRD_PERSON, STATE_CAMERA_ENTITY, STATE_CAMERA_INDEPENDENT,
                     STATE_SNAP_TURN, STATE_GROUNDED, STATE_NAV_FOCUSED } });
     DependencyManager::set<UserInputMapper>();
-    qDebug() << "Setting dependencies (until UserInputMapper)...";
     DependencyManager::set<controller::ScriptingInterface, ControllerScriptingInterface>();
-    qDebug() << "Setting dependencies (controller::ScriptingInterface, ControllerScriptingInterface)...";
     DependencyManager::set<InterfaceParentFinder>();
     DependencyManager::set<EntityTreeRenderer>(true, qApp, qApp);
     DependencyManager::set<CompositorHelper>();
-    qDebug() << "Setting dependencies...Ended";
     return previousSessionCrashed;
 }
 
@@ -548,51 +531,39 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _lastFaceTrackerUpdate(0)
 {
 
+    // TODO: get the path properly
     QFile scriptsDest("/data/data/io.highfidelity.hifiinterface/scripts");
     if (!scriptsDest.exists()) {
-        // TODO: move this to application first init
+        qDebug() << "Copying scripts dir";
         copyDirDeep("assets:/scripts", "/data/data/io.highfidelity.hifiinterface/scripts");
-    }else {
-        qDebug() << "Scripts dir already exists";
     }
 
     QFile resourcesDest("/data/data/io.highfidelity.hifiinterface/resources");
     if (!resourcesDest.exists()) {
-        // TODO: move this to application first init
+        qDebug() << "Copying resources dir";
         copyDirDeep("assets:/resources", "/data/data/io.highfidelity.hifiinterface/resources");
-    }else {
-        qDebug() << "Resources dir already exists";
     }
 
-
-    qDebug() << "Application::Application";
 
     PluginContainer* pluginContainer = dynamic_cast<PluginContainer*>(this); // set the container for any plugins that care
     PluginManager::getInstance()->setContainer(pluginContainer);
 
-    qDebug() << "Application::Application container set to pluginManager";
     QThreadPool::globalInstance()->setMaxThreadCount(MIN_PROCESSING_THREAD_POOL_SIZE);
     thread()->setPriority(QThread::HighPriority);
     thread()->setObjectName("Main Thread");
 
     setInstance(this);
-    qDebug() << "Application::Application 00001";
     auto controllerScriptingInterface = DependencyManager::get<controller::ScriptingInterface>().data();
     _controllerScriptingInterface = dynamic_cast<ControllerScriptingInterface*>(controllerScriptingInterface);
 
     _entityClipboard->createRootElement();
-    qDebug() << "Application::Application 00002";
 #ifdef Q_OS_WIN
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
 #endif
 
     _logger = new FileLogger(this);  // After setting organization name in order to get correct directory
-    qDebug() << "Application::Application 00002b";
-    qDebug() << "TODO: Application.cpp:Application qInstallMessageHandler(messageHandler) SIGSEVs";
-
+    qDebug() << "TODO: Application.cpp:Application TODO restore this and check why it crashes!";
     //qInstallMessageHandler(messageHandler); TODO restore this and check why it crashes!
-
-    qDebug() << "Application::Application 00003";
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "styles/Inconsolata.otf");
     _window->setWindowTitle("Interface");
 
@@ -615,8 +586,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     qCDebug(interfaceapp) << "[VERSION] We will use DEVELOPMENT global services.";
 #endif
 
-
-    qDebug() << "Application::Application 00004";
     _bookmarks = new Bookmarks();  // Before setting up the menu
 
     // start the nodeThread so its event loop is running
@@ -635,7 +604,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // put the NodeList and datagram processing on the node thread
     nodeList->moveToThread(nodeThread);
 
-    qDebug() << "Application::Application 00005";
     // put the audio processing on a separate thread
     QThread* audioThread = new QThread();
     audioThread->setObjectName("Audio Thread");
@@ -654,7 +622,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         return myAvatar ? myAvatar->getOrientationForAudio() : Quaternions::IDENTITY;
     });
 
-    qDebug() << "Application::Application 00006";
     audioIO->moveToThread(audioThread);
     recording::Frame::registerFrameHandler(AudioConstants::getAudioFrameName(), [=](recording::Frame::ConstPointer frame) {
         audioIO->handleRecordedAudioInput(frame->data);
@@ -668,7 +635,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         }
     });
 
-    qDebug() << "Application::Application 00007";
     auto& audioScriptingInterface = AudioScriptingInterface::getInstance();
     connect(audioThread, &QThread::started, audioIO.data(), &AudioClient::start);
     connect(audioIO.data(), &AudioClient::destroyed, audioThread, &QThread::quit);
@@ -689,7 +655,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         }
     });
 
-    qDebug() << "Application::Application 00008";
     audioThread->start();
 
     ResourceManager::init();
@@ -713,7 +678,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(clearDomainOctreeDetails()));
     connect(&domainHandler, &DomainHandler::domainConnectionRefused, this, &Application::domainConnectionRefused);
 
-    qDebug() << "Application::Application 00009";
     // update our location every 5 seconds in the metaverse server, assuming that we are authenticated with one
     const qint64 DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5 * MSECS_PER_SECOND;
 
@@ -773,7 +737,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         registerScriptEngineWithApplicationServices(engine);
     });
 
-    qDebug() << "Application::Application 00010";
     connect(scriptEngines, &ScriptEngines::scriptCountChanged, scriptEngines, [this] {
         auto scriptEngines = DependencyManager::get<ScriptEngines>();
         if (scriptEngines->getRunningScripts().isEmpty()) {
@@ -795,7 +758,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     int wsaresult = WSAStartup(MAKEWORD(2, 2), &WsaData);
 #endif
 
-    qDebug() << "Application::Application 00011";
     // tell the NodeList instance who to tell the domain server we care about
     nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet() << NodeType::AudioMixer << NodeType::AvatarMixer
         << NodeType::EntityServer << NodeType::AssetServer << NodeType::MessagesMixer);
@@ -807,7 +769,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(&identityPacketTimer, &QTimer::timeout, myAvatar.get(), &MyAvatar::sendIdentityPacket);
     identityPacketTimer.start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);
 
-    qDebug() << "Application::Application 00011a010";
     const char** constArgv = const_cast<const char**>(argv);
     QString concurrentDownloadsStr = getCmdOption(argc, constArgv, "--concurrent-downloads");
     bool success;
@@ -818,11 +779,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     qDebug() << "TODO: Application::Application calling the ResourceCache (and inside, DependencyManager has no obj!) makes it crash, analyze";
     //ResourceCache::setRequestLimit(concurrentDownloads);
 
-    qDebug() << "Application::Application 00011a015";
     _glWidget = new GLCanvas();
-    qDebug() << "Application::Application before calling getApplicationCompositor()";
     getApplicationCompositor().setRenderingWidget(_glWidget);
-    qDebug() << "Application::Application before calling getApplicationCompositor() DONE";
     _window->setCentralWidget(_glWidget);
 
     _window->restoreGeometry();
@@ -840,23 +798,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 #endif
     cursorTarget->setCursor(Qt::BlankCursor);
 
-    qDebug() << "Application::Application 00011a018";
     // enable mouse tracking; otherwise, we only get drag events
     _glWidget->setMouseTracking(true);
     // Make sure the window is set to the correct size by processing the pending events
     QCoreApplication::processEvents();
-    qDebug() << "Application::Application before calling createContext()";
     _glWidget->createContext();
-    qDebug() << "Application::Application before calling createContext() DONE";
     _glWidget->makeCurrent();
-    qDebug() << "Application::Application 00011y";
     initializeGL();
     // Make sure we don't time out during slow operations at startup
-    qDebug() << "Application::Application 00011z";
     updateHeartbeat();
 
-
-    qDebug() << "Application::Application 00012";
     // sessionRunTime will be reset soon by loadSettings. Grab it now to get previous session value.
     // The value will be 0 if the user blew away settings this session, which is both a feature and a bug.
     auto gpuIdent = GPUIdent::getInstance();
@@ -928,7 +879,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(myAvatar->getSkeletonModel().get(), &SkeletonModel::skeletonLoaded,
         this, &Application::checkSkeleton, Qt::QueuedConnection);
 
-    qDebug() << "Application::Application 00013";
     // Setup the userInputMapper with the actions
     /*
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
@@ -1078,7 +1028,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         userInputMapper->registerDevice(_touchscreenDevice->getInputDevice());
     }
 */
-    qDebug() << "Application::Application 00014";
     // force the model the look at the correct directory (weird order of operations issue)
     scriptEngines->setScriptsLocation(scriptEngines->getScriptsLocation());
     // do this as late as possible so that all required subsystems are initialized
@@ -1183,7 +1132,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     static controller::Pose lastLeftHandPose = myAvatar->getLeftHandPose();
     static controller::Pose lastRightHandPose = myAvatar->getRightHandPose();
 
-    qDebug() << "Application::Application 00015";
     // Periodically send fps as a user activity event
     QTimer* sendStatsTimer = new QTimer(this);
     sendStatsTimer->setInterval(SEND_STATS_INTERVAL_MS);
@@ -1296,7 +1244,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
 
-    qDebug() << "Application::Application 00016";
     OctreeEditPacketSender* packetSender = entityScriptingInterface->getPacketSender();
     EntityEditPacketSender* entityPacketSender = static_cast<EntityEditPacketSender*>(packetSender);
     entityPacketSender->setMyAvatar(myAvatar.get());
@@ -1308,6 +1255,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     QString skyboxUrl { PathUtils::resourcesPath() + "images/Default-Sky-9-cubemap.jpg" };
     QString skyboxAmbientUrl { PathUtils::resourcesPath() + "images/Default-Sky-9-ambient.jpg" };
+
+    qDebug() << "[SKYBOX] skyboxUrl="<< skyboxUrl;
 
     _defaultSkyboxTexture = textureCache->getImageTexture(skyboxUrl, NetworkTexture::CUBE_TEXTURE, { { "generateIrradiance", false } });
     _defaultSkyboxAmbientTexture = textureCache->getImageTexture(skyboxAmbientUrl, NetworkTexture::CUBE_TEXTURE, { { "generateIrradiance", true } });
@@ -1322,7 +1271,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // After all of the constructor is completed, then set firstRun to false.
     Setting::Handle<bool> firstRun{ Settings::firstRun, true };
     firstRun.set(false);
-    qDebug() << "Application::Application 00017";
 }
 
 void Application::domainConnectionRefused(const QString& reasonMessage, int reasonCodeInt, const QString& extraInfo) {
@@ -1573,8 +1521,6 @@ Application::~Application() {
 }
 
 void Application::initializeGL() {
-    qCDebug(interfaceapp) << "Created Display Window.";
-
     // initialize glut for shape drawing; Qt apparently initializes it on OS X
     if (_isGLInitialized) {
         return;
@@ -1597,18 +1543,12 @@ void Application::initializeGL() {
     _glWidget->makeCurrent();
 
     initDisplay();
-    qCDebug(interfaceapp, "Initialized Display.");
-
     // Set up the render engine
     render::CullFunctor cullFunctor = LODManager::shouldRender;
-    qCDebug(interfaceapp, "adding job RenderShadowTask");
     _renderEngine->addJob<RenderShadowTask>("RenderShadowTask", cullFunctor);
-    qCDebug(interfaceapp, "Added job RenderShadowTask");
     _renderEngine->addJob<RenderDeferredTask>("RenderDeferredTask", cullFunctor);
     _renderEngine->load();
-    qCDebug(interfaceapp, "Render engine loaded");
     _renderEngine->registerScene(_main3DScene);
-    qCDebug(interfaceapp, "Render engine scene registered");
     // TODO: Load a cached config file
 
     // The UI can't be created until the primary OpenGL
@@ -1616,16 +1556,12 @@ void Application::initializeGL() {
     // texture resources
     // Needs to happen AFTER the render engine initialization to access its configuration
     initializeUi();
-    qCDebug(interfaceapp, "Initialized Offscreen UI.");
     _glWidget->makeCurrent();
-    qCDebug(interfaceapp, "Application::initializeGL glWidget made current");
 
     // call Menu getInstance static method to set up the menu
     // Needs to happen AFTER the QML UI initialization
     _window->setMenuBar(Menu::getInstance());
-    qCDebug(interfaceapp, "Application::initializeGL menu bar set");
     init();
-    qCDebug(interfaceapp, "init() complete.");
 
     // create thread for parsing of octree data independent of the main network and rendering threads
     _octreeProcessor.initialize(_enableProcessOctreeThread);
@@ -1633,19 +1569,13 @@ void Application::initializeGL() {
     _entityEditSender.initialize(_enableProcessOctreeThread);
 
     _idleLoopStdev.reset();
-    qCDebug(interfaceapp, "OffscreenGLCanvas before");
     _offscreenContext = new OffscreenGLCanvas();
-    qCDebug(interfaceapp, "OffscreenGLCanvas instanced");
     _offscreenContext->setObjectName("MainThreadContext");
-    qCDebug(interfaceapp, "_offscreenContext name set");
     _offscreenContext->create(_glWidget->qglContext());
-    qCDebug(interfaceapp, "_offscreenContext created");
     _offscreenContext->makeCurrent();
-    qCDebug(interfaceapp, "_offscreenContext madeCurrent");
 
     // update before the first render
     update(0);
-    qCDebug(interfaceapp, "update called");
 }
 
 FrameTimingsScriptingInterface _frameTimingsScriptingInterface;
@@ -1671,9 +1601,7 @@ void Application::initializeUi() {
     //offscreenUi->setBaseUrl(QUrl(PathUtils::resourcesPath() + "/qml/"));
     // OffscreenUi is a subclass of OffscreenQmlSurface specifically designed to
     // support the window management and scripting proxies for VR use
-    qDebug() << "Application::initializeUi creating desktop..";
     offscreenUi->createDesktop(QString("hifi/Desktop.qml"));
-    qDebug() << "Application::initializeUi desktop created";
     // FIXME either expose so that dialogs can set this themselves or
     // do better detection in the offscreen UI of what has focus
     offscreenUi->setNavigationFocused(false);
@@ -1684,7 +1612,6 @@ void Application::initializeUi() {
     });
 
     setupPreferences();
-    qDebug() << "Application::initializeUi preferences set";
     // For some reason there is already an "Application" object in the QML context,
     // though I can't find it. Hence, "ApplicationInterface"
     rootContext->setContextProperty("ApplicationInterface", this);
@@ -1760,13 +1687,9 @@ void Application::initializeUi() {
         return result.toPoint();
     });
     offscreenUi->resume();
-    qDebug() << "Application::initializeUi offscreenUi resumed";
     connect(_window, &MainWindow::windowGeometryChanged, [this](const QRect& r){
-        qDebug() << "Application::initializeUi before calling resizeGL";
         resizeGL();
-        qDebug() << "Application::initializeUi after calling resizeGL";
     });
-    qDebug() << "Application::initializeUi after connecting windowGeometryChanged";
     // This will set up the input plugins UI
     _activeInputPlugins.clear();
     foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
@@ -1777,20 +1700,16 @@ void Application::initializeUi() {
             _touchscreenDevice = std::dynamic_pointer_cast<TouchscreenDevice>(inputPlugin);
         }
     }
-    qDebug() << "Application::initializeUi setting menubar to _window";
     _window->setMenuBar(new Menu());
-    qDebug() << "Application::initializeUi _window menubar set";
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
     connect(compositorHelper.data(), &CompositorHelper::allowMouseCaptureChanged, [=] {
         if (isHMDMode()) {
             showCursor(compositorHelper->getAllowMouseCapture() ? Qt::BlankCursor : Qt::ArrowCursor);
         }
     });
-    qDebug() << "Application::initializeUi DONE";
 }
 
 void Application::paintGL() {
-    qDebug() << "Application::paintGL Start";
     // Some plugins process message events, allowing paintGL to be called reentrantly.
     if (_inPaint || _aboutToQuit) {
         return;
@@ -2050,7 +1969,6 @@ void Application::paintGL() {
 
     uint64_t lastPaintDuration = usecTimestampNow() - lastPaintBegin;
     _frameTimingsScriptingInterface.addValue(lastPaintDuration);
-    qDebug() << "Application::paintGL END";
 }
 
 void Application::runTests() {
@@ -3031,20 +2949,15 @@ bool Application::shouldPaint(float nsecsElapsed) {
 }
 
 void Application::idle(float nsecsElapsed) {
-    qDebug() << "idle 3014" ;
-
     // Update the deadlock watchdog
     updateHeartbeat();
-    qDebug() << "idle 3018" ;
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
 
-qDebug() << "idle" << offscreenUi;
     // These tasks need to be done on our first idle, because we don't want the showing of
     // overlay subwindows to do a showDesktop() until after the first time through
     static bool firstIdle = true;
     if (firstIdle) {
-        qDebug() << "idle 3025";
         firstIdle = false;
         connect(offscreenUi.data(), &OffscreenUi::showDesktop, this, &Application::showDesktop);
     }
@@ -3055,7 +2968,6 @@ qDebug() << "idle" << offscreenUi;
 
     float secondsSinceLastUpdate = nsecsElapsed / NSECS_PER_MSEC / MSECS_PER_SECOND;
 
-        qDebug() << "idle 3036" << offscreenUi->getWindow();
 /*
     // If the offscreen Ui has something active that is NOT the root, then assume it has keyboard focus.
     if (_keyboardDeviceHasFocus && offscreenUi && offscreenUi->getWindow()->activeFocusItem() != offscreenUi->getRootItem()) {
@@ -3068,30 +2980,22 @@ qDebug() << "idle" << offscreenUi;
         qDebug() << "idle 3046";
     }
     */
-    qDebug() << "idle 3048";
 
     checkChangeCursor();
-    qDebug() << "idle 3051";
 
     Stats::getInstance()->updateStats();
-    qDebug() << "idle 3054";
 
     _simCounter.increment();
-    qDebug() << "idle 3057";
 
     PerformanceTimer perfTimer("idle");
-    qDebug() << "idle 3060";
 
     // Normally we check PipelineWarnings, but since idle will often take more than 10ms we only show these idle timing
     // details if we're in ExtraDebugging mode. However, the ::update() and its subcomponents will show their timing
     // details normally.
     bool showWarnings = getLogger()->extraDebugging();
-    qDebug() << "idle 3066";
     PerformanceWarning warn(showWarnings, "idle()");
 
     {
-            qDebug() << "idle 3070";
-
         PerformanceTimer perfTimer("update");
         PerformanceWarning warn(showWarnings, "Application::idle()... update()");
         static const float BIGGEST_DELTA_TIME_SECS = 0.25f;
@@ -3367,12 +3271,9 @@ void Application::initDisplay() {
 }
 
 void Application::init() {
-    qDebug() << "Application::init 0001";
     // Make sure Login state is up to date
     DependencyManager::get<DialogsManager>()->toggleLoginDialog();
-    qDebug() << "Application::init 0002 DependencyManager::get<DeferredLightingEffect>(): " << DependencyManager::get<DeferredLightingEffect>();
     DependencyManager::get<DeferredLightingEffect>()->init();
-    qDebug() << "Application::init 0003";
     DependencyManager::get<AvatarManager>()->init();
     _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
 
@@ -3477,7 +3378,6 @@ void Application::init() {
             avatar->setCollisionSound(sound);
         }
     }, Qt::QueuedConnection);
-    qDebug() << "Application::init END";
 }
 
 void Application::updateLOD() const {
@@ -3500,23 +3400,17 @@ void Application::pushPostUpdateLambda(void* key, std::function<void()> func) {
 // The principal result is to call updateLookAtTargetAvatar() and then setLookAtPosition().
 // Note that it is called BEFORE we update position or joints based on sensors, etc.
 void Application::updateMyAvatarLookAtPosition() {
-    qDebug() << "Application::updateMyAvatarLookAtPosition start";
     PerformanceTimer perfTimer("lookAt");
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateMyAvatarLookAtPosition()");
-    qDebug() << "Application::updateMyAvatarLookAtPosition 0002";
     auto myAvatar = getMyAvatar();
     myAvatar->updateLookAtTargetAvatar();
     FaceTracker* faceTracker = getActiveFaceTracker();
     auto eyeTracker = DependencyManager::get<EyeTracker>();
-    qDebug() << "Application::updateMyAvatarLookAtPosition 0003 (qApp: " << qApp;
     bool isLookingAtSomeone = false;
     bool isHMD = qApp->isHMDMode();
-    qDebug() << "Application::updateMyAvatarLookAtPosition isHMD? " << isHMD;
     glm::vec3 lookAtSpot;
-    qDebug() << "Application::updateMyAvatarLookAtPosition 0004";
     if (eyeTracker->isTracking() && (isHMD || eyeTracker->isSimulating())) {
-        qDebug() << "Application::updateMyAvatarLookAtPosition looking at a point";
         //  Look at the point that the user is looking at.
         glm::vec3 lookAtPosition = eyeTracker->getLookAtPosition();
         if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
@@ -3531,7 +3425,6 @@ void Application::updateMyAvatarLookAtPosition() {
                 + (myAvatar->getHead()->getFinalOrientationInWorldFrame() * lookAtPosition);
         }
     } else {
-        qDebug() << "Application::updateMyAvatarLookAtPosition looking at someone?";
         AvatarSharedPointer lookingAt = myAvatar->getLookAtTargetAvatar().lock();
         if (lookingAt && myAvatar.get() != lookingAt.get()) {
             //  If I am looking at someone else, look directly at one of their eyes
@@ -3591,7 +3484,6 @@ void Application::updateMyAvatarLookAtPosition() {
     }
 
     myAvatar->getHead()->setLookAtPosition(lookAtSpot);
-    qDebug() << "Application::updateMyAvatarLookAtPosition end";
 }
 
 void Application::updateThreads(float deltaTime) {
@@ -3784,16 +3676,12 @@ void Application::updateDialogs(float deltaTime) const {
 }
 
 void Application::update(float deltaTime) {
-    qDebug() << "Application::update " << deltaTime;
     PROFILE_RANGE_EX(__FUNCTION__, 0xffff0000, (uint64_t)_frameCount + 1);
-    qDebug() << "Application::update 0001";
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::update()");
-    qDebug() << "Application::update 0002";
     updateLOD();
 
     if (!_physicsEnabled) {
-        qDebug() << "Application::update 0003a";
         // we haven't yet enabled physics.  we wait until we think we have all the collision information
         // for nearby entities before starting bullet up.
         quint64 now = usecTimestampNow();
@@ -3823,9 +3711,7 @@ void Application::update(float deltaTime) {
                 }
             }
         }
-        qDebug() << "Application::update 0003b";
     }
-    qDebug() << "Application::update 0004";
     {
         PerformanceTimer perfTimer("devices");
         DeviceTracker::updateAll();
@@ -3858,7 +3744,6 @@ void Application::update(float deltaTime) {
         } else {
             _lastFaceTrackerUpdate = 0;
         }
-        qDebug() << "Application::update 0006";
     }
 
     auto myAvatar = getMyAvatar();
@@ -3869,7 +3754,6 @@ void Application::update(float deltaTime) {
         createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition()),
         myAvatar->getHMDSensorMatrix()
     };
-    qDebug() << "Application::update 0007";
     InputPluginPointer keyboardMousePlugin;
     for (auto inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
         if (inputPlugin->getName() == KeyboardMouseDevice::NAME) {
@@ -3878,7 +3762,6 @@ void Application::update(float deltaTime) {
             inputPlugin->pluginUpdate(deltaTime, calibrationData);
         }
     }
-    qDebug() << "Application::update 0008";
     userInputMapper->update(deltaTime);
 
     if (keyboardMousePlugin && keyboardMousePlugin->isActive()) {
@@ -3886,7 +3769,6 @@ void Application::update(float deltaTime) {
     }
 
     _controllerScriptingInterface->updateInputControllers();
-    qDebug() << "Application::update 0009";
     // Transfer the user inputs to the driveKeys
     // FIXME can we drop drive keys and just have the avatar read the action states directly?
     myAvatar->clearDriveKeys();
@@ -3903,7 +3785,6 @@ void Application::update(float deltaTime) {
         }
         myAvatar->setDriveKeys(ZOOM, userInputMapper->getActionState(controller::Action::TRANSLATE_CAMERA_Z));
     }
-    qDebug() << "Application::update 0010";
     controller::Pose leftHandPose = userInputMapper->getPoseState(controller::Action::LEFT_HAND);
     controller::Pose rightHandPose = userInputMapper->getPoseState(controller::Action::RIGHT_HAND);
     auto myAvatarMatrix = createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition());
@@ -3915,7 +3796,6 @@ void Application::update(float deltaTime) {
     updateDialogs(deltaTime); // update various stats dialogs if present
 
     QSharedPointer<AvatarManager> avatarManager = DependencyManager::get<AvatarManager>();
-    qDebug() << "Application::update 0011";
     if (_physicsEnabled) {
         PROFILE_RANGE_EX("Physics", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
 
@@ -3993,24 +3873,19 @@ void Application::update(float deltaTime) {
             }
         }
     }
-    qDebug() << "Application::update 0012";
     // AvatarManager update
     {
         PerformanceTimer perfTimer("AvatarManger");
         _avatarSimCounter.increment();
-        qDebug() << "Application::update 0012b";
         {
             PROFILE_RANGE_EX("OtherAvatars", 0xffff00ff, (uint64_t)getActiveDisplayPlugin()->presentCount());
             avatarManager->updateOtherAvatars(deltaTime);
         }
-        qDebug() << "Application::update 0012c";
         qApp->updateMyAvatarLookAtPosition();
-        qDebug() << "Application::update 0012d";
         {
             PROFILE_RANGE_EX("MyAvatar", 0xffff00ff, (uint64_t)getActiveDisplayPlugin()->presentCount());
             avatarManager->updateMyAvatar(deltaTime);
         }
-        qDebug() << "Application::update 0012e";
     }
 
     {
@@ -4029,7 +3904,6 @@ void Application::update(float deltaTime) {
         QMutexLocker viewLocker(&_viewMutex);
         loadViewFrustum(_myCamera, _viewFrustum);
     }
-    qDebug() << "Application::update 0014";
     quint64 now = usecTimestampNow();
 
     // Update my voxel servers with my current voxel query...
@@ -4050,7 +3924,6 @@ void Application::update(float deltaTime) {
             _lastQueriedViewFrustum = _viewFrustum;
         }
     }
-    qDebug() << "Application::update 0015";
     // sent nack packets containing missing sequence numbers of received packets from nodes
     {
         quint64 sinceLastNack = now - _lastNackTime;
@@ -4082,10 +3955,7 @@ void Application::update(float deltaTime) {
         }
         _postUpdateLambdas.clear();
     }
-    qDebug() << "Application::update 0016";
     AnimDebugDraw::getInstance().update();
-    qDebug() << "Application::update 0016++";
-
 }
 
 
@@ -4592,7 +4462,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     // Setup the current Zone Entity lighting
     {
         auto stage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
-        qDebug() << "get<DeferredLightingEffect>() from Application::displaySide";
         DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(stage->getSunLight());
     }
 
@@ -5444,8 +5313,6 @@ void Application::postLambdaEvent(std::function<void()> f) {
 }
 
 void Application::initPlugins(const QStringList& arguments) {
-            qDebug() << "Application::initPlugins";
-
     QCommandLineOption display("display", "Preferred displays", "displays");
     QCommandLineOption disableDisplays("disable-displays", "Displays to disable", "displays");
     QCommandLineOption disableInputs("disable-inputs", "Inputs to disable", "inputs");
@@ -5473,7 +5340,6 @@ void Application::initPlugins(const QStringList& arguments) {
         qInfo() << "Disabling following input plugins:" << disabledInputs;
         PluginManager::getInstance()->disableInputs(disabledInputs);
     }
-    qDebug() << "Application::end initPlugins";
 }
 
 void Application::shutdownPlugins() {
@@ -5554,16 +5420,13 @@ qreal Application::getDevicePixelRatio() {
 DisplayPluginPointer Application::getActiveDisplayPlugin() const {
     if (QThread::currentThread() != thread()) {
         std::unique_lock<std::mutex> lock(_displayPluginLock);
-        qDebug() << "Application::getActiveDisplayPlugin() not called from main thread";
         return _displayPlugin;
     }
 
     if (!_displayPlugin) {
-        qDebug() << "Application::getActiveDisplayPlugin() no _displayPlugin";
         const_cast<Application*>(this)->updateDisplayMode();
         Q_ASSERT(_displayPlugin);
     }
-    qDebug() << "Application::getActiveDisplayPlugin() _displayPlugin? " << (_displayPlugin?"non null":"null");
     return _displayPlugin;
 }
 
@@ -5606,12 +5469,10 @@ static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool acti
 }
 
 void Application::updateDisplayMode() {
-    qDebug() << "Application::updateDisplayMode start";
     // Unsafe to call this method from anything but the main thread
     if (QThread::currentThread() != thread()) {
         qFatal("Attempted to switch display plugins from a non-main thread");
     }
-    qDebug() << "Application::updateDisplayMode 00100";
     // Some plugins *cough* Oculus *cough* process message events from inside their
     // display function, and we don't want to change the display plugin underneath
     // the paintGL call, so we need to guard against that
@@ -5619,10 +5480,8 @@ void Application::updateDisplayMode() {
     if (_inPaint) {
         qFatal("Attempted to switch display plugins while in painting");
     }
-    qDebug() << "Application::updateDisplayMode 00200";
     auto menu = Menu::getInstance();
     auto displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
-    qDebug() << "Application::updateDisplayMode 00300";
     static std::once_flag once;
     std::call_once(once, [&] {
         bool first = true;
@@ -5666,12 +5525,9 @@ void Application::updateDisplayMode() {
         parent->addSeparator();
     });
 
-    qDebug() << "Application::updateDisplayMode 00500";
     // Default to the first item on the list, in case none of the menu items match
     DisplayPluginPointer newDisplayPlugin = displayPlugins.at(0);
-    qDebug() << "Application::updateDisplayMode 00600";
     foreach(DisplayPluginPointer displayPlugin, PluginManager::getInstance()->getDisplayPlugins()) {
-        qDebug() << "Application::updateDisplayMode 00700";
         QString name = displayPlugin->getName();
         QAction* action = menu->getActionForOption(name);
         // Menu might have been removed if the display plugin lost
@@ -5683,33 +5539,25 @@ void Application::updateDisplayMode() {
             break;
         }
     }
-    qDebug() << "Application::updateDisplayMode 00800";
     if (newDisplayPlugin == _displayPlugin) {
         return;
     }
-    qDebug() << "Application::updateDisplayMode 00900";
     UserActivityLogger::getInstance().logAction("changed_display_mode", {
         { "previous_display_mode", _displayPlugin ? _displayPlugin->getName() : "" },
         { "display_mode", newDisplayPlugin ? newDisplayPlugin->getName() : "" }
     });
-    qDebug() << "Application::updateDisplayMode 01000";
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
 
     // Make the switch atomic from the perspective of other threads
     {
-        qDebug() << "Application::updateDisplayMode 01100";
         std::unique_lock<std::mutex> lock(_displayPluginLock);
 
         auto oldDisplayPlugin = _displayPlugin;
-        qDebug() << "Application::updateDisplayMode 01103";
         if (_displayPlugin) {
-            qDebug() << "Application::updateDisplayMode 01104";
             _displayPlugin->deactivate();
-            qDebug() << "Application::updateDisplayMode 01105";
         }
 
         bool active = newDisplayPlugin->activate();
-        qDebug() << "Application::updateDisplayMode 01110";
 
         if (!active) {
             // If the new plugin fails to activate, fallback to last display
@@ -5739,19 +5587,14 @@ void Application::updateDisplayMode() {
         _offscreenContext->makeCurrent();
         getApplicationCompositor().setDisplayPlugin(newDisplayPlugin);
         _displayPlugin = newDisplayPlugin;
-        qDebug() << "Application::updateDisplayMode 01200";
     }
-    qDebug() << "Application::updateDisplayMode 01400";
     emit activeDisplayPluginChanged();
 
-    qDebug() << "Application::updateDisplayMode 01405";
 
     // reset the avatar, to set head and hand palms back to a reasonable default pose.
     getMyAvatar()->reset(false);
-    qDebug() << "Application::updateDisplayMode 01410";
 
     Q_ASSERT_X(_displayPlugin, "Application::updateDisplayMode", "could not find an activated display plugin");
-    qDebug() << "Application::updateDisplayMode end";
 }
 
 mat4 Application::getEyeProjection(int eye) const {
@@ -5913,9 +5756,7 @@ static const int UI_RESERVED_THREADS = 1;
 static const int OS_RESERVED_THREADS = 1;
 
 void Application::updateThreadPoolCount() const {
-    qDebug() << "updateThreadPoolCount 00200";
     auto reservedThreads = UI_RESERVED_THREADS + OS_RESERVED_THREADS + _displayPlugin->getRequiredThreadCount();
-    qDebug() << "updateThreadPoolCount 00200 + " << reservedThreads;
     auto availableThreads = QThread::idealThreadCount() - reservedThreads;
     auto threadPoolSize = std::max(MIN_PROCESSING_THREAD_POOL_SIZE, availableThreads);
     qCDebug(interfaceapp) << "Ideal Thread Count " << QThread::idealThreadCount();

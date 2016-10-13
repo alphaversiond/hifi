@@ -35,7 +35,6 @@ void RenderShadowMap::run(const render::SceneContextPointer& sceneContext, const
                           const render::ShapeBounds& inShapes) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
-    qDebug() << "get<DeferredLightingEffect>() from RenderShadowMap::run";
     const auto& lightStage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
     const auto globalLight = lightStage.lights[0];
     const auto& shadow = globalLight->shadow;
@@ -86,7 +85,6 @@ void RenderShadowMap::run(const render::SceneContextPointer& sceneContext, const
 }
 
 RenderShadowTask::RenderShadowTask(CullFunctor cullFunctor) {
-    qDebug() << "RenderShadowTask::RenderShadowTask start";
     cullFunctor = cullFunctor ? cullFunctor : [](const RenderArgs*, const AABox&){ return true; };
 
     // Prepare the ShapePipeline
@@ -123,7 +121,6 @@ RenderShadowTask::RenderShadowTask(CullFunctor cullFunctor) {
 
     // GPU jobs: Render to shadow map
     addJob<RenderShadowMap>("RenderShadowMap", sortedShapes, shapePlumber);
-    qDebug() << "RenderShadowTask::RenderShadowTask END";
 }
 
 void RenderShadowTask::configure(const Config& configuration) {
@@ -142,7 +139,6 @@ void RenderShadowTask::run(const SceneContextPointer& sceneContext, const render
     if (!sceneContext->_scene || !args) {
         return;
     }
-    qDebug() << "get<DeferredLightingEffect>() from RenderShadowTask::run";
     const auto& lightStage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
     const auto globalLight = lightStage.lights[0];
 

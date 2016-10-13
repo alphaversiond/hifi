@@ -16,7 +16,6 @@
 
 const QSurfaceFormat& getDefaultOpenGLSurfaceFormat() {
     static QSurfaceFormat format;
-    qDebug() << "QSurfaceFormat (original): "  << format << " renderable type: " << format.renderableType();
     static std::once_flag once;
     std::call_once(once, [] {
         format.setRenderableType(QSurfaceFormat::OpenGLES);
