@@ -196,10 +196,10 @@ NetworkTexture::TextureLoaderFunc getTextureLoaderForType(NetworkTexture::Type t
         }
         case Type::CUBE_TEXTURE: {
             if (options.value("generateIrradiance", true).toBool()) {
-                qDebug() << "NetworkTexture::TextureLoaderFunc getTextureLoaderForType 1";
+                qDebug() << "[SKYBOX] NetworkTexture::TextureLoaderFunc getTextureLoaderForType 1";
                 return model::TextureUsage::createCubeTextureFromImage;
             } else {
-                qDebug() << "NetworkTexture::TextureLoaderFunc getTextureLoaderForType 2";
+                qDebug() << "[SKYBOX] NetworkTexture::TextureLoaderFunc getTextureLoaderForType 2";
                 return model::TextureUsage::createCubeTextureFromImageWithoutIrradiance;
             }
             break;
@@ -239,9 +239,11 @@ NetworkTexture::TextureLoaderFunc getTextureLoaderForType(NetworkTexture::Type t
 
 /// Returns a texture version of an image file
 gpu::TexturePointer TextureCache::getImageTexture(const QString& path, Type type, QVariantMap options) {
-    qDebug() << "TextureCache::getImageTexture";
+    qDebug() << "[SKYBOX] TextureCache::getImageTexture";
     QImage image = QImage(path);
     auto loader = getTextureLoaderForType(type, options);
+    qDebug() << "[SKYBOX] loader" << loader;
+    qDebug() << "[SKYBOX] filename " << QUrl::fromLocalFile(path).fileName().toStdString();
     return gpu::TexturePointer(loader(image, QUrl::fromLocalFile(path).fileName().toStdString()));
 }
 

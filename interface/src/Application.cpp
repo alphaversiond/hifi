@@ -1259,8 +1259,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     qDebug() << "[SKYBOX] skyboxUrl="<< skyboxUrl;
 
     _defaultSkyboxTexture = textureCache->getImageTexture(skyboxUrl, NetworkTexture::CUBE_TEXTURE, { { "generateIrradiance", false } });
+    qDebug() << "[SKYBOX] _defaultSkyboxTexture="<< _defaultSkyboxTexture;    
     _defaultSkyboxAmbientTexture = textureCache->getImageTexture(skyboxAmbientUrl, NetworkTexture::CUBE_TEXTURE, { { "generateIrradiance", true } });
-
+    qDebug() << "[SKYBOX] _defaultSkyboxAmbientTexture="<< _defaultSkyboxAmbientTexture;    
     _defaultSkybox->setCubemap(_defaultSkyboxTexture);
 
     EntityItem::setEntitiesShouldFadeFunction([this]() {
@@ -4336,6 +4337,7 @@ namespace render {
         auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
         auto backgroundMode = skyStage->getBackgroundMode();
 
+        qDebug() << "[SKYBOX] payloadRender backgroundMode=" << backgroundMode;
         switch (backgroundMode) {
             case model::SunSkyStage::SKY_DEFAULT: {
                 auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();

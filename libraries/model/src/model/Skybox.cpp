@@ -31,6 +31,7 @@ void Skybox::setColor(const Color& color) {
 }
 
 void Skybox::setCubemap(const gpu::TexturePointer& cubemap) {
+    qDebug() << "[SKYBOX] setCubemap:" << cubemap;
     _cubemap = cubemap;
     if (cubemap) {
         _empty = false;
