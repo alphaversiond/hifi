@@ -49,12 +49,12 @@ bool checkGLError(const char* name) {
 }
 
 bool checkGLErrorDebug(const char* name) {
-#ifdef DEBUG
+//#ifdef DEBUG
     return checkGLError(name);
-#else
-    Q_UNUSED(name);
-    return false;
-#endif
+//#else
+ //   Q_UNUSED(name);
+  //  return false;
+//#endif
 }
 
 gpu::Size getFreeDedicatedMemory() {

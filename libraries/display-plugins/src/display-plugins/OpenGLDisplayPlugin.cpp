@@ -70,6 +70,23 @@ void main(void) {
 
 )SCRIBE";
 
+// Shaders
+const GLchar* vertexShaderSource = "#version 310 es\n"
+    "precision lowp float; \n"
+    "layout (location = 0) in vec3 position;\n"
+    "void main(void)\n"
+    "{\n"
+    "gl_Position = vec4(position.x, position.y, position.z, 1.0);\n"
+    "}\0";
+const GLchar* fragmentShaderSource = "#version 310 es\n"
+    "precision lowp float;\n"
+    "out vec4 color;\n"
+    "void main(void)\n"
+    "{\n"
+    "color = vec4(0.0f, 0.0f, 1.0f, 1.0f);\n"
+    "}\n";
+
+
 extern QThread* RENDER_THREAD;
 
 class PresentThread : public QThread, public Dependency {
@@ -352,6 +369,40 @@ void OpenGLDisplayPlugin::deactivate() {
     Parent::deactivate();
 }
 
+GLuint compileShader(GLenum type, const GLchar *source) {
+    GLuint shader = glCreateShader(type);
+    glShaderSource(shader, 1, &source, NULL);
+    glCompileShader(shader);
+    
+    GLint success;
+    GLchar errorLog[512];
+    
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        glGetShaderInfoLog(shader, 512, NULL, errorLog);
+        qDebug() << "ERROR: SHADER COMPILATION ERROR: " << errorLog;
+        return NULL;
+    }
+    return shader;
+}
+
+
+GLuint compileProgram(GLuint vertexShader, GLuint fragmentShader) {
+    GLuint shaderProgram = glCreateProgram();
+    glAttachShader(shaderProgram, vertexShader);
+    glAttachShader(shaderProgram, fragmentShader);
+    glLinkProgram(shaderProgram);
+    GLint success;
+    GLchar errorLog[512];
+    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
+    if (!success) {
+        glGetProgramInfoLog(shaderProgram, 512, NULL, errorLog);
+        std::cerr << "ERROR: PROGRAM LINKING FAILED: " << errorLog << std::endl;
+    }
+    return shaderProgram;
+}
+
+
 void OpenGLDisplayPlugin::customizeContext() {
     auto presentThread = DependencyManager::get<PresentThread>();
     Q_ASSERT(thread() == presentThread->thread());
@@ -379,6 +430,69 @@ void OpenGLDisplayPlugin::customizeContext() {
                 cursorData.texture->autoGenerateMips(-1);
             }
         }
+    }
+
+    qDebug() << "OpenGLDisplayPlugin::customizeContext";
+
+    if (!_myShaderProgram) {
+
+        GLfloat portView[4];
+        glGetFloatv(GL_VIEWPORT, portView);
+        qDebug() << "Port view x =" << portView[0] << " y=" << portView[1] << " width=" << portView[2] << " height=" <<portView[3];
+        // Compile the vertex and the fragment shaders
+        GLuint vertexShader = compileShader(GL_VERTEX_SHADER, vertexShaderSource);
+        GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, fragmentShaderSource);
+        // Link shaders
+        _myShaderProgram = glCreateProgram();
+        glAttachShader(_myShaderProgram, vertexShader);
+        glAttachShader(_myShaderProgram, fragmentShader);
+        glLinkProgram(_myShaderProgram);
+        
+        GLint success;
+        GLchar errorLog[512];
+
+        // Check for linking errors
+        glGetProgramiv(_myShaderProgram, GL_LINK_STATUS, &success);
+        if (!success) {
+            glGetProgramInfoLog(_myShaderProgram, 512, NULL, errorLog);
+            std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << errorLog << std::endl;
+        }
+        
+        glDeleteShader(vertexShader);
+        glDeleteShader(fragmentShader);
+
+
+        GLfloat vertices[] = {
+             0.5f,  0.5f, 0.0f,  // Top Right
+             0.5f, -0.5f, 0.0f,  // Bottom Right
+            -0.5f, -0.5f, 0.0f,  // Bottom Left
+            -0.5f,  0.5f, 0.0f   // Top Left 
+        };
+        GLuint indices[] = {  // Note that we start from 0!
+            0, 1, 3,  // First Triangle
+            1, 2, 3   // Second Triangle
+        };
+
+        GLuint VBO, EBO;
+        glGenVertexArrays(1, &_VAO);
+        glGenBuffers(1, &VBO);
+        glGenBuffers(1, &EBO);
+        // Bind the Vertex Array Object first, then bind and set vertex buffer(s) and attribute pointer(s).
+        glBindVertexArray(_VAO);
+
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+        glEnableVertexAttribArray(0);
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0); // Note that this is allowed, the call to glVertexAttribPointer registered VBO as the currently bound vertex buffer object so afterwards we can safely unbind
+
+        glBindVertexArray(0); // Unbind VAO (it's always a good thing to unbind any buffer/array to prevent strange bugs), remember: do NOT unbind the EBO, keep it bound to this VAO
+
     }
 
     if (!_presentPipeline) {
@@ -598,14 +712,28 @@ void OpenGLDisplayPlugin::compositeLayers() {
 }
 
 void OpenGLDisplayPlugin::internalPresent() {
+//        qDebug() << "OpenGLDisplayPlugin::internalPresent() " << _myShaderProgram << "-" << _VAO;
+
+     // Render
+        // Clear the colorbuffer
+    //glClearColor(0.8f, 0.8f, 0.3f, 1.0f);
+    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) ;
+
+        // Draw our first triangle
+       glUseProgram(_myShaderProgram);
+        glBindVertexArray(_VAO);
+        //glDrawArrays(GL_TRIANGLES, 0, 6);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glBindVertexArray(0);
+
     render([&](gpu::Batch& batch) {
         batch.enableStereo(false);
-        batch.resetViewTransform();
-        batch.setFramebuffer(gpu::FramebufferPointer());
-        batch.setViewportTransform(ivec4(uvec2(0), getSurfacePixels()));
-        batch.setResourceTexture(0, _compositeFramebuffer->getRenderBuffer(0));
-        batch.setPipeline(_presentPipeline);
-        batch.draw(gpu::TRIANGLE_STRIP, 4);
+        //batch.resetViewTransform(); 4test not needed
+        batch.setFramebuffer(gpu::FramebufferPointer()); //  NEEDED
+        //batch.setViewportTransform(ivec4(uvec2(0), getSurfacePixels())); 4test not needed
+        batch.setResourceTexture(0, _compositeFramebuffer->getRenderBuffer(0));  //  NEEDED
+        batch.setPipeline(_presentPipeline); // NEEDED for inner square
+        batch.draw(gpu::TRIANGLE_STRIP, 4); //  NEEDED  glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     });
     swapBuffers();
     _presentRate.increment();

@@ -31,7 +31,7 @@ void Skybox::setColor(const Color& color) {
 }
 
 void Skybox::setCubemap(const gpu::TexturePointer& cubemap) {
-    qDebug() << "[SKYBOX] setCubemap:" << cubemap;
+    qDebug() << "[SKYBOX] setCubemap:" << cubemap->getSize();
     _cubemap = cubemap;
     if (cubemap) {
         _empty = false;
@@ -120,4 +120,5 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
     batch.draw(gpu::TRIANGLE_STRIP, 4);
 
     batch.setResourceTexture(SKYBOX_SKYMAP_SLOT, nullptr);
+    qDebug() << "[SKYBOX] render end";
 }

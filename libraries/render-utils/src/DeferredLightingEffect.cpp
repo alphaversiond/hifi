@@ -392,6 +392,7 @@ void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderC
         batch.setFramebuffer(deferredFbo);
 
         // Clear Color, Depth and Stencil for deferred buffer
+        qDebug() << "[clearFramebuffer] PrepareDeferred::run";
         batch.clearFramebuffer(
             gpu::Framebuffer::BUFFER_COLOR0 | gpu::Framebuffer::BUFFER_COLOR1 | gpu::Framebuffer::BUFFER_COLOR2 | gpu::Framebuffer::BUFFER_COLOR3 |
             gpu::Framebuffer::BUFFER_DEPTH |

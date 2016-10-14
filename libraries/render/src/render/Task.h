@@ -602,7 +602,6 @@ public:
 
     // Create a new job in the container's queue; returns the job's output
     template <class T, class... A> const Varying addJob(std::string name, const Varying& input, A&&... args) {
-        qDebug() << "addJob " << name.c_str() << " start";
         _jobs.emplace_back(name, std::make_shared<typename T::JobModel>(input, std::forward<A>(args)...));
         QConfigPointer config = _jobs.back().getConfiguration();
         config->setParent(getConfiguration().get());
@@ -615,13 +614,10 @@ public:
             // Connect dirty->refresh if defined
             QObject::connect(config.get(), SIGNAL(dirty()), getConfiguration().get(), SLOT(refresh()));
         }
-        qDebug() << "addJob " << name.c_str() << " end (returning job)";
         return _jobs.back().getOutput();
     }
     template <class T, class... A> const Varying addJob(std::string name, A&&... args) {
-        qDebug() << "addJob std::string name, A&&... args" << name.c_str() << " start";
         const auto input = Varying(typename T::JobModel::Input());
-        qDebug() << "addJob std::string name, A&&... args" << name.c_str() << " Varying called";
         return addJob<T>(name, input, std::forward<A>(args)...);
     }
 

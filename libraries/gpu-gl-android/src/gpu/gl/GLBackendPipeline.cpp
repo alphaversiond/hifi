@@ -31,6 +31,7 @@ void GLBackend::do_setPipeline(const Batch& batch, size_t paramOffset) {
 
     // null pipeline == reset
     if (!pipeline) {
+        qDebug() << " null pipeline";
         _pipeline._pipeline.reset();
 
         _pipeline._program = 0;

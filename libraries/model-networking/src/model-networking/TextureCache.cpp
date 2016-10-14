@@ -239,11 +239,8 @@ NetworkTexture::TextureLoaderFunc getTextureLoaderForType(NetworkTexture::Type t
 
 /// Returns a texture version of an image file
 gpu::TexturePointer TextureCache::getImageTexture(const QString& path, Type type, QVariantMap options) {
-    qDebug() << "[SKYBOX] TextureCache::getImageTexture";
     QImage image = QImage(path);
     auto loader = getTextureLoaderForType(type, options);
-    qDebug() << "[SKYBOX] loader" << loader;
-    qDebug() << "[SKYBOX] filename " << QUrl::fromLocalFile(path).fileName().toStdString();
     return gpu::TexturePointer(loader(image, QUrl::fromLocalFile(path).fileName().toStdString()));
 }
 

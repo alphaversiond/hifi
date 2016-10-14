@@ -197,6 +197,7 @@ GLTexture::~GLTexture() {
 }
 
 void GLTexture::createTexture() {
+    qDebug() << "GLESTexture::createTexture";
     withPreservedTexture([&] {
         allocateStorage();
         (void)CHECK_GL_ERROR();

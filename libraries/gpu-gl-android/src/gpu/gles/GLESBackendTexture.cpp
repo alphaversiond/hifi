@@ -47,6 +47,7 @@ GLESTexture::GLESTexture(const std::weak_ptr<GLBackend>& backend, const Texture&
 }
 
 void GLESTexture::generateMips() const {
+    qDebug() << "GLESTexture::generateMips";
     withPreservedTexture([&] {
         glGenerateMipmap(_target);
     });
@@ -65,6 +66,7 @@ void GLESTexture::allocateStorage() const {
         glTexStorage2D(_target, usedMipLevels(), texelFormat.internalFormat, dimensions.x, dimensions.y);
         (void)CHECK_GL_ERROR();
     } else {*/
+        qDebug() << "GLESTexture::allocateStorage minMip: " << _minMip << ", maxMip: " << _maxMip;
         for (uint16_t l = _minMip; l <= _maxMip; l++) {
             // Get the mip level dimensions, accounting for the downgrade level
             Vec3u dimensions = _gpuObject.evalMipDimensions(l);

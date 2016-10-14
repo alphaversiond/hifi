@@ -73,7 +73,7 @@ void GLBackend::do_clearFramebuffer(const Batch& batch, size_t paramOffset) {
     bool restoreDepthMask = false;
     if (masks & Framebuffer::BUFFER_DEPTH) {
         glClearDepthf(depth);
-        qDebug() << "TODO: GLBackendOutput.cpp:do_clearFramebuffer glClearDepth";
+        //qDebug() << "TODO: GLBackendOutput.cpp:do_clearFramebuffer glClearDepth " << depth;
 
         glmask |= GL_DEPTH_BUFFER_BIT;
         
@@ -95,13 +95,15 @@ void GLBackend::do_clearFramebuffer(const Batch& batch, size_t paramOffset) {
 
             if (!drawBuffers.empty()) {
                 glDrawBuffers((GLsizei)drawBuffers.size(), drawBuffers.data());
-                glClearColor(color.x, color.y, color.z, color.w);
+                //glClearColor(color.x, color.y, color.z, color.w);
+                glClearColor(1.0, 0.0, 0.0, 1.0);
                 glmask |= GL_COLOR_BUFFER_BIT;
             
                 (void) CHECK_GL_ERROR();
             }
         } else {
-            glClearColor(color.x, color.y, color.z, color.w);
+            glClearColor(0.0, 1.0, 0.0, 1.0);
+            //glClearColor(color.x, color.y, color.z, color.w);
             glmask |= GL_COLOR_BUFFER_BIT;
         }
         
@@ -116,7 +118,7 @@ void GLBackend::do_clearFramebuffer(const Batch& batch, size_t paramOffset) {
     }
 
     // Clear!
-    glClear(glmask);
+    glClear(GL_COLOR_BUFFER_BIT);
 
     // Restore scissor if needed
     if (doEnableScissor) {
@@ -137,6 +139,7 @@ void GLBackend::do_clearFramebuffer(const Batch& batch, size_t paramOffset) {
     }
 
     (void) CHECK_GL_ERROR();
+    return;
 }
 
 void GLBackend::downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) {

@@ -59,6 +59,7 @@ void GLESBackend::transferTransformState(const Batch& batch) const {
             _transform._drawCallInfoOffsets[data.first] = (GLvoid*)currentSize;
         }
 
+        qDebug() << "GLESBackend::transferTransformState with size " << bufferData.size();
         glBindBuffer(GL_ARRAY_BUFFER, _transform._drawCallInfoBuffer);
         glBufferData(GL_ARRAY_BUFFER, bufferData.size(), bufferData.data(), GL_DYNAMIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);

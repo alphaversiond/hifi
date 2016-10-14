@@ -324,10 +324,9 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
     }
 
     _glData = ::getGLContextData();
-    qCDebug(glLogging) << "OffscreenQmlSurface::create initializing render control..";
     _renderControl->initialize(_canvas->getContext());
     setupFbo();
-    qCDebug(glLogging) << "OffscreenQmlSurface::create fbo set";
+
     // When Quick says there is a need to render, we will not render immediately. Instead,
     // a timer with a small interval is used to get better performance.
     QObject::connect(&_updateTimer, &QTimer::timeout, this, &OffscreenQmlSurface::updateQuick);
@@ -335,13 +334,10 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
     _updateTimer.setInterval(MIN_TIMER_MS);
     _updateTimer.start();
 
-    qCDebug(glLogging) << "OffscreenQmlSurface::create Url? " << QUrl::fromLocalFile(PathUtils::resourcesPath());
-    qCDebug(glLogging) << "OffscreenQmlSurface::create Url (no local)? " << QUrl(PathUtils::resourcesPath());
     auto rootContext = getRootContext();
     rootContext->setContextProperty("urlHandler", new UrlHandler());
     rootContext->setContextProperty("resourceDirectoryUrl", QUrl(PathUtils::resourcesPath()));
 
-    qCDebug(glLogging) << "OffscreenQmlSurface::create END";
 }
 
 void OffscreenQmlSurface::resize(const QSize& newSize_, bool forceResize) {

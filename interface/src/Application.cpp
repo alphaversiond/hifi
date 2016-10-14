@@ -1259,9 +1259,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     qDebug() << "[SKYBOX] skyboxUrl="<< skyboxUrl;
 
     _defaultSkyboxTexture = textureCache->getImageTexture(skyboxUrl, NetworkTexture::CUBE_TEXTURE, { { "generateIrradiance", false } });
-    qDebug() << "[SKYBOX] _defaultSkyboxTexture="<< _defaultSkyboxTexture;    
+    qDebug() << "[SKYBOX] _defaultSkyboxTexture="<< _defaultSkyboxTexture->getSize();    
     _defaultSkyboxAmbientTexture = textureCache->getImageTexture(skyboxAmbientUrl, NetworkTexture::CUBE_TEXTURE, { { "generateIrradiance", true } });
-    qDebug() << "[SKYBOX] _defaultSkyboxAmbientTexture="<< _defaultSkyboxAmbientTexture;    
+    qDebug() << "[SKYBOX] _defaultSkyboxAmbientTexture="<< _defaultSkyboxAmbientTexture->getSize();    
     _defaultSkybox->setCubemap(_defaultSkyboxTexture);
 
     EntityItem::setEntitiesShouldFadeFunction([this]() {
@@ -4351,10 +4351,11 @@ namespace render {
                 // fall through: render a skybox (if available), or the defaults (if requested)
            }
 
-            case model::SunSkyStage::SKY_BOX: {
+           case model::SunSkyStage::SKY_BOX: {
                 auto skybox = skyStage->getSkybox();
                 if (!skybox->empty()) {
                     PerformanceTimer perfTimer("skybox");
+                    qDebug() << "[SKYBOX] SKY_BOX: payloadRender->render";
                     skybox->render(batch, args->getViewFrustum());
                     break;
                 }
@@ -4381,6 +4382,7 @@ namespace render {
 
             case model::SunSkyStage::SKY_DEFAULT_TEXTURE:
                 if (Menu::getInstance()->isOptionChecked(MenuOption::DefaultSkybox)) {
+                    qDebug() << "[SKYBOX] SKY_DEFAULT_TEXTURE: payloadRender->render";
                     qApp->getDefaultSkybox()->render(batch, args->getViewFrustum());
                 }
                 break;

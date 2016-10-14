@@ -21,6 +21,7 @@ namespace gpu {
 
         public:
             GLESBuffer(const std::weak_ptr<gl::GLBackend>& backend, const Buffer& buffer, GLESBuffer* original) : Parent(backend, buffer, allocate()) {
+                qDebug() << "GLESBuffer::GLESBuffer size: " << _size; 
                 glBindBuffer(GL_ARRAY_BUFFER, _buffer);
                 glBufferData(GL_ARRAY_BUFFER, _size, nullptr, GL_DYNAMIC_DRAW);
                 glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -37,6 +38,7 @@ namespace gpu {
             }
 
             void transfer() override {
+                qDebug() << "GLESBuffer::GLESBuffer transfer: "; 
                 glBindBuffer(GL_ARRAY_BUFFER, _buffer);
                 (void)CHECK_GL_ERROR();
                 Size offset;
