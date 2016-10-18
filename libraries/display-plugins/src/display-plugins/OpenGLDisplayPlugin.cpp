@@ -71,24 +71,7 @@ void main(void) {
 )SCRIBE";
 
 // Shaders
-const GLchar* vertexShaderSource = "#version 310 es\n"
-    "precision lowp float; \n"
-    "layout (location = 0) in vec3 position;\n"
-    "layout (location = 1) in vec3 color;\n"
-//    "layout (location = 2) in vec2 texCoord;\n"
-    "out vec3 vertexColor;\n"
-//    "out vec2 TexCoord;\n"
-    "void main() { gl_Position = vec4(position.x, position.y, position.z, 1.0);\n"
-    "vertexColor = color;\n"
-//    "TexCoord = texCoord;"
-    "}\n\0";
-const GLchar* fragmentShaderSource = "#version 310 es\n"
-    "precision lowp float;\n"
-    "out vec4 color;"
-    "in vec3 vertexColor;\n"
-//    "in vec2 TexCoord;\n"
-    "uniform sampler2D ourTexture;\n"
-    "void main() { color = /* texture(ourTexture, TexCoord) * */ vec4(vertexColor, 1.0f); }\n\0";
+
 
 
 extern QThread* RENDER_THREAD;
@@ -440,9 +423,6 @@ void OpenGLDisplayPlugin::customizeContext() {
 
     /*if (!_myShaderProgram) {
 
-        GLfloat portView[4];
-        glGetFloatv(GL_VIEWPORT, portView);
-        qDebug() << "Port view x =" << portView[0] << " y=" << portView[1] << " width=" << portView[2] << " height=" <<portView[3];
         // Compile the vertex and the fragment shaders
         GLuint vertexShader = compileShader(GL_VERTEX_SHADER, vertexShaderSource);
         GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, fragmentShaderSource);
@@ -683,6 +663,9 @@ void OpenGLDisplayPlugin::compositeOverlay() {
 }
 
 void OpenGLDisplayPlugin::compositePointer() {
+
+      
+
     auto& cursorManager = Cursor::Manager::instance();
     const auto& cursorData = _cursorsData[cursorManager.getCursor()->getIcon()];
     // Grab a texture map representing the different status icons and assign that to the drawStatsuJob
@@ -690,11 +673,8 @@ void OpenGLDisplayPlugin::compositePointer() {
     static auto statusIconMap = DependencyManager::get<TextureCache>()->getImageTexture(iconMapPath);
     //static auto statusIconMap = DependencyManager::get<TextureCache>()->getBlueTexture();
     //auto cursorTransform = DependencyManager::get<CompositorHelper>()->getReticleTransform(glm::mat4());
-    
+    /*
         static const float CURSOR_PIXEL_SIZE = 320.0f;
-        const auto canvasSize = vec2(_compositeFramebuffer->getSize());
-        static int numFrame=0;
-        numFrame++;
         vec2 mousePosition = vec2(numFrame % (int) canvasSize.x, numFrame % (int) canvasSize.y);
         mousePosition /= canvasSize;
         mousePosition *= 2.0;
@@ -703,6 +683,8 @@ void OpenGLDisplayPlugin::compositePointer() {
 
         vec2 mouseSize = CURSOR_PIXEL_SIZE / canvasSize;
         glm::mat4 cursorTransform = glm::scale(glm::translate(glm::mat4(), vec3(mousePosition, 0.0f)), vec3(mouseSize, 1.0f));
+
+
 
     render([&](gpu::Batch& batch) {
         batch.enableStereo(false);
@@ -721,7 +703,7 @@ void OpenGLDisplayPlugin::compositePointer() {
             batch.setViewportTransform(ivec4(uvec2(0), _compositeFramebuffer->getSize()));
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         }
-    });
+    });*/
 }
 
 void OpenGLDisplayPlugin::compositeScene() {

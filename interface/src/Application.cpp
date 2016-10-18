@@ -167,6 +167,25 @@ extern "C" {
 }
 #endif
 
+const GLchar* vertexShaderSource = 
+    "layout (location = 0) in vec3 position;\n"
+    "layout (location = 1) in vec3 color;\n"
+//    "layout (location = 2) in vec2 texCoord;\n"
+    "out vec3 vertexColor;\n"
+//    "out vec2 TexCoord;\n"
+    "void main() { gl_Position = vec4(position.x, position.y, position.z, 1.0);\n"
+    "vertexColor = color;\n"
+//    "TexCoord = texCoord;"
+    "}\n\0";
+    
+const GLchar* fragmentShaderSource = 
+    "out vec4 color;"
+    "in vec3 vertexColor;\n"
+//    "in vec2 TexCoord;\n"
+    "uniform sampler2D ourTexture;\n"
+    "void main() { color = vec4(vertexColor, 1.0f); }\n\0";
+
+
 using namespace std;
 
 static QTimer locationUpdateTimer;
@@ -1943,11 +1962,100 @@ void Application::paintGL() {
             renderArgs._context->setStereoViews(eyeOffsets);
         }
         renderArgs._blitFramebuffer = finalFramebuffer;
+        
+
+  static gpu::PipelinePointer thePipeline;
+        static std::once_flag once;
+        static gpu::BufferView vertices(new gpu::Buffer(), gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
+        static gpu::BufferView indices(new gpu::Buffer(), gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::INDEX));
+
+        std::call_once(once, [&] {
+            {
+                auto cubeVS = gpu::Shader::createVertex(std::string(vertexShaderSource));
+                auto cubeFS = gpu::Shader::createPixel(std::string(fragmentShaderSource));
+                auto cubeShader = gpu::Shader::createProgram(cubeVS, cubeFS);
+
+                gpu::Shader::BindingSet bindings;
+                //bindings.insert(gpu::Shader::Binding(std::string("cubeMap"), SKYBOX_SKYMAP_SLOT));
+                //bindings.insert(gpu::Shader::Binding(std::string("skyboxBuffer"), SKYBOX_CONSTANTS_SLOT));
+                if (!gpu::Shader::makeProgram(*cubeShader, bindings)) {
+                    qDebug() << "[CUBE] error creating shader program!!!";
+                }
+
+                   GLfloat _vertices[] = {
+                        // Positions          // Colors           // Texture Coords
+                        0.5f,  0.5f, 0.0f,   0.2f, 0.7f, 0.0f,  0.0f, 0.0f, /*1.0f, 1.0f, */  // Top Right
+                        0.5f, -0.5f, 0.0f,   0.2f, 0.7f, 0.0f,  0.0f, 0.0f, /* 1.0f, 0.0f, */  // Bottom Right
+                        -0.5f, -0.5f, 0.0f,   0.2f, 0.7f, 0.0f, 0.0f, 0.0f, /*  0.0f, 0.0f, */  // Bottom Left
+                        -0.5f,  0.5f, 0.0f,   0.2f, 0.7f, 0.0f, 0.0f, 0.0f, /*  0.0f, 1.0f */   // Top Left
+                    };
+
+                    GLuint _indices[] = {  // Note that we start from 0!
+                        0, 1, 3,   // First Triangle
+                        1, 2, 3    // Second Triangle
+                    };
+
+
+                int verticesSize = sizeof(GLfloat) * 32;
+                vertices._buffer->append(verticesSize, reinterpret_cast<const gpu::Byte*>(&_vertices));
+
+                int indicesSize = sizeof(GLuint) * 6;
+                indices._buffer->append(indicesSize, reinterpret_cast<const gpu::Byte*>(&_indices));
+                auto cubeState = std::make_shared<gpu::State>();
+                thePipeline = gpu::Pipeline::create(cubeShader, cubeState);
+                qDebug() << "Cube pipeline built";
+            }
+        });
+
+        qDebug() << "Drawing cube";
+        static int numFrame=0;
+        numFrame++;
+
+        const auto canvasSize = vec2(finalFramebuffer->getSize());
+
+  
+        vec2 cubeSize = 250.0f / canvasSize;
+        glm::mat4 cubeTransform = glm::rotate(glm::mat4(), (float) glm::radians(numFrame/1000.0f), vec3(0.0f, 0.0f, 1.0f));
+
         gpu::Batch batch;
-        batch.setFramebuffer(renderArgs._blitFramebuffer);
-        batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLORS, glm::vec4(0.0, 1.0, 0.0, 1.0));
+
+            batch.enableStereo(false);
+            batch.setProjectionTransform(mat4());
+            batch.setFramebuffer(finalFramebuffer);
+            batch.setPipeline(thePipeline);
+            batch.setInputBuffer(0, vertices._buffer, 0, sizeof(GLfloat) * 8);
+            batch.setInputBuffer(1, vertices._buffer, 3 * sizeof(GLfloat), sizeof(GLfloat) * 8);
+            batch.setIndexBuffer(gpu::UINT32, indices._buffer, 0);
+            //batch.setResourceTexture(0, DependencyManager::get<TextureCache>()->getBlueTexture());
+            batch.resetViewTransform();
+            batch.setModelTransform(cubeTransform);
+            //batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLORS, glm::vec4(0.0, 1.0, 0.0, 1.0));
+            //batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLORS | gpu::Framebuffer::BUFFER_STENCIL, glm::vec4(0.5f, 0.5f, 0.0f, 1.0f));
+            
+            // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0); **** -->
+            // signature batch.drawIndexed(Primitive primitiveType, uint32 numIndices, uint32 startIndex)
+            batch.setViewportTransform(ivec4(uvec2(0), finalFramebuffer->getSize()));
+            batch.drawIndexed(gpu::TRIANGLES, 3, 0);
+        
+
         renderArgs._context->appendFrameBatch(batch);
-        displaySide(&renderArgs, _myCamera);
+        //skybox.prepare(batch);
+        //batch.draw(gpu::TRIANGLE_STRIP, 4);
+
+        //batch.setResourceTexture(SKYBOX_SKYMAP_SLOT, nullptr);
+
+        //displaySide(&renderArgs, _myCamera);
+
+
+
+
+
+
+
+
+
+
+
     }
 
     auto frame = _gpuContext->endFrame();
