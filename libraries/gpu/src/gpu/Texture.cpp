@@ -295,7 +295,6 @@ Texture* Texture::create(Type type, const Element& texelFormat, uint16 width, ui
 Texture::Texture():
     Resource()
 {
-    qDebug() << "[SKYBOX] Texture::Texture";
     _textureCPUCount++;
 }
 

@@ -64,6 +64,7 @@ void ProceduralSkybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum,
     procedural.prepare(batch, glm::vec3(0), glm::vec3(1), glm::quat());
     auto textureSlot = procedural.getShader()->getTextures().findLocation("cubeMap");
     auto bufferSlot = procedural.getShader()->getBuffers().findLocation("skyboxBuffer");
+    qDebug() << "[SKYBOX] ProceduralSkybox render textureSlot " << textureSlot;
     skybox.prepare(batch, textureSlot, bufferSlot);
     batch.draw(gpu::TRIANGLE_STRIP, 4);
 }

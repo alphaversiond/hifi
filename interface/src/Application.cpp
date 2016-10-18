@@ -1258,10 +1258,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     qDebug() << "[SKYBOX] skyboxUrl="<< skyboxUrl;
 
-    _defaultSkyboxTexture = textureCache->getImageTexture(skyboxUrl, NetworkTexture::CUBE_TEXTURE, { { "generateIrradiance", false } });
-    qDebug() << "[SKYBOX] _defaultSkyboxTexture="<< _defaultSkyboxTexture->getSize();    
-    _defaultSkyboxAmbientTexture = textureCache->getImageTexture(skyboxAmbientUrl, NetworkTexture::CUBE_TEXTURE, { { "generateIrradiance", true } });
-    qDebug() << "[SKYBOX] _defaultSkyboxAmbientTexture="<< _defaultSkyboxAmbientTexture->getSize();    
+//    _defaultSkyboxTexture = textureCache->getImageTexture(skyboxUrl, NetworkTexture::CUBE_TEXTURE, { { "generateIrradiance", false } });
+//    _defaultSkyboxAmbientTexture = textureCache->getImageTexture(skyboxAmbientUrl, NetworkTexture::CUBE_TEXTURE, { { "generateIrradiance", true } });
+    _defaultSkyboxTexture = textureCache->getBlueTexture();
+    _defaultSkyboxAmbientTexture = textureCache->getBlueTexture();
     _defaultSkybox->setCubemap(_defaultSkyboxTexture);
 
     EntityItem::setEntitiesShouldFadeFunction([this]() {
@@ -1711,6 +1711,7 @@ void Application::initializeUi() {
 }
 
 void Application::paintGL() {
+    qDebug() << "Application::paintGL";
     // Some plugins process message events, allowing paintGL to be called reentrantly.
     if (_inPaint || _aboutToQuit) {
         return;
@@ -1946,7 +1947,7 @@ void Application::paintGL() {
         batch.setFramebuffer(renderArgs._blitFramebuffer);
         batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLORS, glm::vec4(0.0, 1.0, 0.0, 1.0));
         renderArgs._context->appendFrameBatch(batch);
-        //displaySide(&renderArgs, _myCamera);
+        displaySide(&renderArgs, _myCamera);
     }
 
     auto frame = _gpuContext->endFrame();
@@ -2075,8 +2076,9 @@ bool Application::importSVOFromURL(const QString& urlString) {
 }
 
 bool Application::event(QEvent* event) {
-
+    qDebug() << "Application::event " << event->type();
     if (!Menu::getInstance()) {
+        qDebug() << "Application::event aborting Application::event";
         return false;
     }
 
@@ -2085,6 +2087,8 @@ bool Application::event(QEvent* event) {
     static bool isPaintingThrottled = false;
     if ((int)event->type() == (int)Present) {
         if (isPaintingThrottled) {
+            qDebug() << "Application::event isPaintingThrottled";
+
             // If painting (triggered by presentation) is hogging the main thread,
             // repost as low priority to avoid hanging the GUI.
             // This has the effect of allowing presentation to exceed the paint budget by X times and
@@ -2094,13 +2098,19 @@ bool Application::event(QEvent* event) {
             postEvent(this, new QEvent(static_cast<QEvent::Type>(Present)), Qt::LowEventPriority);
             isPaintingThrottled = false;
             return true;
+        } else {
+            qDebug() << "Application::event not isPaintingThrottled";
         }
 
         float nsecsElapsed = (float)_lastTimeUpdated.nsecsElapsed();
         if (shouldPaint(nsecsElapsed)) {
+            qDebug() << "Application::event should paint " << nsecsElapsed;
             _lastTimeUpdated.start();
             idle(nsecsElapsed);
             postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority);
+        } else {
+            qDebug() << "Application::event not should paint";
+
         }
         isPaintingThrottled = true;
 
@@ -2108,7 +2118,10 @@ bool Application::event(QEvent* event) {
     } else if ((int)event->type() == (int)Paint) {
         // NOTE: This must be updated as close to painting as possible,
         //       or AvatarInputs will mysteriously move to the bottom-right
+        qDebug() << "Application::event 1002 event paint";
+
         AvatarInputs::getInstance()->update();
+        qDebug() << "Application::event 1002 before paintgl";
 
         paintGL();
 
@@ -2956,7 +2969,7 @@ bool Application::shouldPaint(float nsecsElapsed) {
 void Application::idle(float nsecsElapsed) {
     // Update the deadlock watchdog
     updateHeartbeat();
-
+    qDebug() << "Application::idle " << nsecsElapsed;
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
 
     // These tasks need to be done on our first idle, because we don't want the showing of
@@ -4401,7 +4414,7 @@ namespace render {
 
 
 void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool selfAvatarOnly) {
-
+    qDebug() << "Application::displaySide";
     // FIXME: This preDisplayRender call is temporary until we create a separate render::scene for the mirror rendering.
     // Then we can move this logic into the Avatar::simulate call.
     auto myAvatar = getMyAvatar();

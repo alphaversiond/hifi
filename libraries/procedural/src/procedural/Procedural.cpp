@@ -189,6 +189,7 @@ void Procedural::parse(const QJsonObject& proceduralData) {
 }
 
 bool Procedural::ready() {
+    qDebug() << "[SKYBOX] Procedural::Ready " << _enabled;
     if (!_hasStartedFade) {
         _fadeStartTime = usecTimestampNow();
     }
@@ -210,12 +211,14 @@ bool Procedural::ready() {
 
     // Do we have a network or local shader, and if so, is it loaded?
     if (_shaderPath.isEmpty() && (!_networkShader || !_networkShader->isLoaded())) {
+        qDebug() << "[SKYBOX] Procedural::Ready _shaderPath.isEmpty() && (!_networkShader || !_networkShader->isLoaded())";
         return false;
     }
 
     // Do we have textures, and if so, are they loaded?
     for (size_t i = 0; i < MAX_PROCEDURAL_TEXTURE_CHANNELS; ++i) {
         if (_channels[i] && !_channels[i]->isLoaded()) {
+            qDebug() << "[SKYBOX] Procedural::Ready _channels[i] && !_channels[i]->isLoaded()";
             return false;
         }
     }

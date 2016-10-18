@@ -72,21 +72,24 @@ void Skybox::prepare(gpu::Batch& batch, int textureSlot, int bufferSlot) const {
     }
 
     if (textureSlot > -1) {
+        qDebug() << "[SKYBOX] textureSlot = " << textureSlot;
         gpu::TexturePointer skymap = getCubemap();
         // FIXME: skymap->isDefined may not be threadsafe
         if (skymap && skymap->isDefined()) {
-            batch.setResourceTexture(textureSlot, skymap);
+            qDebug() << "[SKYBOX] setResourceTexture";
+            //batch.setResourceTexture(textureSlot, skymap);
         }
     }
 }
 
 void Skybox::render(gpu::Batch& batch, const ViewFrustum& frustum) const {
+    qDebug() << "[SKYBOX] render 1";
     updateSchemaBuffer();
     Skybox::render(batch, frustum, (*this));
 }
 
 void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Skybox& skybox) {
-    qDebug() << "[SKYBOX] render";
+    qDebug() << "[SKYBOX] render 2";
     // Create the static shared elements used to render the skybox
     static gpu::BufferPointer theConstants;
     static gpu::PipelinePointer thePipeline;

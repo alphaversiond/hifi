@@ -201,6 +201,9 @@ GLenum GLTexelFormat::evalGLTexelFormatInternal(const gpu::Element& dstFormat) {
 }
 
 GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const Element& srcFormat) {
+    qDebug() << "GLTexelFormat::evalGLTexelFormat dst.getDimension=" << dstFormat.getDimension() << " dst.getType=" << dstFormat.getType() << " dst.getSemantic=" << dstFormat.getSemantic();
+    qDebug() << "GLTexelFormat::evalGLTexelFormat src.getDimension=" << srcFormat.getDimension() << " src.getType=" << srcFormat.getType() << " src.getSemantic=" << srcFormat.getSemantic();
+
     if (dstFormat != srcFormat) {
         GLTexelFormat texel = { GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE };
 
