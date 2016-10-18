@@ -74,17 +74,21 @@ void main(void) {
 const GLchar* vertexShaderSource = "#version 310 es\n"
     "precision lowp float; \n"
     "layout (location = 0) in vec3 position;\n"
-    "void main(void)\n"
-    "{\n"
-    "gl_Position = vec4(position.x, position.y, position.z, 1.0);\n"
-    "}\0";
+    "layout (location = 1) in vec3 color;\n"
+//    "layout (location = 2) in vec2 texCoord;\n"
+    "out vec3 vertexColor;\n"
+//    "out vec2 TexCoord;\n"
+    "void main() { gl_Position = vec4(position.x, position.y, position.z, 1.0);\n"
+    "vertexColor = color;\n"
+//    "TexCoord = texCoord;"
+    "}\n\0";
 const GLchar* fragmentShaderSource = "#version 310 es\n"
     "precision lowp float;\n"
-    "out vec4 color;\n"
-    "void main(void)\n"
-    "{\n"
-    "color = vec4(0.0f, 0.0f, 1.0f, 1.0f);\n"
-    "}\n";
+    "out vec4 color;"
+    "in vec3 vertexColor;\n"
+//    "in vec2 TexCoord;\n"
+    "uniform sampler2D ourTexture;\n"
+    "void main() { color = /* texture(ourTexture, TexCoord) * */ vec4(vertexColor, 1.0f); }\n\0";
 
 
 extern QThread* RENDER_THREAD;
@@ -434,7 +438,7 @@ void OpenGLDisplayPlugin::customizeContext() {
 
     qDebug() << "OpenGLDisplayPlugin::customizeContext";
 
-    if (!_myShaderProgram) {
+    /*if (!_myShaderProgram) {
 
         GLfloat portView[4];
         glGetFloatv(GL_VIEWPORT, portView);
@@ -462,19 +466,23 @@ void OpenGLDisplayPlugin::customizeContext() {
         glDeleteShader(fragmentShader);
 
 
-        GLfloat vertices[] = {
-             0.5f,  0.5f, 0.0f,  // Top Right
-             0.5f, -0.5f, 0.0f,  // Bottom Right
-            -0.5f, -0.5f, 0.0f,  // Bottom Left
-            -0.5f,  0.5f, 0.0f   // Top Left 
-        };
-        GLuint indices[] = {  // Note that we start from 0!
-            0, 1, 3,  // First Triangle
-            1, 2, 3   // Second Triangle
-        };
+    GLfloat vertices[] = {
+        // Positions          // Colors           // Texture Coords
+        0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // Top Right
+        0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // Bottom Right
+        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // Bottom Left
+        -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // Top Left
+    };
+
+    GLuint indices[] = {  // Note that we start from 0!
+        0, 1, 3,   // First Triangle
+        1, 2, 3    // Second Triangle
+    };
+
 
         GLuint VBO, EBO;
         glGenVertexArrays(1, &_VAO);
+
         glGenBuffers(1, &VBO);
         glGenBuffers(1, &EBO);
         // Bind the Vertex Array Object first, then bind and set vertex buffer(s) and attribute pointer(s).
@@ -486,15 +494,40 @@ void OpenGLDisplayPlugin::customizeContext() {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
-        glEnableVertexAttribArray(0);
+
+    // 1. Then set the vertex attributes pointers
+    glVertexAttribPointer(0, // attrib location
+                          3, // size of the vertex attribute which is a vec3
+                          GL_FLOAT, // type of the vertex attribute component, again vec3
+                          GL_FALSE, // do NOT normalize data
+                          8 * sizeof(GLfloat), // stride: space between 2 consecutive vetex data
+                          (GLvoid *) 0);
+
+    glVertexAttribPointer(1, // attrib location
+                          3, // size of the vertex attribute which is a vec3
+                          GL_FLOAT, // type of the vertex attribute component, again vec3
+                          GL_FALSE, // do NOT normalize data
+                          8 * sizeof(GLfloat), // stride: space between 2 consecutive vetex data
+                          (GLvoid *) (3* sizeof(GLfloat)));
+
+    glEnableVertexAttribArray(0); // attribute location 0
+    glEnableVertexAttribArray(1); // attribute location 1
 
         glBindBuffer(GL_ARRAY_BUFFER, 0); // Note that this is allowed, the call to glVertexAttribPointer registered VBO as the currently bound vertex buffer object so afterwards we can safely unbind
 
         glBindVertexArray(0); // Unbind VAO (it's always a good thing to unbind any buffer/array to prevent strange bugs), remember: do NOT unbind the EBO, keep it bound to this VAO
 
-    }
+/*
+        auto textureCache = DependencyManager::get<TextureCache>();
+        QString skyboxAmbientUrl { PathUtils::resourcesPath() + "images/Default-Sky-9-ambient.jpg" };
+        gpu::TexturePointer defaultSkyboxAmbientTexture = textureCache->getImageTexture(skyboxAmbientUrl, NetworkTexture::DEFAULT_TEXTURE, { });
+        gpu::Texture *t;
+        t = defaultSkyboxAmbientTexture.get();
+        uint mytexture = t->getTexture();
+        qDebug() << "Texture id: " << mytexture;
 
+    }
+*/
     if (!_presentPipeline) {
         {
             auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
@@ -652,13 +685,31 @@ void OpenGLDisplayPlugin::compositeOverlay() {
 void OpenGLDisplayPlugin::compositePointer() {
     auto& cursorManager = Cursor::Manager::instance();
     const auto& cursorData = _cursorsData[cursorManager.getCursor()->getIcon()];
-    auto cursorTransform = DependencyManager::get<CompositorHelper>()->getReticleTransform(glm::mat4());
+    // Grab a texture map representing the different status icons and assign that to the drawStatsuJob
+    static auto iconMapPath = "/data/data/io.highfidelity.hifiinterface/resources/images/arrow.jpg";
+    static auto statusIconMap = DependencyManager::get<TextureCache>()->getImageTexture(iconMapPath);
+    //static auto statusIconMap = DependencyManager::get<TextureCache>()->getBlueTexture();
+    //auto cursorTransform = DependencyManager::get<CompositorHelper>()->getReticleTransform(glm::mat4());
+    
+        static const float CURSOR_PIXEL_SIZE = 320.0f;
+        const auto canvasSize = vec2(_compositeFramebuffer->getSize());
+        static int numFrame=0;
+        numFrame++;
+        vec2 mousePosition = vec2(numFrame % (int) canvasSize.x, numFrame % (int) canvasSize.y);
+        mousePosition /= canvasSize;
+        mousePosition *= 2.0;
+        mousePosition -= 1.0;
+        mousePosition.y *= -1.0f;
+
+        vec2 mouseSize = CURSOR_PIXEL_SIZE / canvasSize;
+        glm::mat4 cursorTransform = glm::scale(glm::translate(glm::mat4(), vec3(mousePosition, 0.0f)), vec3(mouseSize, 1.0f));
+
     render([&](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.setProjectionTransform(mat4());
         batch.setFramebuffer(_compositeFramebuffer);
         batch.setPipeline(_cursorPipeline);
-        batch.setResourceTexture(0, cursorData.texture);
+        batch.setResourceTexture(0, statusIconMap);
         batch.resetViewTransform();
         batch.setModelTransform(cursorTransform);
         if (isStereo()) {
@@ -700,10 +751,10 @@ void OpenGLDisplayPlugin::compositeLayers() {
         compositeOverlay();
     }
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
-    if (compositorHelper->getReticleVisible()) {
+//    if (compositorHelper->getReticleVisible()) {
         PROFILE_RANGE_EX("compositePointer", 0xff0077ff, (uint64_t)presentCount())
         compositePointer();
-    }
+//    }
 
     {
         PROFILE_RANGE_EX("compositeExtra", 0xff0077ff, (uint64_t)presentCount())
@@ -712,28 +763,15 @@ void OpenGLDisplayPlugin::compositeLayers() {
 }
 
 void OpenGLDisplayPlugin::internalPresent() {
-//        qDebug() << "OpenGLDisplayPlugin::internalPresent() " << _myShaderProgram << "-" << _VAO;
-
-     // Render
-        // Clear the colorbuffer
-    //glClearColor(0.8f, 0.8f, 0.3f, 1.0f);
-    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) ;
-
-        // Draw our first triangle
-       glUseProgram(_myShaderProgram);
-        glBindVertexArray(_VAO);
-        //glDrawArrays(GL_TRIANGLES, 0, 6);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-        glBindVertexArray(0);
 
     render([&](gpu::Batch& batch) {
         batch.enableStereo(false);
-        //batch.resetViewTransform(); 4test not needed
-        batch.setFramebuffer(gpu::FramebufferPointer()); //  NEEDED
-        //batch.setViewportTransform(ivec4(uvec2(0), getSurfacePixels())); 4test not needed
-        batch.setResourceTexture(0, _compositeFramebuffer->getRenderBuffer(0));  //  NEEDED
-        batch.setPipeline(_presentPipeline); // NEEDED for inner square
-        batch.draw(gpu::TRIANGLE_STRIP, 4); //  NEEDED  glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        batch.resetViewTransform();
+        batch.setFramebuffer(gpu::FramebufferPointer());
+        batch.setViewportTransform(ivec4(uvec2(0), getSurfacePixels()));
+        batch.setResourceTexture(0, _compositeFramebuffer->getRenderBuffer(0));
+        batch.setPipeline(_presentPipeline);
+        batch.draw(gpu::TRIANGLE_STRIP, 4);
     });
     swapBuffers();
     _presentRate.increment();

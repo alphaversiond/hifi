@@ -1771,7 +1771,7 @@ void Application::paintGL() {
     });
 
     auto inputs = AvatarInputs::getInstance();
-    if (inputs->mirrorVisible()) {
+/*    if (inputs->mirrorVisible()) {
         PerformanceTimer perfTimer("Mirror");
 
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
@@ -1784,7 +1784,7 @@ void Application::paintGL() {
         renderArgs._blitFramebuffer.reset();
         renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
     }
-
+*/
     {
         PerformanceTimer perfTimer("renderOverlay");
         // NOTE: There is no batch associated with this renderArgs
@@ -1942,7 +1942,11 @@ void Application::paintGL() {
             renderArgs._context->setStereoViews(eyeOffsets);
         }
         renderArgs._blitFramebuffer = finalFramebuffer;
-        displaySide(&renderArgs, _myCamera);
+        gpu::Batch batch;
+        batch.setFramebuffer(renderArgs._blitFramebuffer);
+        batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLORS, glm::vec4(0.0, 1.0, 0.0, 1.0));
+        renderArgs._context->appendFrameBatch(batch);
+        //displaySide(&renderArgs, _myCamera);
     }
 
     auto frame = _gpuContext->endFrame();
@@ -5486,6 +5490,7 @@ void Application::updateDisplayMode() {
     }
     auto menu = Menu::getInstance();
     auto displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
+    qDebug() << "Current display plugins " << displayPlugins.size();
     static std::once_flag once;
     std::call_once(once, [&] {
         bool first = true;

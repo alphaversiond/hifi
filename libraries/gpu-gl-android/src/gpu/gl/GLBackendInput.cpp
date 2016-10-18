@@ -63,12 +63,14 @@ void GLBackend::initInput() {
     if(!_input._defaultVAO) {
         glGenVertexArrays(1, &_input._defaultVAO);
     }
+    qDebug() << "glBindVertexArray(" << _input._defaultVAO << ")";
     glBindVertexArray(_input._defaultVAO);
     (void) CHECK_GL_ERROR();
 }
 
 void GLBackend::killInput() {
-    glBindVertexArray(0);
+    qDebug() << "glBindVertexArray(0)";
+    glBindVertexArray(0);    
     if(_input._defaultVAO) {
         glDeleteVertexArrays(1, &_input._defaultVAO);
     }
@@ -82,6 +84,7 @@ void GLBackend::syncInputStateCache() {
         _input._attributeActivation[i] = active;
     }
     //_input._defaultVAO
+    qDebug() << "glBindVertexArray("<<_input._defaultVAO<< ")";
     glBindVertexArray(_input._defaultVAO);
 }
 
@@ -90,6 +93,7 @@ void GLBackend::resetInputStage() {
     _input._indexBufferType = UINT32;
     _input._indexBufferOffset = 0;
     _input._indexBuffer.reset();
+    qDebug() << "GLBackend::resetInputStage glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);";
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     (void) CHECK_GL_ERROR();
 
@@ -285,6 +289,7 @@ void GLBackend::updateInput() {
                         //  GLuint vbo = gpu::GL41Backend::getBufferID((*buffers[bufferNum]));
                         GLuint vbo = _input._bufferVBOs[bufferNum];
                         if (boundVBO != vbo) {
+                            qDebug() <<  "GLBackend::updateInput glBindBuffer(GL_ARRAY_BUFFER, " << vbo <<")";
                             glBindBuffer(GL_ARRAY_BUFFER, vbo);
                             (void)CHECK_GL_ERROR();
                             boundVBO = vbo;

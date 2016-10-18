@@ -186,7 +186,7 @@ void OffscreenQmlSurface::render() {
     GLuint texture = _textures.getNextTexture();
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _fbo);
     qDebug() << "TODO: OffscreenQmlSurface.cpp OffscreenQmlSurface::render glFramebufferTexture";
-    //glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture, 0);
+    glFramebufferTextureEXT(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture, 0);
     PROFILE_RANGE("qml_render->rendercontrol")
     _renderControl->render();
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);

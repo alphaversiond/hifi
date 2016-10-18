@@ -34,6 +34,7 @@ void GLESBackend::do_draw(const Batch& batch, size_t paramOffset) {
         _stats._DSNumDrawcalls += 2;
 
     } else {
+        qDebug() << "GLESBackend::do_draw glDrawArrays " << numVertices;
         glDrawArrays(mode, startVertex, numVertices);
         _stats._DSNumTriangles += numVertices / 3;
         _stats._DSNumDrawcalls++;
@@ -63,6 +64,7 @@ void GLESBackend::do_drawIndexed(const Batch& batch, size_t paramOffset) {
         _stats._DSNumTriangles += 2 * numIndices / 3;
         _stats._DSNumDrawcalls += 2;
     } else {
+        qDebug() << "GLESBackend::do_drawIndexed glDrawElements " << numIndices;
         glDrawElements(mode, numIndices, glType, indexBufferByteOffset);
         _stats._DSNumTriangles += numIndices / 3;
         _stats._DSNumDrawcalls++;
@@ -91,6 +93,7 @@ void GLESBackend::do_drawInstanced(const Batch& batch, size_t paramOffset) {
         _stats._DSNumTriangles += (trueNumInstances * numVertices) / 3;
         _stats._DSNumDrawcalls += trueNumInstances;
     } else {
+        qDebug() << "GLESBackend::do_drawInstanced glDrawArraysInstancedEXT " << numVertices << "," << numInstances;
         glDrawArraysInstancedEXT(mode, startVertex, numVertices, numInstances);
         _stats._DSNumTriangles += (numInstances * numVertices) / 3;
         _stats._DSNumDrawcalls += numInstances;
@@ -132,6 +135,7 @@ void GLESBackend::do_drawIndexedInstanced(const Batch& batch, size_t paramOffset
         _stats._DSNumTriangles += (trueNumInstances * numIndices) / 3;
         _stats._DSNumDrawcalls += trueNumInstances;
     } else {
+        qDebug() << "GLESBackend::do_drawIndexedInstanced glbackend_glDrawElementsInstancedBaseVertexBaseInstance " << numInstances;
         glbackend_glDrawElementsInstancedBaseVertexBaseInstance(mode, numIndices, glType, indexBufferByteOffset, numInstances, 0, startInstance);
         _stats._DSNumTriangles += (numInstances * numIndices) / 3;
         _stats._DSNumDrawcalls += numInstances;

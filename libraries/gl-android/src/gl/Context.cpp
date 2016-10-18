@@ -175,7 +175,8 @@ void Context::create() {
             throw std::runtime_error("Unable to create initial context");
         }
         glewExperimental = true;
-        glewInit();
+        int x = glewInit();
+        qDebug() << "GLEW INIT WAS > " << x;
         if (glewIsSupported("GL_VERSION_4_5")) {
             _version = 0x0405;
         } else if (glewIsSupported("GL_VERSION_4_3")) {

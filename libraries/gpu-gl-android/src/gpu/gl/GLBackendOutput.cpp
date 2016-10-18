@@ -95,15 +95,13 @@ void GLBackend::do_clearFramebuffer(const Batch& batch, size_t paramOffset) {
 
             if (!drawBuffers.empty()) {
                 glDrawBuffers((GLsizei)drawBuffers.size(), drawBuffers.data());
-                //glClearColor(color.x, color.y, color.z, color.w);
-                glClearColor(1.0, 0.0, 0.0, 1.0);
+                glClearColor(color.x, color.y, color.z, color.w);
                 glmask |= GL_COLOR_BUFFER_BIT;
             
                 (void) CHECK_GL_ERROR();
             }
         } else {
-            glClearColor(0.0, 1.0, 0.0, 1.0);
-            //glClearColor(color.x, color.y, color.z, color.w);
+            glClearColor(color.x, color.y, color.z, color.w);
             glmask |= GL_COLOR_BUFFER_BIT;
         }
         

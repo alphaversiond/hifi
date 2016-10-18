@@ -321,6 +321,7 @@ void GLBackend::do_runLambda(const Batch& batch, size_t paramOffset) {
 
 void GLBackend::do_startNamedCall(const Batch& batch, size_t paramOffset) {
     batch._currentNamedCall = batch._names.get(batch._params[paramOffset]._uint);
+    qDebug() << "GLBackend::do_startNamedCall " << batch._currentNamedCall.c_str();
     _currentDraw = -1;
 }
 

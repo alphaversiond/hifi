@@ -100,7 +100,7 @@ extern std::atomic<size_t> DECIMATED_TEXTURE_COUNT;
 extern std::atomic<size_t> RECTIFIED_TEXTURE_COUNT;
 
 void Stats::updateStats(bool force) {
-    if (!force) {
+/*    if (!force) {
         if (!Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
             if (isVisible()) {
                 setVisible(false);
@@ -110,7 +110,10 @@ void Stats::updateStats(bool force) {
             setVisible(true);
         }
     }
-
+*/
+    if (!isVisible()) {
+        setVisible(true);
+    }
     bool shouldDisplayTimingDetail = Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails) &&
         Menu::getInstance()->isOptionChecked(MenuOption::Stats) && isExpanded();
     if (shouldDisplayTimingDetail != PerformanceTimer::isActive()) {

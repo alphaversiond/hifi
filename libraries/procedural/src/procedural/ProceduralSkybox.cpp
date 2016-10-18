@@ -19,6 +19,7 @@
 #include <model/skybox_frag.h>
 
 ProceduralSkybox::ProceduralSkybox() : model::Skybox() {
+    qDebug() << "[SKYBOX] ProceduralSkybox::ProceduralSkybox";
     _procedural._vertexSource = skybox_vert;
     _procedural._fragmentSource = skybox_frag;
     // Adjust the pipeline state for background using the stencil test
@@ -31,6 +32,7 @@ bool ProceduralSkybox::empty() {
 }
 
 void ProceduralSkybox::clear() {
+    qDebug() << "[SKYBOX] ProceduralSkybox clear";
     // Parse and prepare a procedural with no shaders to release textures
     parse(QString());
     _procedural.ready();
@@ -39,6 +41,7 @@ void ProceduralSkybox::clear() {
 }
 
 void ProceduralSkybox::render(gpu::Batch& batch, const ViewFrustum& frustum) const {
+    qDebug() << "[SKYBOX] ProceduralSkybox render1";
     if (_procedural.ready()) {
         ProceduralSkybox::render(batch, frustum, (*this));
     } else {
@@ -47,6 +50,7 @@ void ProceduralSkybox::render(gpu::Batch& batch, const ViewFrustum& frustum) con
 }
 
 void ProceduralSkybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const ProceduralSkybox& skybox) {
+    qDebug() << "[SKYBOX] ProceduralSkybox render2";
     glm::mat4 projMat;
     viewFrustum.evalProjectionMatrix(projMat);
 

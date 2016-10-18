@@ -38,7 +38,7 @@ namespace gpu {
             }
 
             void transfer() override {
-                qDebug() << "GLESBuffer::GLESBuffer transfer: "; 
+                qDebug() << "GLESBuffer::GLESBuffer transfer buffer " << _buffer; 
                 glBindBuffer(GL_ARRAY_BUFFER, _buffer);
                 (void)CHECK_GL_ERROR();
                 Size offset;
