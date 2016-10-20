@@ -62,8 +62,6 @@ void GLBackend::do_clearFramebuffer(const Batch& batch, size_t paramOffset) {
     int stencil = batch._params[paramOffset + 1]._int;
     int useScissor = batch._params[paramOffset + 0]._int;
     
-    qDebug() << "GLBackend::do_clearFramebuffer: " << depth << " - " << masks;
-
     GLuint glmask = 0;
     if (masks & Framebuffer::BUFFER_STENCIL) {
         glClearStencil(stencil);

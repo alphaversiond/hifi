@@ -296,6 +296,10 @@ void Procedural::prepare(gpu::Batch& batch, const glm::vec3& position, const glm
         _frameCount = 0;
     }
 
+    if (!(isFading() ? _transparentPipeline : _opaquePipeline)) {
+        qDebug() << "Precedural setting null pipeline";
+    }
+    
     batch.setPipeline(isFading() ? _transparentPipeline : _opaquePipeline);
 
     if (_shaderDirty || _uniformsDirty) {
