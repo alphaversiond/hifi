@@ -176,17 +176,22 @@ void GLBackend::do_setStateDepthBias(Vec2 bias) {
 }
 
 void GLBackend::do_setStateDepthTest(State::DepthTest test) {
+    qDebug() << "GLBackend::do_setStateDepthTest ";
     const auto& current = _pipeline._stateCache.depthTest;
     if (current != test) {
         if (test.isEnabled()) {
+            qDebug() << "GLBackend::do_setStateDepthTest enable";
             glEnable(GL_DEPTH_TEST);
         } else {
+            qDebug() << "GLBackend::do_setStateDepthTest enable";
             glDisable(GL_DEPTH_TEST);
         }
         if (test.getWriteMask() != current.getWriteMask()) {
+            qDebug() << "GLBackend::do_setStateDepthTest glDepthMask " << test.getWriteMask();
             glDepthMask(test.getWriteMask());
         }
         if (test.getFunction() != current.getFunction()) {
+            qDebug() << "GLBackend::do_setStateDepthTest glDepthFunc " << test.getFunction();
             glDepthFunc(COMPARISON_TO_GL[test.getFunction()]);
         }
         if (CHECK_GL_ERROR()) {

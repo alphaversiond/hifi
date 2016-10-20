@@ -70,8 +70,34 @@ void main(void) {
 
 )SCRIBE";
 
-// Shaders
 
+const GLchar* vertexShaderSource = 
+    "layout (location = 0) in vec3 position;\n"
+    "layout (location = 1) in vec3 color;\n"    
+    "in vec2 inTexCoord0;\n"
+    "out vec3 vertexColor;\n"
+    "out vec2 varTexCoord0;\n"
+   "layout(location=15) in ivec2 _drawCallInfo;\n"
+   "uniform samplerBuffer transformObjectBuffer;\n"
+    //"void main() { gl_Position = vec4(position.x, position.y, position.z, 1.0);\n"
+    "void main() { \n"
+    "int offset = 8 * _drawCallInfo.x;\n"
+    "mat4 transform;\n"
+    "transform[0] = texelFetch(transformObjectBuffer, offset);\n"
+    "transform[1] = texelFetch(transformObjectBuffer, offset+1);\n"
+    "transform[2] = texelFetch(transformObjectBuffer, offset+2);\n"
+    "transform[3] = texelFetch(transformObjectBuffer, offset+3);\n"
+    "gl_Position = transform * vec4(position, 1.0); \n"
+    "vertexColor = vec3(transform[1][1],transform[1][2],transform[1][3]);\n"
+    "varTexCoord0 = inTexCoord0;"
+    "}\n\0";
+    
+const GLchar* fragmentShaderSource = 
+    "out vec4 color;"
+    "in vec3 vertexColor;\n"
+    "in vec2 varTexCoord0;\n"
+    "uniform sampler2D colorMap;\n"
+    "void main() { color = texture(colorMap, varTexCoord0); }\n\0";
 
 
 extern QThread* RENDER_THREAD;
@@ -421,6 +447,7 @@ void OpenGLDisplayPlugin::customizeContext() {
 
     qDebug() << "OpenGLDisplayPlugin::customizeContext";
 
+
     /*if (!_myShaderProgram) {
 
         // Compile the vertex and the fragment shaders
@@ -545,6 +572,7 @@ void OpenGLDisplayPlugin::customizeContext() {
         }
 
         {
+            qDebug() << "Building Cursor pipeline";
             auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
             auto ps = gpu::StandardShaderLib::getDrawTexturePS();
             gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
@@ -645,7 +673,7 @@ void OpenGLDisplayPlugin::updateFrameData() {
 }
 
 void OpenGLDisplayPlugin::compositeOverlay() {
-    render([&](gpu::Batch& batch){
+    /*render([&](gpu::Batch& batch){
         batch.enableStereo(false);
         batch.setFramebuffer(_compositeFramebuffer);
         batch.setPipeline(_overlayPipeline);
@@ -659,22 +687,159 @@ void OpenGLDisplayPlugin::compositeOverlay() {
             batch.setViewportTransform(ivec4(uvec2(0), _compositeFramebuffer->getSize()));
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         }
-    });
+    });*/
 }
 
-void OpenGLDisplayPlugin::compositePointer() {
+    void OpenGLDisplayPlugin::compositePointer() {
+        static gpu::PipelinePointer thePipeline;
+        static std::once_flag once;
+        static gpu::BufferView vertices(new gpu::Buffer(), gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
+        static gpu::BufferView indices(new gpu::Buffer(), gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::INDEX));
+        static gpu::Stream::FormatPointer cubeBufferFormat;
 
-      
+        std::call_once(once, [&] {
+            {
+                qDebug() << "Building Cube shader program";
+                auto cubeVS = gpu::Shader::createVertex(std::string(vertexShaderSource));
+                auto cubeFS = gpu::Shader::createPixel(std::string(fragmentShaderSource));
+                auto cubeShader = gpu::Shader::createProgram(cubeVS, cubeFS);
 
-    auto& cursorManager = Cursor::Manager::instance();
+                gpu::Shader::BindingSet bindings;
+                bindings.insert(gpu::Shader::Binding(std::string("transform"), 0));
+                //bindings.insert(gpu::Shader::Binding(std::string("skyboxBuffer"), SKYBOX_CONSTANTS_SLOT));
+                if (!gpu::Shader::makeProgram(*cubeShader, bindings)) {
+                    qDebug() << "[CUBE] error creating shader program!!!";
+                }
+
+                   GLfloat _vertices[] = {
+/*        // Positions          // Colors           // Texture Coords
+        0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // Top Right
+        0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // Bottom Right
+        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // Bottom Left
+        -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // Top Left
+ */
+        -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+        0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+        0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+        0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+        -0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+        
+        -0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+        0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+        0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+        0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+        -0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+        
+        -0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+        -0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+        
+        0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+        0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+        0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+        0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+        0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+        0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+        
+        -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+        0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+        0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+        0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+        -0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+        -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+        
+        -0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+        0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+        0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+        0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+        -0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f
+    };;
+
+                   /* GLuint _indices[] = {  // Note that we start from 0!
+                        0, 1, 3,   // First Triangle
+                        1, 2, 3    // Second Triangle
+                    };
+
+*/
+                int verticesSize = sizeof(GLfloat) * 8 * 36;
+                vertices._buffer->append(verticesSize, reinterpret_cast<const gpu::Byte*>(&_vertices));
+
+                cubeBufferFormat.reset(new gpu::Stream::Format());
+                cubeBufferFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
+                cubeBufferFormat->setAttribute(gpu::Stream::COLOR, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RGB), 3 * sizeof(GLfloat));
+                cubeBufferFormat->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), 6 * sizeof(GLfloat));
+
+                /*int indicesSize = sizeof(GLuint) * 6;
+                indices._buffer->append(indicesSize, reinterpret_cast<const gpu::Byte*>(&_indices));*/
+                auto cubeState = std::make_shared<gpu::State>();
+                cubeState->setDepthTest(gpu::State::DepthTest(true));
+                cubeState->setCullMode(gpu::State::CULL_NONE);
+                thePipeline = gpu::Pipeline::create(cubeShader, cubeState);
+                qDebug() << "Cube pipeline built";
+            }
+        });
+      qDebug() << "Drawing cube";
+        const auto canvasSize = vec2(_compositeFramebuffer->getSize());
+        static int numFrame=0;
+        numFrame++;
+        vec2 mousePosition = vec2(numFrame % (int) canvasSize.x, numFrame % (int) canvasSize.y);
+        mousePosition /= canvasSize;
+        mousePosition *= 2.0;
+        mousePosition -= 1.0;
+        mousePosition.y *= -1.0f;
+
+        vec2 mouseSize = vec2(200.0f, 200.0f);
+        //glm::mat4 cursorTransform = glm::scale(glm::translate(glm::rotate(glm::mat4(), glm::radians(numFrame*1.0f), vec3(0.5f,0.5f,0.5f)), vec3(mousePosition, numFrame % 1000 * 1.0f)), vec3(mouseSize, 1.0f));
+        glm::mat4 cursorTransform = glm::rotate(glm::mat4(), glm::radians(numFrame*1.0f), vec3(0.5f,0.5f,0.5f));
+
+        //float dmin = std::min(canvasSize.x, canvasSize.y);
+        //vec2 cubeSize = vec2(dmin/3, dmin/3);
+        //glm::mat4 cubeTransform = glm::rotate(glm::mat4(), (float) glm::radians(45.0f), vec3(0.0f, 0.0f, 1.0f));
+    static auto iconMapPath = "/data/data/io.highfidelity.hifiinterface/resources/images/arrow.jpg";
+    static auto statusIconMap = DependencyManager::get<TextureCache>()->getImageTexture(iconMapPath);
+
+    render([&](gpu::Batch& batch) {
+
+            batch.enableStereo(false);
+            // glm::mat4 proj = glm::perspective(45.0f, (float)width/(float)height, 0.1f, 100.0f);
+            batch.setProjectionTransform(mat4());
+            batch.setFramebuffer(_compositeFramebuffer);
+            batch.setPipeline(thePipeline);
+            batch.setInputFormat(cubeBufferFormat);
+            batch.setInputBuffer(0, vertices._buffer, 0, sizeof(GLfloat) * 8);
+            batch.setResourceTexture(0, statusIconMap);
+            //batch.setInputBuffer(1, vertices._buffer, 3 * sizeof(GLfloat), sizeof(GLfloat) * 8);
+            //batch.setIndexBuffer(gpu::UINT32, indices._buffer, 0);
+            //batch.setResourceTexture(0, DependencyManager::get<TextureCache>()->getBlueTexture());
+            batch.resetViewTransform();
+            batch.setModelTransform(cursorTransform);
+            batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLORS | gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(0.0, 0.5, 0.0, 1.0), 1.0f, 0, true);
+
+            //batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLORS | gpu::Framebuffer::BUFFER_STENCIL, glm::vec4(0.5f, 0.5f, 0.0f, 1.0f));
+            
+            //batch.setViewportTransform(ivec4(uvec2(0), _compositeFramebuffer->getSize()));
+            batch.draw(gpu::TRIANGLES, 36); // 36
+        
+            });
+        
+
+/*    auto& cursorManager = Cursor::Manager::instance();
     const auto& cursorData = _cursorsData[cursorManager.getCursor()->getIcon()];
     // Grab a texture map representing the different status icons and assign that to the drawStatsuJob
     static auto iconMapPath = "/data/data/io.highfidelity.hifiinterface/resources/images/arrow.jpg";
     static auto statusIconMap = DependencyManager::get<TextureCache>()->getImageTexture(iconMapPath);
     //static auto statusIconMap = DependencyManager::get<TextureCache>()->getBlueTexture();
     //auto cursorTransform = DependencyManager::get<CompositorHelper>()->getReticleTransform(glm::mat4());
-    /*
         static const float CURSOR_PIXEL_SIZE = 320.0f;
+        const auto canvasSize = vec2(_compositeFramebuffer->getSize());
+        static int numFrame=0;
+        numFrame++;
         vec2 mousePosition = vec2(numFrame % (int) canvasSize.x, numFrame % (int) canvasSize.y);
         mousePosition /= canvasSize;
         mousePosition *= 2.0;
@@ -704,6 +869,8 @@ void OpenGLDisplayPlugin::compositePointer() {
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         }
     });*/
+
+
 }
 
 void OpenGLDisplayPlugin::compositeScene() {

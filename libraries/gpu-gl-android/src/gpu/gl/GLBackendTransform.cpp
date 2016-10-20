@@ -15,6 +15,7 @@ using namespace gpu::gl;
 
 // Transform Stage
 void GLBackend::do_setModelTransform(const Batch& batch, size_t paramOffset) {
+    qDebug() << "do_setModelTransform";
 }
 
 void GLBackend::do_setViewTransform(const Batch& batch, size_t paramOffset) {
@@ -143,6 +144,7 @@ void GLBackend::updateTransform(const Batch& batch) {
         auto& drawCallInfo = drawCallInfoBuffer[_currentDraw];
         glDisableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO); // Make sure attrib array is disabled
         //glVertexAttribI2i(gpu::Stream::DRAW_CALL_INFO, drawCallInfo.index, drawCallInfo.unused);
+        qDebug() << "GLBackendTransform updateTransform " << drawCallInfo.index ;
         int values[] = {drawCallInfo.index, drawCallInfo.unused};
         glVertexAttribIPointer(gpu::Stream::DRAW_CALL_INFO, 2, GL_INT, 0, (const GLvoid *) values);
     } else {

@@ -61,6 +61,8 @@ void GLBackend::do_clearFramebuffer(const Batch& batch, size_t paramOffset) {
     float depth = batch._params[paramOffset + 2]._float;
     int stencil = batch._params[paramOffset + 1]._int;
     int useScissor = batch._params[paramOffset + 0]._int;
+    
+    qDebug() << "GLBackend::do_clearFramebuffer: " << depth << " - " << masks;
 
     GLuint glmask = 0;
     if (masks & Framebuffer::BUFFER_STENCIL) {
@@ -73,7 +75,6 @@ void GLBackend::do_clearFramebuffer(const Batch& batch, size_t paramOffset) {
     bool restoreDepthMask = false;
     if (masks & Framebuffer::BUFFER_DEPTH) {
         glClearDepthf(depth);
-        //qDebug() << "TODO: GLBackendOutput.cpp:do_clearFramebuffer glClearDepth " << depth;
 
         glmask |= GL_DEPTH_BUFFER_BIT;
         
@@ -116,7 +117,7 @@ void GLBackend::do_clearFramebuffer(const Batch& batch, size_t paramOffset) {
     }
 
     // Clear!
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(glmask);
 
     // Restore scissor if needed
     if (doEnableScissor) {
@@ -137,7 +138,6 @@ void GLBackend::do_clearFramebuffer(const Batch& batch, size_t paramOffset) {
     }
 
     (void) CHECK_GL_ERROR();
-    return;
 }
 
 void GLBackend::downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) {

@@ -167,25 +167,6 @@ extern "C" {
 }
 #endif
 
-const GLchar* vertexShaderSource = 
-    "layout (location = 0) in vec3 position;\n"
-    "layout (location = 1) in vec3 color;\n"
-//    "layout (location = 2) in vec2 texCoord;\n"
-    "out vec3 vertexColor;\n"
-//    "out vec2 TexCoord;\n"
-    "void main() { gl_Position = vec4(position.x, position.y, position.z, 1.0);\n"
-    "vertexColor = color;\n"
-//    "TexCoord = texCoord;"
-    "}\n\0";
-    
-const GLchar* fragmentShaderSource = 
-    "out vec4 color;"
-    "in vec3 vertexColor;\n"
-//    "in vec2 TexCoord;\n"
-    "uniform sampler2D ourTexture;\n"
-    "void main() { color = vec4(vertexColor, 1.0f); }\n\0";
-
-
 using namespace std;
 
 static QTimer locationUpdateTimer;
@@ -1962,9 +1943,9 @@ void Application::paintGL() {
             renderArgs._context->setStereoViews(eyeOffsets);
         }
         renderArgs._blitFramebuffer = finalFramebuffer;
-        
+        /*
 
-  static gpu::PipelinePointer thePipeline;
+        static gpu::PipelinePointer thePipeline;
         static std::once_flag once;
         static gpu::BufferView vertices(new gpu::Buffer(), gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
         static gpu::BufferView indices(new gpu::Buffer(), gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::INDEX));
@@ -1983,23 +1964,64 @@ void Application::paintGL() {
                 }
 
                    GLfloat _vertices[] = {
-                        // Positions          // Colors           // Texture Coords
-                        0.5f,  0.5f, 0.0f,   0.2f, 0.7f, 0.0f,  0.0f, 0.0f, /*1.0f, 1.0f, */  // Top Right
-                        0.5f, -0.5f, 0.0f,   0.2f, 0.7f, 0.0f,  0.0f, 0.0f, /* 1.0f, 0.0f, */  // Bottom Right
-                        -0.5f, -0.5f, 0.0f,   0.2f, 0.7f, 0.0f, 0.0f, 0.0f, /*  0.0f, 0.0f, */  // Bottom Left
-                        -0.5f,  0.5f, 0.0f,   0.2f, 0.7f, 0.0f, 0.0f, 0.0f, /*  0.0f, 1.0f */   // Top Left
-                    };
+/*        // Positions          // Colors           // Texture Coords
+        0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // Top Right
+        0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // Bottom Right
+        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // Bottom Left
+        -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // Top Left
+ 
+        -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+        0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+        0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+        0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+        -0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+        
+        -0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+        0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+        0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+        0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+        -0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+        
+        -0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+        -0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+        
+        0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+        0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+        0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+        0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+        0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+        0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+        
+        -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+        0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+        0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+        0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+        -0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+        -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+        
+        -0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+        0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+        0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+        0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+        -0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f
+    };;
 
-                    GLuint _indices[] = {  // Note that we start from 0!
+                   /* GLuint _indices[] = {  // Note that we start from 0!
                         0, 1, 3,   // First Triangle
                         1, 2, 3    // Second Triangle
                     };
 
-
-                int verticesSize = sizeof(GLfloat) * 32;
+                int verticesSize = sizeof(GLfloat) * 8 * 36;
                 vertices._buffer->append(verticesSize, reinterpret_cast<const gpu::Byte*>(&_vertices));
 
-                int indicesSize = sizeof(GLuint) * 6;
+                /*int indicesSize = sizeof(GLuint) * 6;
                 indices._buffer->append(indicesSize, reinterpret_cast<const gpu::Byte*>(&_indices));
                 auto cubeState = std::make_shared<gpu::State>();
                 thePipeline = gpu::Pipeline::create(cubeShader, cubeState);
@@ -2011,15 +2033,17 @@ void Application::paintGL() {
         static int numFrame=0;
         numFrame++;
 
-        const auto canvasSize = vec2(finalFramebuffer->getSize());
 
-  
-        vec2 cubeSize = 250.0f / canvasSize;
-        glm::mat4 cubeTransform = glm::rotate(glm::mat4(), (float) glm::radians(numFrame/1000.0f), vec3(0.0f, 0.0f, 1.0f));
+        const auto canvasSize = vec2(finalFramebuffer->getSize());
+        float dmin = std::min(canvasSize.x, canvasSize.y);
+        qDebug() << "dmin" << dmin;
+        vec2 cubeSize = vec2(dmin/3, dmin/3);
+        glm::mat4 cubeTransform = glm::rotate(glm::mat4(), (float) glm::radians(45.0f), vec3(0.0f, 0.0f, 1.0f));
 
         gpu::Batch batch;
 
             batch.enableStereo(false);
+            // glm::mat4 proj = glm::perspective(45.0f, (float)width/(float)height, 0.1f, 100.0f);
             batch.setProjectionTransform(mat4());
             batch.setFramebuffer(finalFramebuffer);
             batch.setPipeline(thePipeline);
@@ -2035,10 +2059,12 @@ void Application::paintGL() {
             // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0); **** -->
             // signature batch.drawIndexed(Primitive primitiveType, uint32 numIndices, uint32 startIndex)
             batch.setViewportTransform(ivec4(uvec2(0), finalFramebuffer->getSize()));
-            batch.drawIndexed(gpu::TRIANGLES, 3, 0);
+            batch.draw(gpu::TRIANGLES, 36);
+            //batch.drawIndexed(gpu::TRIANGLES, 3, 0);
+            // glDrawArrays(GL_TRIANGLES, 0, 36)
         
 
-        renderArgs._context->appendFrameBatch(batch);
+        renderArgs._context->appendFrameBatch(batch);*/
         //skybox.prepare(batch);
         //batch.draw(gpu::TRIANGLE_STRIP, 4);
 

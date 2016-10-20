@@ -129,6 +129,7 @@ GLShader* compileBackendProgram(GLBackend& backend, const Shader& program) {
 }
 
 GLShader* GLShader::sync(GLBackend& backend, const Shader& shader) {
+    qDebug() << "GLShader::sync";
     GLShader* object = Backend::getGPUObject<GLShader>(shader);
 
     // If GPU object already created then good
@@ -137,12 +138,14 @@ GLShader* GLShader::sync(GLBackend& backend, const Shader& shader) {
     }
     // need to have a gpu object?
     if (shader.isProgram()) {
+        qDebug() << "GLShader::sync is program";
         GLShader* tempObject = compileBackendProgram(backend, shader);
         if (tempObject) {
             object = tempObject;
             Backend::setGPUObject(shader, object);
         }
     } else if (shader.isDomain()) {
+        qDebug() << "GLShader::sync is domain";
         GLShader* tempObject = compileBackendShader(backend, shader);
         if (tempObject) {
             object = tempObject;
@@ -155,7 +158,7 @@ GLShader* GLShader::sync(GLBackend& backend, const Shader& shader) {
 }
 
 bool GLShader::makeProgram(GLBackend& backend, Shader& shader, const Shader::BindingSet& slotBindings) {
-
+    qDebug() << "GLShader::makeProgram ";
     // First make sure the Shader has been compiled
     GLShader* object = sync(backend, shader);
     if (!object) {
@@ -164,6 +167,7 @@ bool GLShader::makeProgram(GLBackend& backend, Shader& shader, const Shader::Bin
 
     // Apply bindings to all program versions and generate list of slots from default version
     for (int version = 0; version < GLShader::NumVersions; version++) {
+        qDebug() << "GLShader::makeProgram version " << version;
         auto& shaderObject = object->_shaderObjects[version];
         if (shaderObject.glprogram) {
             Shader::SlotSet buffers;
