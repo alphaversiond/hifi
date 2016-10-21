@@ -65,7 +65,6 @@ void QmlWebWindowClass::setKeyboardRaised(QObject* object, bool raised, bool num
 
     QQuickItem* item = dynamic_cast<QQuickItem*>(object);
     while (item) {
-        qDebug() << "->property from " << "QmlWebWindowClass";
         if (item->property("keyboardRaised").isValid()) {
             if (item->property("punctuationMode").isValid()) {
                 item->setProperty("punctuationMode", QVariant(numeric));

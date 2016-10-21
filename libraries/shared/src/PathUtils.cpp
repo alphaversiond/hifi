@@ -107,13 +107,12 @@ void copyDirDeep(QString src, QString dst) {
                 if (dfile.copy(newDst)) {
                     QFile::setPermissions(newDst, QFile::ReadOwner);
                 } else {
-                    // sometimes copy returns false but it worked anyway
                     QFile::setPermissions(newDst, QFile::ReadOwner);
-                    qWarning() << "Could not copy to " << newDst;
+                    // sometimes copy returns false but it worked anyway
+                    //qWarning() << "Could not copy to " << newDst;
                 }
             }
         } else if (fInfo.isDir() ) {
-            qDebug() << "[XP] Recursive " << f << "," << newDst;
             copyDirDeep(f, newDst);
         }
     }

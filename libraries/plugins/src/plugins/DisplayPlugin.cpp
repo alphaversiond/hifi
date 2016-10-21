@@ -17,7 +17,7 @@ void DisplayPlugin::incrementPresentCount() {
 #endif
 
     ++_presentedFrameIndex;
-    if (_presentedFrameIndex % 10000 == 0 ) {
+    if (_presentedFrameIndex % 100 == 0 ) {
         qDebug() << "DisplayPlugin::incrementPresentCount " << _presentedFrameIndex  << " " << qApp;        
     }
     qApp->postEvent(qApp, new QEvent(static_cast<QEvent::Type>(Present)), Qt::HighEventPriority);

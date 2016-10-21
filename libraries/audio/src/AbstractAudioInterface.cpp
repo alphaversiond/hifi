@@ -26,6 +26,7 @@ void AbstractAudioInterface::emitAudioPacket(const void* audioData, size_t bytes
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
     if (audioMixer && audioMixer->getActiveSocket()) {
+        qDebug() << "Yahoo";
         Locker lock(_mutex);
         auto audioPacket = NLPacket::create(packetType);
 
@@ -63,5 +64,7 @@ void AbstractAudioInterface::emitAudioPacket(const void* audioData, size_t bytes
         }
         nodeList->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendAudioPacket);
         nodeList->sendUnreliablePacket(*audioPacket, *audioMixer);
+    } else {
+        qDebug() << "Still no audiomixer";
     }
 }

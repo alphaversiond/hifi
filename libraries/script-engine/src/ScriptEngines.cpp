@@ -93,8 +93,8 @@ QUrl expandScriptUrl(const QUrl& rawScriptURL) {
             // stop something like Script.include(["/~/../Desktop/naughty.js"]); from working
             QFileInfo fileInfo(url.toLocalFile());
             url = QUrl::fromLocalFile(fileInfo.canonicalFilePath());
-
-            QUrl defaultScriptsLoc = defaultScriptsLocation();
+            QFileInfo defaultScriptFileInfo(defaultScriptsLocation().toLocalFile());
+            QUrl defaultScriptsLoc = QUrl::fromLocalFile(defaultScriptFileInfo.canonicalFilePath());
             if (!defaultScriptsLoc.isParentOf(url)) {
                 qCWarning(scriptengine) << "Script.include() ignoring file path" << rawScriptURL
                                         << "-- outside of standard libraries: "

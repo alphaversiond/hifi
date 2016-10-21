@@ -1308,6 +1308,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // After all of the constructor is completed, then set firstRun to false.
     Setting::Handle<bool> firstRun{ Settings::firstRun, true };
     firstRun.set(false);
+
 }
 
 void Application::domainConnectionRefused(const QString& reasonMessage, int reasonCodeInt, const QString& extraInfo) {
@@ -2299,7 +2300,7 @@ bool Application::event(QEvent* event) {
         if (shouldPaint(nsecsElapsed)) {
             qDebug() << "Application::event should paint " << nsecsElapsed;
             _lastTimeUpdated.start();
-            idle(nsecsElapsed);
+            //idle(nsecsElapsed);
             postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority);
         } else {
             qDebug() << "Application::event not should paint";
@@ -3521,7 +3522,9 @@ void Application::init() {
         }, 
         [](){
             qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
-            DependencyManager::get<AddressManager>()->goToEntry();
+            //DependencyManager::get<AddressManager>()->goToEntry();
+            DependencyManager::get<AddressManager>()->handleLookupString("hifi://huawei/1101.79,460.271,-78.4844/0,-0.496747,0,0.867895");
+
         });
     } else {
         qCDebug(interfaceapp) << "Not first run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("previous location") : addressLookupString);

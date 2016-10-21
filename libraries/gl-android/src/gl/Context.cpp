@@ -152,7 +152,6 @@ void setupPixelFormatSimple(HDC hdc) {
 
 void Context::create() {
     if (!PRIMARY) {
-        qDebug() << "->property from " << "Context";
         PRIMARY = static_cast<Context*>(qApp->property(PRIMARY_CONTEXT_PROPERTY_NAME).value<void*>());
     }
 

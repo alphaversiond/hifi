@@ -62,7 +62,6 @@ T* globalInstance(const char* propertyName, Args&&... args) {
     if (!resultInstance) {
         std::unique_lock<std::mutex> lock(mutex);
         if (!resultInstance) {
-            qDebug() << "->property from " << "SharedUtil";
             auto variant = qApp->property(propertyName);
             if (variant.isNull()) {
                 std::unique_ptr<T>& instancePtr = globalInstancePointer<T>();

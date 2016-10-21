@@ -575,7 +575,6 @@ int makeUniformBlockSlots(GLuint glprogram, const Shader::BindingSet& slotBindin
     GLint buffersCount = 0;
 
     glGetProgramiv(glprogram, GL_ACTIVE_UNIFORM_BLOCKS, &buffersCount);
-    qDebug() << "GLShared makeUniformBlockSlots GL_ACTIVE_UNIFORM_BLOCKS"  << buffersCount ;
 
     // fast exit
     if (buffersCount == 0) {
@@ -584,7 +583,6 @@ int makeUniformBlockSlots(GLuint glprogram, const Shader::BindingSet& slotBindin
 
     GLint maxNumUniformBufferSlots = 0;
     glGetIntegerv(GL_MAX_UNIFORM_BUFFER_BINDINGS, &maxNumUniformBufferSlots);
-    qDebug() << "GLShared makeUniformBlockSlots GL_MAX_UNIFORM_BUFFER_BINDINGS"  << maxNumUniformBufferSlots ;
 
     std::vector<GLint> uniformBufferSlotMap(maxNumUniformBufferSlots, -1);
 
