@@ -44,6 +44,7 @@
 #include <CursorManager.h>
 
 #include "CompositorHelper.h"
+#include <PathUtils.h>
 
 const char* SRGB_TO_LINEAR_FRAG = R"SCRIBE(
 
@@ -544,7 +545,7 @@ void OpenGLDisplayPlugin::compositeOverlay() {
     auto& cursorManager = Cursor::Manager::instance();
     const auto& cursorData = _cursorsData[cursorManager.getCursor()->getIcon()];
     // Grab a texture map representing the different status icons and assign that to the drawStatsuJob
-    static auto iconMapPath = "/data/data/io.highfidelity.hifiinterface/resources/images/arrow.jpg";
+    static auto iconMapPath = PathUtils::resourcesPath() + "images/arrow.jpg";
     static auto statusIconMap = DependencyManager::get<TextureCache>()->getImageTexture(iconMapPath);
     //static auto statusIconMap = DependencyManager::get<TextureCache>()->getBlueTexture();
     //auto cursorTransform = DependencyManager::get<CompositorHelper>()->getReticleTransform(glm::mat4());

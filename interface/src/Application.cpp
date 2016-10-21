@@ -563,17 +563,21 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _lastFaceTrackerUpdate(0)
 {
 
-    // TODO: get the path properly
-    QFile scriptsDest("/data/data/io.highfidelity.hifiinterface/scripts");
+
+    qDebug() << "Scripts locations " << defaultScriptsLocation();
+    qDebug() << "Scripts locations 2 " << defaultScriptsLocation().toString();
+    qDebug() << "Scripts locations 3 " << defaultScriptsLocation().toLocalFile();
+    QFile scriptsDest(defaultScriptsLocation().toString());
     if (!scriptsDest.exists()) {
         qDebug() << "Copying scripts dir";
-        copyDirDeep("assets:/scripts", "/data/data/io.highfidelity.hifiinterface/scripts");
+        copyDirDeep("assets:/scripts", defaultScriptsLocation().toLocalFile());
     }
 
-    QFile resourcesDest("/data/data/io.highfidelity.hifiinterface/resources");
+    qDebug() << "Resources path " << PathUtils::resourcesPath();
+    QFile resourcesDest(PathUtils::resourcesPath());
     if (!resourcesDest.exists()) {
         qDebug() << "Copying resources dir";
-        copyDirDeep("assets:/resources", "/data/data/io.highfidelity.hifiinterface/resources");
+        copyDirDeep("assets:/resources", PathUtils::resourcesPath());
     }
 
 
@@ -2096,7 +2100,7 @@ void Application::paintGL() {
                 //float dmin = std::min(canvasSize.x, canvasSize.y);
                 //vec2 cubeSize = vec2(dmin/3, dmin/3);
                 //glm::mat4 cubeTransform = glm::rotate(glm::mat4(), (float) glm::radians(45.0f), vec3(0.0f, 0.0f, 1.0f));
-        static auto iconMapPath = "/data/data/io.highfidelity.hifiinterface/resources/images/arrow.jpg";
+        static auto iconMapPath = PathUtils::resourcesPath() +"images/arrow.jpg";
         static auto statusIconMap = DependencyManager::get<TextureCache>()->getImageTexture(iconMapPath);
 
         gpu::Batch batch;
@@ -2130,7 +2134,7 @@ void Application::paintGL() {
 
 
 
-        displaySide(&renderArgs, _myCamera);
+        //displaySide(&renderArgs, _myCamera);
 
 
 

@@ -20,15 +20,12 @@
 #include <QtCore/QStandardPaths>
 #include <QDebug>
 #include <QDirIterator>
-
+#include <QStandardPaths>
 const QString& PathUtils::resourcesPath() {
 #ifdef Q_OS_MAC
     static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/../Resources/";
 #elif defined (ANDROID)
-    /*qDebug() << QCoreApplication::applicationDirPath();
-    qDebug() << QCoreApplication::applicationFilePath();
-    qDebug() << QCoreApplication::libraryPaths();*/
-    static QString staticResourcePath = "/data/data/io.highfidelity.hifiinterface/resources/";
+    static QString staticResourcePath = QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/resources/";
 #else
     static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/resources/";
 #endif
@@ -82,17 +79,17 @@ QUrl defaultScriptsLocation() {
 #elif defined(Q_OS_OSX)
     QString path = QCoreApplication::applicationDirPath() + "/../Resources/scripts";
 #elif defined (ANDROID) 
-    QString path = "file:///data/data/io.highfidelity.hifiinterface/scripts";
+    QString path = QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/scripts";
 #else
     QString path = QCoreApplication::applicationDirPath() + "/scripts";
 #endif
 
-#ifdef ANDROID
-    return QUrl(path);
-#else 
+#if defined(ANDROID) 
+    return QUrl::fromLocalFile(path);
+#else
     QFileInfo fileInfo(path);
     return QUrl::fromLocalFile(fileInfo.canonicalFilePath());    
-#endif 
+#endif
 }
 
 void copyDirDeep(QString src, QString dst) {

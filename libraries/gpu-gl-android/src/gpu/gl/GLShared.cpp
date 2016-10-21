@@ -510,7 +510,6 @@ int makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,
     Shader::SlotSet& uniforms, Shader::SlotSet& textures, Shader::SlotSet& samplers) {
     GLint uniformsCount = 0;
 
-    qDebug() << "GLShared makeUniformSlots GL_ACTIVE_UNIFORMS" << uniformsCount;
     glGetProgramiv(glprogram, GL_ACTIVE_UNIFORMS, &uniformsCount);
 
     for (int i = 0; i < uniformsCount; i++) {
@@ -520,8 +519,6 @@ int makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,
         GLint size = 0;
         GLenum type = 0;
         glGetActiveUniform(glprogram, i, NAME_LENGTH, &length, &size, &type, name);
-
-        qDebug() << "GLShared glGetActiveUniform["<<i<<"] " << name;
 
         GLint location = glGetUniformLocation(glprogram, name);
         const GLint INVALID_UNIFORM_LOCATION = -1;
@@ -652,7 +649,6 @@ int makeUniformBlockSlots(GLuint glprogram, const Shader::BindingSet& slotBindin
 
     for (auto& info : uniformBlocks) {
         static const Element element(SCALAR, gpu::UINT32, gpu::UNIFORM_BUFFER);
-        qDebug() << "GLShared buffers.insert (" << info.name.c_str() << "," << info.binding << ", " << info.size << ")";
         buffers.insert(Shader::Slot(info.name, info.binding, element, Resource::BUFFER, info.size));
     }
     return buffersCount;
@@ -701,7 +697,6 @@ int makeOutputSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Sh
 }
 
 void makeProgramBindings(ShaderObject& shaderObject) {
-    qDebug() << "[DEBUG-SHADER] makeProgramBindings";
     if (!shaderObject.glprogram) {
         return;
     }
@@ -711,55 +706,46 @@ void makeProgramBindings(ShaderObject& shaderObject) {
     //Check for gpu specific attribute slotBindings
     loc = glGetAttribLocation(glprogram, "inPosition");
     if (loc >= 0 && loc != gpu::Stream::POSITION) {
-        qDebug() << "[DEBUG-SHADER] makeProgramBindings inPosition found";
         glBindAttribLocation(glprogram, gpu::Stream::POSITION, "inPosition");
     }
 
     loc = glGetAttribLocation(glprogram, "inNormal");
     if (loc >= 0 && loc != gpu::Stream::NORMAL) {
-        qDebug() << "[DEBUG-SHADER] makeProgramBindings inNormal found";
         glBindAttribLocation(glprogram, gpu::Stream::NORMAL, "inNormal");
     }
 
     loc = glGetAttribLocation(glprogram, "inColor");
     if (loc >= 0 && loc != gpu::Stream::COLOR) {
-        qDebug() << "[DEBUG-SHADER] makeProgramBindings inColor found";
         glBindAttribLocation(glprogram, gpu::Stream::COLOR, "inColor");
     }
 
     loc = glGetAttribLocation(glprogram, "inTexCoord0");
     if (loc >= 0 && loc != gpu::Stream::TEXCOORD) {
-        qDebug() << "[DEBUG-SHADER] makeProgramBindings inTexCoord0 found";
         glBindAttribLocation(glprogram, gpu::Stream::TEXCOORD, "inTexCoord0");
     }
 
     loc = glGetAttribLocation(glprogram, "inTangent");
     if (loc >= 0 && loc != gpu::Stream::TANGENT) {
-        qDebug() << "[DEBUG-SHADER] makeProgramBindings inTangent found";
         glBindAttribLocation(glprogram, gpu::Stream::TANGENT, "inTangent");
     }
 
     loc = glGetAttribLocation(glprogram, "inTexCoord1");
     if (loc >= 0 && loc != gpu::Stream::TEXCOORD1) {
-        qDebug() << "[DEBUG-SHADER] makeProgramBindings inTexCoord1 found";
         glBindAttribLocation(glprogram, gpu::Stream::TEXCOORD1, "inTexCoord1");
     }
 
     loc = glGetAttribLocation(glprogram, "inSkinClusterIndex");
     if (loc >= 0 && loc != gpu::Stream::SKIN_CLUSTER_INDEX) {
-        qDebug() << "[DEBUG-SHADER] makeProgramBindings inSkinClusterIndex found";
         glBindAttribLocation(glprogram, gpu::Stream::SKIN_CLUSTER_INDEX, "inSkinClusterIndex");
     }
 
     loc = glGetAttribLocation(glprogram, "inSkinClusterWeight");
     if (loc >= 0 && loc != gpu::Stream::SKIN_CLUSTER_WEIGHT) {
-        qDebug() << "[DEBUG-SHADER] makeProgramBindings inSkinClusterWeight found";
         glBindAttribLocation(glprogram, gpu::Stream::SKIN_CLUSTER_WEIGHT, "inSkinClusterWeight");
     }
 
     loc = glGetAttribLocation(glprogram, "_drawCallInfo");
     if (loc >= 0 && loc != gpu::Stream::DRAW_CALL_INFO) {
-        qDebug() << "[DEBUG-SHADER] makeProgramBindings _drawCallInfo found";
         glBindAttribLocation(glprogram, gpu::Stream::DRAW_CALL_INFO, "_drawCallInfo");
     }
 
@@ -784,7 +770,6 @@ void makeProgramBindings(ShaderObject& shaderObject) {
 #else
     loc = glGetUniformLocation(glprogram, "transformObjectBuffer");
     if (loc >= 0) {
-        qDebug() << "[DEBUG-SHADER] makeProgramBindings transformObjectBuffer found";
         glProgramUniform1i(glprogram, loc, gpu::TRANSFORM_OBJECT_SLOT);
         shaderObject.transformObjectSlot = gpu::TRANSFORM_OBJECT_SLOT;
     }
@@ -792,7 +777,6 @@ void makeProgramBindings(ShaderObject& shaderObject) {
 
     loc = glGetUniformBlockIndex(glprogram, "transformCameraBuffer");
     if (loc >= 0) {
-        qDebug() << "[DEBUG-SHADER] makeProgramBindings transformCameraBuffer found";
         glUniformBlockBinding(glprogram, loc, gpu::TRANSFORM_CAMERA_SLOT);
         shaderObject.transformCameraSlot = gpu::TRANSFORM_CAMERA_SLOT;
     }
