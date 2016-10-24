@@ -65,6 +65,6 @@ void AbstractAudioInterface::emitAudioPacket(const void* audioData, size_t bytes
         nodeList->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendAudioPacket);
         nodeList->sendUnreliablePacket(*audioPacket, *audioMixer);
     } else {
-        qDebug() << "Still no audiomixer";
+        //qDebug() << "Still no audiomixer";
     }
 }

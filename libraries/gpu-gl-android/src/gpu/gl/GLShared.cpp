@@ -634,7 +634,6 @@ int makeUniformBlockSlots(GLuint glprogram, const Shader::BindingSet& slotBindin
             auto slotIt = std::find_if(uniformBufferSlotMap.begin(), uniformBufferSlotMap.end(), isUnusedSlot);
             if (slotIt != uniformBufferSlotMap.end()) {
                 info.binding = slotIt - uniformBufferSlotMap.begin();
-                qDebug() << "GLShared makeUniformBlockSlots glUniformBlockBinding";
                 glUniformBlockBinding(glprogram, info.index, info.binding);
             } else {
                 // This should neve happen, an active ubo cannot find an available slot among the max available?!

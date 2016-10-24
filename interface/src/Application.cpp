@@ -2101,7 +2101,7 @@ void Application::paintGL() {
                 //float dmin = std::min(canvasSize.x, canvasSize.y);
                 //vec2 cubeSize = vec2(dmin/3, dmin/3);
                 //glm::mat4 cubeTransform = glm::rotate(glm::mat4(), (float) glm::radians(45.0f), vec3(0.0f, 0.0f, 1.0f));
-        static auto iconMapPath = PathUtils::resourcesPath() +"images/arrow.jpg";
+        static auto iconMapPath = PathUtils::resourcesPath() +"images/Default-Sky-9-ambient.jpg";
         static auto statusIconMap = DependencyManager::get<TextureCache>()->getImageTexture(iconMapPath);
 
         gpu::Batch batch;

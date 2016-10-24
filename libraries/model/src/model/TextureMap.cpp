@@ -157,39 +157,57 @@ const QImage& image, bool isLinear, bool doCompress) {
         gpu::Semantic mipSemantic;
         if (isLinear) {
             mipSemantic = gpu::BGRA;
+            qDebug() << "TextureUsage::defineColorTexelFormats mipSemantic <- BGRA";
             if (doCompress) {
+                qDebug() << "TextureUsage::defineColorTexelFormats gpuSemantic <- COMPRESSED_RGBA";
                 gpuSemantic = gpu::COMPRESSED_RGBA;
             } else {
+                qDebug() << "TextureUsage::defineColorTexelFormats gpuSemantic <- RGBA";
                 gpuSemantic = gpu::RGBA;
             }
         } else {
             mipSemantic = gpu::SBGRA;
+            qDebug() << "TextureUsage::defineColorTexelFormats mipSemantic <- SBGRA";
             if (doCompress) {
                 gpuSemantic = gpu::COMPRESSED_SRGBA;
+                qDebug() << "TextureUsage::defineColorTexelFormats gpuSemantic <- COMPRESSED_SRGBA";
             } else {
                 gpuSemantic = gpu::SRGBA;
+                qDebug() << "TextureUsage::defineColorTexelFormats gpuSemantic <- SRGBA";
             }
         }
+        qDebug() << "TextureUsage::defineColorTexelFormats formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, gpuSemantic);";
+        qDebug() << "TextureUsage::defineColorTexelFormats formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, mipSemantic);";
+
         formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, gpuSemantic);
         formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, mipSemantic);
+
     } else {
         gpu::Semantic gpuSemantic;
         gpu::Semantic mipSemantic;
         if (isLinear) {
+            qDebug() << "TextureUsage::defineColorTexelFormats mipSemantic = gpu::RGB;";
             mipSemantic = gpu::RGB;
             if (doCompress) {
+                qDebug() << "TextureUsage::defineColorTexelFormats gpuSemantic = gpu::COMPRESSED_RGB;";
                 gpuSemantic = gpu::COMPRESSED_RGB;
             } else {
+                qDebug() << "TextureUsage::defineColorTexelFormats gpuSemantic = gpu::RGB;";
                 gpuSemantic = gpu::RGB;
             }
         } else {
             mipSemantic = gpu::SRGB;
+            qDebug() << "TextureUsage::defineColorTexelFormats mipSemantic = gpu::SRGB;";
             if (doCompress) {
                 gpuSemantic = gpu::COMPRESSED_SRGB;
+                qDebug() << "TextureUsage::defineColorTexelFormats gpuSemantic = gpu::COMPRESSED_SRGB;";
             } else {
                 gpuSemantic = gpu::SRGB;
+                qDebug() << "TextureUsage::defineColorTexelFormats gpuSemantic = gpu::gpu::SRGB;";
             }
         }
+        qDebug() << "TextureUsage::defineColorTexelFormats formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, gpuSemantic);";
+        qDebug() << "TextureUsage::defineColorTexelFormats formatMip = gpu::Element(gpu::VEC3, gpu::NUINT8, mipSemantic);";
         formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, gpuSemantic);
         formatMip = gpu::Element(gpu::VEC3, gpu::NUINT8, mipSemantic);
     }
@@ -235,7 +253,8 @@ gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImag
         gpu::Element formatGPU;
         gpu::Element formatMip;
         defineColorTexelFormats(formatGPU, formatMip, image, isLinear, doCompress);
-
+        qDebug() << "process2DTextureColorFromImage  gpu::Texture::create2D semantic:" << formatGPU.getSemantic() << " dimension:" << 
+        formatGPU.getDimension() << " type: " << formatGPU.getType();
         theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
         theTexture->setSource(srcImageName);
         auto usage = gpu::Texture::Usage::Builder().withColor();

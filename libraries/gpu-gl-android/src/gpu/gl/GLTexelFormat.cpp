@@ -13,14 +13,13 @@ using namespace gpu::gl;
 
 
 GLenum GLTexelFormat::evalGLTexelFormatInternal(const gpu::Element& dstFormat) {
+    qDebug() << "GLTexelFormat::evalGLTexelFormatInternal " << dstFormat.getDimension() << ", " << dstFormat.getSemantic() << ", " << dstFormat.getType();
     GLenum result = GL_RGBA8;
     switch (dstFormat.getDimension()) {
         case gpu::SCALAR: {
             switch (dstFormat.getSemantic()) {
                 case gpu::RGB:
                 case gpu::RGBA:
-                case gpu::SRGB:
-                case gpu::SRGBA:
                     switch (dstFormat.getType()) {
                         case gpu::UINT32:
                             result = GL_R32UI;
@@ -197,6 +196,9 @@ GLenum GLTexelFormat::evalGLTexelFormatInternal(const gpu::Element& dstFormat) {
         default:
             qCDebug(gpugllogging) << "Unknown combination of texel format";
     }
+    
+    qDebug() << "GLTexelFormat::evalGLTexelFormatInternal result " << result;
+
     return result;
 }
 
@@ -623,6 +625,10 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
         default:
             qCDebug(gpugllogging) << "Unknown combination of texel format";
         }
+        texel.type = GL_UNSIGNED_INT_24_8;
+        texel.format = GL_DEPTH_STENCIL;
+        texel.internalFormat = GL_DEPTH24_STENCIL8;
+        qDebug() << "GLTexelFormat::evalGLTexelFormat Texel.type " << texel.type << " - texel.format=" << texel.format << " texel.internalFormat=" << texel.internalFormat();
         return texel;
     }
 }
