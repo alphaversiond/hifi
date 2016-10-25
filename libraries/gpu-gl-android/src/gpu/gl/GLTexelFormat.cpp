@@ -628,7 +628,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
         texel.type = GL_UNSIGNED_INT_24_8;
         texel.format = GL_DEPTH_STENCIL;
         texel.internalFormat = GL_DEPTH24_STENCIL8;
-        qDebug() << "GLTexelFormat::evalGLTexelFormat Texel.type " << texel.type << " - texel.format=" << texel.format << " texel.internalFormat=" << texel.internalFormat();
+        qDebug() << "GLTexelFormat::evalGLTexelFormat Texel.type " << texel.type << " - texel.format=" << texel.format << " texel.internalFormat=" << texel.internalFormat;
         return texel;
     }
 }
