@@ -175,7 +175,6 @@ void GLBackend::releaseResourceTexture(uint32_t slot) {
     auto& tex = _resource._textures[slot];
     if (tex) {
         auto* object = Backend::getGPUObject<GLTexture>(*tex);
-        qDebug() << "GLBackendPipeline releaseResourceTexture grabing texture from  Backend::getGPUObject";
         if (object) {
             GLuint target = object->_target;
             glActiveTexture(GL_TEXTURE0 + slot);
@@ -210,7 +209,6 @@ void GLBackend::do_setResourceTexture(const Batch& batch, size_t paramOffset) {
 
     // Always make sure the GLObject is in sync
     GLTexture* object = syncGPUObject(resourceTexture);
-    qDebug() << "GLBackendPipeline do_setResourceTexture syncing texture";
 
     if (object) {
         GLuint to = object->_texture;

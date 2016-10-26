@@ -122,13 +122,14 @@ void DeferredLightingEffect::addPointLight(const glm::vec3& position, float radi
 
 void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radius, const glm::vec3& color,
     float intensity, float falloffRadius, const glm::quat& orientation, float exponent, float cutoff) {
-    
+    qDebug() << "DeferredLightingEffect::addSpotLight _allocatedLights? size " << _allocatedLights.size();
     unsigned int lightID = (unsigned int)(_pointLights.size() + _spotLights.size() + _globalLights.size());
+    qDebug() << "DeferredLightingEffect::addSpotLight lightID? " << lightID;
     if (lightID >= _allocatedLights.size()) {
         _allocatedLights.push_back(std::make_shared<model::Light>());
     }
     model::LightPointer lp = _allocatedLights[lightID];
-
+    qDebug() << "DeferredLightingEffect::addSpotLight lightPointer? " << (lp?1:0);
     lp->setPosition(position);
     lp->setMaximumRadius(radius);
     lp->setColor(color);
@@ -137,6 +138,7 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
 
     if (exponent == 0.0f && cutoff == PI) {
         lp->setType(model::Light::POINT);
+        qDebug() << "DeferredLightingEffect::addSpotLight _pointLights? " << (_pointLights.size());
         _pointLights.push_back(lightID);
         
     } else {
@@ -144,6 +146,7 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
         lp->setSpotAngle(cutoff);
         lp->setSpotExponent(exponent);
         lp->setType(model::Light::SPOT);
+        qDebug() << "DeferredLightingEffect::addSpotLight _spotLights? " << (_spotLights.size());
         _spotLights.push_back(lightID);
     }
 }

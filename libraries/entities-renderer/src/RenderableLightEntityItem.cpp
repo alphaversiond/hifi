@@ -41,7 +41,12 @@ void RenderableLightEntityItem::render(RenderArgs* args) {
     float falloffRadius = getFalloffRadius();
     float exponent = getExponent();
     float cutoff = glm::radians(getCutoff());
-
+#ifdef ANDROID
+    qDebug() << "get<DeferredLightingEffect>() from RenderableLightEntityItem::render " << DependencyManager::get<DeferredLightingEffect>();
+    if (!DependencyManager::isSet<DeferredLightingEffect>()) {
+        DependencyManager::set<DeferredLightingEffect>();
+    }
+#endif
     if (_isSpotlight) {
         DependencyManager::get<DeferredLightingEffect>()->addSpotLight(position, largestDiameter / 2.0f,
             color, intensity, falloffRadius, rotation, exponent, cutoff);

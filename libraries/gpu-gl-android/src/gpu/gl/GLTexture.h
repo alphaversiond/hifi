@@ -31,7 +31,6 @@ public:
 
     template <typename GLTextureType>
     static GLTextureType* sync(GLBackend& backend, const TexturePointer& texturePointer, bool needTransfer) {
-        qDebug() << "GLTexture.h sync need trasfer " << needTransfer;
         const Texture& texture = *texturePointer;
 
         // Special case external textures
