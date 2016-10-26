@@ -141,12 +141,35 @@ void GLBackend::updateTransform(const Batch& batch) {
 
     auto& drawCallInfoBuffer = batch.getDrawCallInfoBuffer();
     if (batch._currentNamedCall.empty()) {
+        qDebug() << "GLBackend::updateTransform empty";
+        (void)CHECK_GL_ERROR();
+        qDebug() << "GLBackend::updateTransform empty1";
         auto& drawCallInfo = drawCallInfoBuffer[_currentDraw];
         glDisableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO); // Make sure attrib array is disabled
-        //glVertexAttribI2i(gpu::Stream::DRAW_CALL_INFO, drawCallInfo.index, drawCallInfo.unused);
-        int values[] = {drawCallInfo.index, drawCallInfo.unused};
-        glVertexAttribIPointer(gpu::Stream::DRAW_CALL_INFO, 2, GL_INT, 0, (const GLvoid *) values);
+        qDebug() << "GLBackend::updateTransform glDisableVertexAttribArray done";
+        (void)CHECK_GL_ERROR();
+        GLint current_vao, current_vbo, maxVertexAtribs;
+        glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &current_vao);
+        glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &current_vbo);
+        glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &maxVertexAtribs);
+        qDebug() << "GLBackend::updateTransform glDisableVertexAttribArray currentvao " << current_vao << " current vbo " << current_vbo << " GL_MAX_VERTEX_ATTRIBS " <<  maxVertexAtribs;
+        glVertexAttribI4i(gpu::Stream::DRAW_CALL_INFO, drawCallInfo.index, drawCallInfo.unused, 0, 0);
+
+        //int values[] = {drawCallInfo.index, drawCallInfo.unused};
+        //glVertexAttribIPointer(gpu::Stream::DRAW_CALL_INFO, 2, GL_INT, 0, (const GLvoid *) values);
+
+        /*
+        //glDisableVertexAttribArray currentvao  1  current vbo  0
+        GL_INVALID_OPERATION is generated 
+                a non-zero vertex array object is bound, 
+                zero is bound to the GL_ARRAY_BUFFER buffer object binding point and
+                the pointer argument is not NULL.   TRUE
+        */
+        qDebug() << "GLBackend::updateTransform glVertexAttribIPointer done";
+        (void)CHECK_GL_ERROR();
+
     } else {
+        qDebug() << "GLBackend::updateTransform else";
         glEnableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO); // Make sure attrib array is enabled
         glBindBuffer(GL_ARRAY_BUFFER, _transform._drawCallInfoBuffer);
         glVertexAttribIPointer(gpu::Stream::DRAW_CALL_INFO, 2, GL_UNSIGNED_SHORT, 0,
