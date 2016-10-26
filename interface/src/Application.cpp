@@ -1809,7 +1809,7 @@ void Application::paintGL() {
     });
 
     auto inputs = AvatarInputs::getInstance();
-/*    if (inputs->mirrorVisible()) {
+    if (inputs->mirrorVisible()) {
         PerformanceTimer perfTimer("Mirror");
 
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
@@ -1822,7 +1822,7 @@ void Application::paintGL() {
         renderArgs._blitFramebuffer.reset();
         renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
     }
-*/
+
     {
         PerformanceTimer perfTimer("renderOverlay");
         // NOTE: There is no batch associated with this renderArgs
@@ -1934,26 +1934,7 @@ void Application::paintGL() {
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     const QSize size = framebufferCache->getFrameBufferSize();
     // Final framebuffer that will be handled to the display-plugin
-    static gpu::FramebufferPointer finalFramebuffer;
-
-
-    static gpu::TexturePointer primaryDepthTexture;
-    static gpu::Element depthFormat;
-    static std::once_flag once2;
-
-    std::call_once(once2, [&] {
-        finalFramebuffer = framebufferCache->getFramebuffer();
-        auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
-        depthFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL); // Depth24_Stencil8 texel format
-
-        auto framebufferSize = framebufferCache->getFrameBufferSize();
-        glm::uvec2 frameSize(framebufferSize.width(), framebufferSize.height());
-
-        primaryDepthTexture = gpu::TexturePointer(gpu::Texture::create2D(depthFormat, frameSize.x, frameSize.y, defaultSampler));
-    });
-
-
-    finalFramebuffer->setDepthStencilBuffer(primaryDepthTexture, depthFormat);
+    auto finalFramebuffer = framebufferCache->getFramebuffer();
 
 
     {
@@ -2001,7 +1982,7 @@ void Application::paintGL() {
         }
         renderArgs._blitFramebuffer = finalFramebuffer;
 
-
+/*
         static gpu::PipelinePointer thePipeline;
         static std::once_flag once;
         static gpu::BufferView vertices(new gpu::Buffer(), gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
@@ -2074,8 +2055,8 @@ void Application::paintGL() {
                 cubeBufferFormat->setAttribute(gpu::Stream::COLOR, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RGB), 3 * sizeof(GLfloat));
                 cubeBufferFormat->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), 6 * sizeof(GLfloat));
 
-                /*int indicesSize = sizeof(GLuint) * 6;
-                indices._buffer->append(indicesSize, reinterpret_cast<const gpu::Byte*>(&_indices));*/
+                //int indicesSize = sizeof(GLuint) * 6;
+                //indices._buffer->append(indicesSize, reinterpret_cast<const gpu::Byte*>(&_indices));
                 auto cubeState = std::make_shared<gpu::State>();
                 cubeState->setDepthTest(gpu::State::DepthTest(true));
                 cubeState->setCullMode(gpu::State::CULL_NONE);
@@ -2123,7 +2104,7 @@ void Application::paintGL() {
         batch.draw(gpu::TRIANGLES, 36); // 36
         renderArgs._context->appendFrameBatch(batch);
 
-    
+    */
 
 
 
@@ -2135,11 +2116,7 @@ void Application::paintGL() {
 
 
 
-        //displaySide(&renderArgs, _myCamera);
-
-
-
-
+        displaySide(&renderArgs, _myCamera);
 
     } // paintGL
 
@@ -2300,7 +2277,7 @@ bool Application::event(QEvent* event) {
         if (shouldPaint(nsecsElapsed)) {
             qDebug() << "Application::event should paint " << nsecsElapsed;
             _lastTimeUpdated.start();
-            //idle(nsecsElapsed);
+            idle(nsecsElapsed);
             postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority);
         } else {
             qDebug() << "Application::event not should paint";

@@ -540,38 +540,16 @@ void OpenGLDisplayPlugin::compositeOverlay() {
     });
 }
 
-    void OpenGLDisplayPlugin::compositePointer() {
-
+void OpenGLDisplayPlugin::compositePointer() {
     auto& cursorManager = Cursor::Manager::instance();
     const auto& cursorData = _cursorsData[cursorManager.getCursor()->getIcon()];
-    // Grab a texture map representing the different status icons and assign that to the drawStatsuJob
-    static auto iconMapPath = PathUtils::resourcesPath() + "images/arrow.jpg";
-    static auto statusIconMap = DependencyManager::get<TextureCache>()->getImageTexture(iconMapPath);
-    //static auto statusIconMap = DependencyManager::get<TextureCache>()->getBlueTexture();
-    //auto cursorTransform = DependencyManager::get<CompositorHelper>()->getReticleTransform(glm::mat4());
-        static const float CURSOR_PIXEL_SIZE = 320.0f;
-        const auto canvasSize = vec2(_compositeFramebuffer->getSize());
-        static int numFrame=0;
-        numFrame++;
-        vec2 mousePosition = vec2(numFrame % (int) canvasSize.x, numFrame % (int) canvasSize.y);
-        mousePosition /= canvasSize;
-        mousePosition *= 2.0;
-        mousePosition -= 1.0;
-        mousePosition.y *= -1.0f;
-
-        vec2 mouseSize = CURSOR_PIXEL_SIZE / canvasSize;
-        glm::mat4 cursorTransform = glm::scale(glm::translate(glm::mat4(), vec3(mousePosition, 0.0f)), vec3(mouseSize, 1.0f));
-
-
+    auto cursorTransform = DependencyManager::get<CompositorHelper>()->getReticleTransform(glm::mat4());
     render([&](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.setProjectionTransform(mat4());
         batch.setFramebuffer(_compositeFramebuffer);
-        if (!_cursorPipeline) {
-            qDebug() << "OpenGLDisplayPlugin setting null _cursorPipeline ";
-        }
         batch.setPipeline(_cursorPipeline);
-        batch.setResourceTexture(0, statusIconMap);
+        batch.setResourceTexture(0, cursorData.texture);
         batch.resetViewTransform();
         batch.setModelTransform(cursorTransform);
         if (isStereo()) {
@@ -584,8 +562,6 @@ void OpenGLDisplayPlugin::compositeOverlay() {
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         }
     });
-
-
 }
 
 void OpenGLDisplayPlugin::compositeScene() {
