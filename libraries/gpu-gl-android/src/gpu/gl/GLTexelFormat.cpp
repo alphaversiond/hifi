@@ -20,6 +20,8 @@ GLenum GLTexelFormat::evalGLTexelFormatInternal(const gpu::Element& dstFormat) {
             switch (dstFormat.getSemantic()) {
                 case gpu::RGB:
                 case gpu::RGBA:
+                case gpu::SRGB:
+                case gpu::SRGBA:
                     switch (dstFormat.getType()) {
                         case gpu::UINT32:
                             result = GL_R32UI;
@@ -129,7 +131,8 @@ GLenum GLTexelFormat::evalGLTexelFormatInternal(const gpu::Element& dstFormat) {
                     break;
                 case gpu::SRGB:
                 case gpu::SRGBA:
-                    result = GL_SRGB8; // standard 2.2 gamma correction color
+                    //result = GL_SRGB8; // standard 2.2 gamma correction color
+                    result = GL_RGB8; // standard 2.2 gamma correction color
                     break;
                 default:
                     qCDebug(gpugllogging) << "Unknown combination of texel format";
@@ -182,7 +185,9 @@ GLenum GLTexelFormat::evalGLTexelFormatInternal(const gpu::Element& dstFormat) {
                     }
                     break;
                 case gpu::SRGB:
-                    result = GL_SRGB8;
+                    //result = GL_SRGB8;
+                    result = GL_RGB8;
+                    qDebug() << "SRGBA Here 2";
                     break;
                 case gpu::SRGBA:
                     result = GL_SRGB8_ALPHA8; // standard 2.2 gamma correction color
@@ -306,7 +311,9 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                 texel.internalFormat = GL_RGBA8;
                 break;
             case gpu::SRGB:
-                texel.internalFormat = GL_SRGB8;
+                //texel.internalFormat = GL_SRGB8;
+                texel.internalFormat = GL_RGB8;
+                qDebug() << "SRGBA Here 3";
                 break;
             case gpu::SRGBA:
                 texel.internalFormat = GL_SRGB8_ALPHA8;
@@ -520,7 +527,8 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                 break;
             case gpu::SRGB:
             case gpu::SRGBA:
-                texel.internalFormat = GL_SRGB8; // standard 2.2 gamma correction color
+                //texel.internalFormat = GL_SRGB8; // standard 2.2 gamma correction color
+                texel.internalFormat = GL_RGB8; // standard 2.2 gamma correction color
                 break;
             case gpu::COMPRESSED_RGB:
                 //texel.internalFormat = GL_COMPRESSED_RGB;
@@ -603,7 +611,8 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                 }
                 break;
             case gpu::SRGB:
-                texel.internalFormat = GL_SRGB8;
+                //texel.internalFormat = GL_SRGB8;
+                texel.internalFormat = GL_RGB8; // standard 2.2 gamma correction color
                 break;
             case gpu::SRGBA:
                 texel.internalFormat = GL_SRGB8_ALPHA8; // standard 2.2 gamma correction color
@@ -621,13 +630,9 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
             }
             break;
         }
-
         default:
             qCDebug(gpugllogging) << "Unknown combination of texel format";
         }
-        texel.type = GL_UNSIGNED_INT_24_8;
-        texel.format = GL_DEPTH_STENCIL;
-        texel.internalFormat = GL_DEPTH24_STENCIL8;
         qDebug() << "GLTexelFormat::evalGLTexelFormat Texel.type " << texel.type << " - texel.format=" << texel.format << " texel.internalFormat=" << texel.internalFormat;
         return texel;
     }

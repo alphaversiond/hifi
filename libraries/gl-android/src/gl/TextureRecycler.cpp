@@ -56,6 +56,7 @@ uint32_t TextureRecycler::getNextTexture() {
         qDebug() << "TODO: TextureRecycler.cpp TextureRecycler::getNextTexture GL_TEXTURE_LOD_BIAS";
         //glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, -0.2f);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 8.0f); 
+        qDebug() << "TextureRecycler::getNextTexture";
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, _size.x, _size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
         _allTextures.emplace(std::piecewise_construct, std::forward_as_tuple(newTexture), std::forward_as_tuple(newTexture, _size));
         _readyTextures.push(newTexture);

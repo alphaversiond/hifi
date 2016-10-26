@@ -1294,10 +1294,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     qDebug() << "[SKYBOX] skyboxUrl="<< skyboxUrl;
 
-//    _defaultSkyboxTexture = textureCache->getImageTexture(skyboxUrl, NetworkTexture::CUBE_TEXTURE, { { "generateIrradiance", false } });
-//    _defaultSkyboxAmbientTexture = textureCache->getImageTexture(skyboxAmbientUrl, NetworkTexture::CUBE_TEXTURE, { { "generateIrradiance", true } });
-    _defaultSkyboxTexture = textureCache->getBlueTexture();
-    _defaultSkyboxAmbientTexture = textureCache->getBlueTexture();
+    _defaultSkyboxTexture = textureCache->getImageTexture(skyboxUrl, NetworkTexture::CUBE_TEXTURE, { { "generateIrradiance", false } });
+    _defaultSkyboxAmbientTexture = textureCache->getImageTexture(skyboxAmbientUrl, NetworkTexture::CUBE_TEXTURE, { { "generateIrradiance", true } });
+    //_defaultSkyboxTexture = textureCache->getBlueTexture();
+    //_defaultSkyboxAmbientTexture = textureCache->getBlueTexture();
     _defaultSkybox->setCubemap(_defaultSkyboxTexture);
 
     EntityItem::setEntitiesShouldFadeFunction([this]() {
@@ -3523,7 +3523,7 @@ void Application::init() {
         [](){
             qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
             //DependencyManager::get<AddressManager>()->goToEntry();
-            DependencyManager::get<AddressManager>()->handleLookupString("hifi://huawei/1101.79,460.271,-78.4844/0,-0.496747,0,0.867895");
+            DependencyManager::get<AddressManager>()->handleLookupString("hifi://192.168.1.100/1101.79,460.271,-78.4844/0,-0.496747,0,0.867895");
 
         });
     } else {

@@ -18,6 +18,7 @@ using namespace gpu::gl;
 bool GLBackend::isTextureReady(const TexturePointer& texture) {
     // DO not transfer the texture, this call is expected for rendering texture
     GLTexture* object = syncGPUObject(texture, true);
+    qDebug() << "GLBackendTexture isTextureReady syncGPUObject";
     return object && object->isReady();
 }
 
@@ -30,6 +31,7 @@ void GLBackend::do_generateTextureMips(const Batch& batch, size_t paramOffset) {
 
     // DO not transfer the texture, this call is expected for rendering texture
     GLTexture* object = syncGPUObject(resourceTexture, false);
+    qDebug() << "GLBackendTexture do_generateTextureMips syncGPUObject";
     if (!object) {
         return;
     }

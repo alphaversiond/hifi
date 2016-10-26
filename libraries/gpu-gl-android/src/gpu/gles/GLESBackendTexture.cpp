@@ -39,7 +39,8 @@ GLTexture* GLESBackend::syncGPUObject(const TexturePointer& texture, bool transf
 }
 
 GLESTexture::GLESTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GLuint externalId) 
-    : GLTexture(backend, texture, externalId) { 
+    : GLTexture(backend, texture, externalId) {
+    qDebug() << "GLESTexture::GLESTexture texture = " << " externalId " << externalId;
 }
 
 GLESTexture::GLESTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, bool transferrable) 
@@ -47,7 +48,7 @@ GLESTexture::GLESTexture(const std::weak_ptr<GLBackend>& backend, const Texture&
 }
 
 void GLESTexture::generateMips() const {
-    qDebug() << "GLESTexture::generateMips";
+    qDebug() << "GLESTexture::generateMips for target " << _target;
     withPreservedTexture([&] {
         glGenerateMipmap(_target);
     });
@@ -127,6 +128,7 @@ void GLESTexture::transferMip(uint16_t mipLevel, uint8_t face) const {
 }
 
 void GLESTexture::startTransfer() {
+    qDebug() << "GLESTexture::startTransfer() ";
     PROFILE_RANGE(__FUNCTION__);
     Parent::startTransfer();
 

@@ -148,6 +148,7 @@ GLTexture::GLTexture(const std::weak_ptr<GLBackend>& backend, const Texture& tex
     _virtualSize(texture.evalTotalSize()),
     _transferrable(transferrable)
 {
+    qDebug() << "GLTexture::GLTexture building GLTexture with _internalFormat" << _internalFormat;
     auto strongBackend = _backend.lock();
     strongBackend->recycle();
     Backend::incrementTextureGPUCount();
@@ -293,10 +294,12 @@ void GLTexture::initTextureTransferHelper() {
 }
 
 void GLTexture::startTransfer() {
+    qDebug() << "GLTexture::startTransfer";
     createTexture();
 }
 
 void GLTexture::finishTransfer() {
+    qDebug() << "GLTexture::finishTransfer";
     if (_gpuObject.isAutogenerateMips()) {
         generateMips();
     }

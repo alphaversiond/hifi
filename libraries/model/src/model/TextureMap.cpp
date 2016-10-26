@@ -146,7 +146,7 @@ const QImage TextureUsage::process2DImageColor(const QImage& srcImage, bool& val
 
 void TextureUsage::defineColorTexelFormats(gpu::Element& formatGPU, gpu::Element& formatMip, 
 const QImage& image, bool isLinear, bool doCompress) {
-
+qDebug() << "TextureUsage::defineColorTexelFormats formatGPU semantic " << formatGPU.getSemantic() << " dimension " << formatGPU.getDimension() << "  " << formatGPU.getType();
 #ifdef COMPRESS_TEXTURES
 #else
     doCompress = false;
@@ -176,8 +176,8 @@ const QImage& image, bool isLinear, bool doCompress) {
                 qDebug() << "TextureUsage::defineColorTexelFormats gpuSemantic <- SRGBA";
             }
         }
-        qDebug() << "TextureUsage::defineColorTexelFormats formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, gpuSemantic);";
-        qDebug() << "TextureUsage::defineColorTexelFormats formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, mipSemantic);";
+        qDebug() << "TextureUsage::defineColorTexelFormats formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, semantic=" << gpuSemantic << ");";
+        qDebug() << "TextureUsage::defineColorTexelFormats formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, semantic=" << mipSemantic << ");";
 
         formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, gpuSemantic);
         formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, mipSemantic);
