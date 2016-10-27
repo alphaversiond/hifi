@@ -124,9 +124,6 @@ protected:
     gpu::PipelinePointer _simplePipeline;
     gpu::PipelinePointer _presentPipeline;
     gpu::PipelinePointer _cursorPipeline;
-
-    //GLuint _myShaderProgram;
-    GLuint _VAO;
     
     float _compositeOverlayAlpha { 1.0f };
 

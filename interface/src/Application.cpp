@@ -563,10 +563,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _lastFaceTrackerUpdate(0)
 {
 
-
-    qDebug() << "Scripts locations " << defaultScriptsLocation();
-    qDebug() << "Scripts locations 2 " << defaultScriptsLocation().toString();
-    qDebug() << "Scripts locations 3 " << defaultScriptsLocation().toLocalFile();
+#ifdef ANDROID
     QFile scriptsDest(defaultScriptsLocation().toString());
     if (!scriptsDest.exists()) {
         qDebug() << "Copying scripts dir";
@@ -579,6 +576,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         qDebug() << "Copying resources dir";
         copyDirDeep("assets:/resources", PathUtils::resourcesPath());
     }
+#endif
 
 
     PluginContainer* pluginContainer = dynamic_cast<PluginContainer*>(this); // set the container for any plugins that care
@@ -1639,7 +1637,11 @@ void Application::initializeUi() {
     //offscreenUi->setBaseUrl(QUrl(PathUtils::resourcesPath() + "/qml/"));
     // OffscreenUi is a subclass of OffscreenQmlSurface specifically designed to
     // support the window management and scripting proxies for VR use
+#ifndef ANDROID
     offscreenUi->createDesktop(QString("hifi/Desktop.qml"));
+#else
+    offscreenUi->createDesktop(QString("hifi/Android.qml"));
+#endif
     // FIXME either expose so that dialogs can set this themselves or
     // do better detection in the offscreen UI of what has focus
     offscreenUi->setNavigationFocused(false);
@@ -2123,10 +2125,9 @@ void Application::paintGL() {
     auto frame = _gpuContext->endFrame();
     frame->frameIndex = _frameCount;
     frame->framebuffer = finalFramebuffer;
-    frame->framebufferRecycler = [](const gpu::FramebufferPointer& framebuffer){ };
-    /*frame->framebufferRecycler = [](const gpu::FramebufferPointer& framebuffer){
+    frame->framebufferRecycler = [](const gpu::FramebufferPointer& framebuffer){
         DependencyManager::get<FramebufferCache>()->releaseFramebuffer(framebuffer);
-    };*/
+    };
     frame->overlay = _applicationOverlay.getOverlayTexture();
     // deliver final scene rendering commands to the display plugin
     {

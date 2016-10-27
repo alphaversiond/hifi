@@ -77,7 +77,7 @@ void Skybox::prepare(gpu::Batch& batch, int textureSlot, int bufferSlot) const {
         // FIXME: skymap->isDefined may not be threadsafe
         if (skymap && skymap->isDefined()) {
             qDebug() << "[SKYBOX] setResourceTexture";
-            //batch.setResourceTexture(textureSlot, skymap);
+            batch.setResourceTexture(textureSlot, skymap);
         }
     }
 }
