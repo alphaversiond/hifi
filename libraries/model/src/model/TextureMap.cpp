@@ -229,6 +229,7 @@ void generateMips(gpu::Texture* texture, QImage& image, gpu::Element formatMip) 
 }
 
 void generateFaceMips(gpu::Texture* texture, QImage& image, gpu::Element formatMip, uint8 face) {
+    qDebug() << "generateFaceMips image " << image.width() << " x " << image.height();
 #if CPU_MIPMAPS
     auto numMips = texture->evalNumMips();
     for (uint16 level = 1; level < numMips; ++level) {
@@ -765,6 +766,7 @@ const CubeLayout CubeLayout::CUBEMAP_LAYOUTS[] = {
 const int CubeLayout::NUM_CUBEMAP_LAYOUTS = sizeof(CubeLayout::CUBEMAP_LAYOUTS) / sizeof(CubeLayout);
 
 gpu::Texture* TextureUsage::processCubeTextureColorFromImage(const QImage& srcImage, const std::string& srcImageName, bool isLinear, bool doCompress, bool generateMips, bool generateIrradiance) {
+    qDebug() << "TextureUsage::processCubeTextureColorFromImage start " << srcImage.width() << "x" << srcImage.height();
     gpu::Texture* theTexture = nullptr;
     if ((srcImage.width() > 0) && (srcImage.height() > 0)) {
         QImage image = processSourceImage(srcImage, true);
@@ -822,6 +824,7 @@ gpu::Texture* TextureUsage::processCubeTextureColorFromImage(const QImage& srcIm
             }
 
             if (generateMips) {
+                qDebug() << "TextureUsage::processCubeTextureColorFromImage calling generateFaceMips " << f;
                 theTexture->autoGenerateMips(-1);
             }
 

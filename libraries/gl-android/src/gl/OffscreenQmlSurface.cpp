@@ -191,6 +191,7 @@ void OffscreenQmlSurface::render() {
     _renderControl->render();
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     glBindTexture(GL_TEXTURE_2D, texture);
+    qDebug() << "OffscreenQmlSurface::render calling glGenerateMipmap ";
     glGenerateMipmap(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, 0);
 
