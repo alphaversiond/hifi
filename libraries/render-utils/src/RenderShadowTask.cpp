@@ -49,7 +49,6 @@ void RenderShadowMap::run(const render::SceneContextPointer& sceneContext, const
         batch.setStateScissorRect(viewport);
 
         batch.setFramebuffer(fbo);
-        qDebug() << "[clearFramebuffer] RenderShadowMap::run";
         batch.clearFramebuffer(
             gpu::Framebuffer::BUFFER_COLOR0 | gpu::Framebuffer::BUFFER_DEPTH,
             vec4(vec3(1.0, 1.0, 1.0), 0.0), 1.0, 0, true);

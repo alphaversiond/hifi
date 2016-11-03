@@ -34,7 +34,6 @@ void GLESBackend::do_draw(const Batch& batch, size_t paramOffset) {
         _stats._DSNumDrawcalls += 2;
 
     } else {
-        //qDebug() << "GLESBackend::do_draw glDrawArrays " << numVertices;
         glDrawArrays(mode, startVertex, numVertices);
         _stats._DSNumTriangles += numVertices / 3;
         _stats._DSNumDrawcalls++;

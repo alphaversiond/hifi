@@ -1,0 +1,38 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  Draw a 3d cube
+//  Transform the normalized texcoords [0, 1] to be in the range [texcoordRect.xy, texcoordRect.xy + texcoordRect.zw]
+//
+//  Created by Gabriel Calero & Cristian Duarte on 11/1/2016
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include gpu/Transform.slh@>
+
+<$declareStandardTransform()$>
+
+in vec3 inPosition;
+in vec3 inColor;
+
+uniform vec4 texcoordRect;
+
+out vec2 varTexCoord0;
+out vec3 vertexColor;
+
+
+void main(void) {
+    vec4 pos = vec4(inPosition, 1.0);
+
+    // standard transform
+    TransformCamera cam = getTransformCamera();
+    TransformObject obj = getTransformObject();
+    <$transformModelToClipPos(cam, obj, pos, gl_Position)$>
+
+    vertexColor=inColor;
+    varTexCoord0 = ((pos.xy + 1.0) * 0.5) * texcoordRect.zw + texcoordRect.xy;
+}

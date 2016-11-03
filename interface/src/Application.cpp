@@ -159,6 +159,9 @@
 #include <GPUIdent.h>
 #include <gl/GLHelpers.h>
 
+#include <gpu/Cube_vert.h>
+#include <gpu/Cube_frag.h>
+
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
 #if defined(Q_OS_WIN)
@@ -167,7 +170,7 @@ extern "C" {
 }
 #endif
 
-
+/*
 const GLchar* vertexShaderSource = 
     "layout (location = 0) in vec3 position;\n"
     "layout (location = 1) in vec3 color;\n"    
@@ -196,7 +199,7 @@ const GLchar* fragmentShaderSource =
     "uniform sampler2D colorMap;\n"
     "void main() { color = texture(colorMap, varTexCoord0); }\n\0";
 
-
+*/
 
 
 using namespace std;
@@ -2013,8 +2016,8 @@ void Application::paintGL() {
         std::call_once(once, [&] {
             {
                 qDebug() << "Building Cube shader program";
-                auto cubeVS = gpu::Shader::createVertex(std::string(vertexShaderSource));
-                auto cubeFS = gpu::Shader::createPixel(std::string(fragmentShaderSource));
+                auto cubeVS = gpu::Shader::createVertex(std::string(Cube_vert));
+                auto cubeFS = gpu::Shader::createPixel(std::string(Cube_frag));
                 auto cubeShader = gpu::Shader::createProgram(cubeVS, cubeFS);
 
                 gpu::Shader::BindingSet bindings;
@@ -2098,7 +2101,9 @@ void Application::paintGL() {
 
                 vec2 mouseSize = vec2(200.0f, 200.0f);
                 //glm::mat4 cursorTransform = glm::scale(glm::translate(glm::rotate(glm::mat4(), glm::radians(numFrame*1.0f), vec3(0.5f,0.5f,0.5f)), vec3(mousePosition, numFrame % 1000 * 1.0f)), vec3(mouseSize, 1.0f));
-                glm::mat4 cursorTransform = glm::rotate(glm::mat4(), glm::radians(numFrame*1.0f), vec3(0.5f,0.5f,0.5f));
+                glm::mat4 modelTransform;
+                modelTransform = glm::translate(modelTransform, vec3(0.0, 0.0, -4.0f));
+                modelTransform = glm::rotate(modelTransform, glm::radians(numFrame*1.0f), vec3(0.5f,0.5f,0.5f));
 
                 //float dmin = std::min(canvasSize.x, canvasSize.y);
                 //vec2 cubeSize = vec2(dmin/3, dmin/3);
@@ -2108,9 +2113,10 @@ void Application::paintGL() {
 
         gpu::Batch batch;
 
-        batch.enableStereo(false);
-        // glm::mat4 proj = glm::perspective(45.0f, (float)width/(float)height, 0.1f, 100.0f);
-        batch.setProjectionTransform(mat4());
+        batch.enableStereo(true);
+        glm::mat4 projMat;
+        _displayViewFrustum.evalProjectionMatrix(projMat);
+        batch.setProjectionTransform(projMat);
         batch.setFramebuffer(finalFramebuffer);
         if (!thePipeline) {
             qDebug() << "Application::paintGL Setting a null pipeline";
@@ -2120,7 +2126,7 @@ void Application::paintGL() {
         batch.setInputBuffer(0, vertices._buffer, 0, sizeof(GLfloat) * 8);
         batch.setResourceTexture(0, statusIconMap);
         batch.resetViewTransform();
-        batch.setModelTransform(cursorTransform);
+        batch.setModelTransform(modelTransform);
         batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLORS | gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(0.0, 0.5, 0.0, 1.0), 1.0f, 0, true);
         batch.draw(gpu::TRIANGLES, 36); // 36
         renderArgs._context->appendFrameBatch(batch);
@@ -5746,9 +5752,12 @@ void Application::updateDisplayMode() {
     DisplayPluginPointer newDisplayPlugin = displayPlugins.at(0);
     foreach(DisplayPluginPointer displayPlugin, PluginManager::getInstance()->getDisplayPlugins()) {
         QString name = displayPlugin->getName();
+        qDebug() << "[DISPLAY-PLUGIN-MENU] detected " << name;
         QAction* action = menu->getActionForOption(name);
         // Menu might have been removed if the display plugin lost
         if (!action) {
+            qDebug() << "[DISPLAY-PLUGIN-MENU] no action for plugin " << name;
+
             continue;
         }
         if (action->isChecked()) {

@@ -186,12 +186,11 @@ void OffscreenQmlSurface::render() {
     GLuint texture = _textures.getNextTexture();
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _fbo);
     qDebug() << "TODO: OffscreenQmlSurface.cpp OffscreenQmlSurface::render glFramebufferTexture";
-    glFramebufferTextureEXT(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture, 0);
+    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
     PROFILE_RANGE("qml_render->rendercontrol")
     _renderControl->render();
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     glBindTexture(GL_TEXTURE_2D, texture);
-    qDebug() << "OffscreenQmlSurface::render calling glGenerateMipmap ";
     glGenerateMipmap(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, 0);
 
