@@ -26,6 +26,7 @@
 #include <PointerEvent.h>
 
 #include "PolyVoxEntityItem.h"
+#include "LeoPolyEntityItem.h"
 #include "LineEntityItem.h"
 #include "PolyLineEntityItem.h"
 #include "EntityTree.h"

@@ -535,6 +535,10 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TEXTURES, textures);
     }
 
+    if (_type == EntityTypes::LeoPoly) {
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LEOPOLY_URL, leoPolyURL);
+    }
+
     // Sitting properties support
     if (!skipDefaults) {
         QScriptValue sittingPoints = engine->newObject();
@@ -1337,6 +1341,10 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, properties.getCollisionSoundURL());
             APPEND_ENTITY_PROPERTY(PROP_ACTION_DATA, properties.getActionData());
             APPEND_ENTITY_PROPERTY(PROP_ALPHA, properties.getAlpha());
+
+            if (properties.getType() == EntityTypes::LeoPoly) {
+                APPEND_ENTITY_PROPERTY(PROP_LEOPOLY_URL, properties.getLeoPolyURL());
+            }
         }
 
         if (propertyCount > 0) {
@@ -1622,7 +1630,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
 
     // NOTE: Spheres and Boxes are just special cases of Shape, and they need to include their PROP_SHAPE
     // when encoding/decoding edits because otherwise they can't polymorph to other shape types
-    if (properties.getType() == EntityTypes::Shape || 
+    if (properties.getType() == EntityTypes::Shape ||
         properties.getType() == EntityTypes::Box ||
         properties.getType() == EntityTypes::Sphere) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE, QString, setShape);
@@ -1633,6 +1641,10 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISION_SOUND_URL, QString, setCollisionSoundURL);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ACTION_DATA, QByteArray, setActionData);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA, float, setAlpha);
+
+    if (properties.getType() == EntityTypes::LeoPoly) {
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LEOPOLY_URL, QString, setLeoPolyURL);
+    }
 
     return valid;
 }
