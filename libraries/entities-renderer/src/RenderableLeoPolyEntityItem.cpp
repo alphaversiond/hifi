@@ -39,6 +39,8 @@
 #include "EntityEditPacketSender.h"
 #include "PhysicalEntitySimulation.h"
 
+#include <Plugin.h>
+
 gpu::PipelinePointer RenderableLeoPolyEntityItem::_pipeline = nullptr;
 
 
@@ -104,6 +106,8 @@ void RenderableLeoPolyEntityItem::render(RenderArgs* args) {
     if (success) {
         batch.setModelTransform(shapeTransform); // we want to include the scale as well
         DependencyManager::get<GeometryCache>()->renderWireCubeInstance(batch, greenColor);
+    } else {
+        qDebug() << "NO";
     }
 }
 
