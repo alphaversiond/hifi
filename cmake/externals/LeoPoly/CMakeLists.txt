@@ -9,8 +9,8 @@ if (WIN32)
 
   ExternalProject_Add(
         ${EXTERNAL_NAME}
-        URL https://s3.amazonaws.com/hifi-public/dependencies/LeoPolySDK.zip
-        URL_MD5 193cfb1437e764016f63d35f3f42eb51
+        URL https://s3.amazonaws.com/hifi-public/dependencies/LeoPolySDK-1.zip
+        URL_MD5 89636be3607f04fec68e0a962eb1038d
         CONFIGURE_COMMAND ""
         BUILD_COMMAND ""
         INSTALL_COMMAND ""
@@ -29,8 +29,8 @@ else () # Linux
 
   ExternalProject_Add(
         ${EXTERNAL_NAME}
-        URL https://s3.amazonaws.com/hifi-public/dependencies/LeoPolySDK.zip
-        URL_MD5 193cfb1437e764016f63d35f3f42eb51
+        URL https://s3.amazonaws.com/hifi-public/dependencies/LeoPolySDK-1.zip
+        URL_MD5 89636be3607f04fec68e0a962eb1038d
         CONFIGURE_COMMAND ""
         BUILD_COMMAND ""
         INSTALL_COMMAND ""
