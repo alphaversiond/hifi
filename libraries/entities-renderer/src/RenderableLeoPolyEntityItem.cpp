@@ -99,16 +99,62 @@ void RenderableLeoPolyEntityItem::render(RenderArgs* args) {
     assert(getType() == EntityTypes::LeoPoly);
     Q_ASSERT(args->_batch);
 
-    static glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
-    gpu::Batch& batch = *args->_batch;
-    bool success;
-    auto shapeTransform = getTransformToCenter(success);
-    if (success) {
-        batch.setModelTransform(shapeTransform); // we want to include the scale as well
-        DependencyManager::get<GeometryCache>()->renderWireCubeInstance(batch, greenColor);
-    } else {
-        qDebug() << "NO";
+    if (_leoPolyDataDirty) {
+        getMesh();
     }
+
+    model::MeshPointer mesh;
+    withReadLock([&] {
+        mesh = _mesh;
+    });
+
+    if (!_pipeline) {
+        gpu::ShaderPointer vertexShader = gpu::Shader::createVertex(std::string(polyvox_vert));
+        gpu::ShaderPointer pixelShader = gpu::Shader::createPixel(std::string(polyvox_frag));
+
+        gpu::Shader::BindingSet slotBindings;
+        slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), MATERIAL_GPU_SLOT));
+        slotBindings.insert(gpu::Shader::Binding(std::string("xMap"), 0));
+        slotBindings.insert(gpu::Shader::Binding(std::string("yMap"), 1));
+        slotBindings.insert(gpu::Shader::Binding(std::string("zMap"), 2));
+
+        gpu::ShaderPointer program = gpu::Shader::createProgram(vertexShader, pixelShader);
+        gpu::Shader::makeProgram(*program, slotBindings);
+
+        auto state = std::make_shared<gpu::State>();
+        state->setCullMode(gpu::State::CULL_BACK);
+        state->setDepthTest(true, true, gpu::LESS_EQUAL);
+
+        _pipeline = gpu::Pipeline::create(program, state);
+    }
+
+    gpu::Batch& batch = *args->_batch;
+    batch.setPipeline(_pipeline);
+
+    bool success;
+    Transform transform = getTransformToCenter(success);
+    if (!success) {
+        return;
+    }
+
+    batch.setModelTransform(transform);
+    batch.setInputFormat(mesh->getVertexFormat());
+    batch.setInputBuffer(gpu::Stream::POSITION, mesh->getVertexBuffer());
+    batch.setInputBuffer(gpu::Stream::NORMAL,
+                         mesh->getVertexBuffer()._buffer,
+                         sizeof(float) * 3,
+                         mesh->getVertexBuffer()._stride);
+    batch.setIndexBuffer(gpu::UINT32, mesh->getIndexBuffer()._buffer, 0);
+
+    batch.setResourceTexture(0, DependencyManager::get<TextureCache>()->getWhiteTexture());
+    batch.setResourceTexture(1, DependencyManager::get<TextureCache>()->getWhiteTexture());
+    batch.setResourceTexture(2, DependencyManager::get<TextureCache>()->getWhiteTexture());
+
+    int voxelVolumeSizeLocation = _pipeline->getProgram()->getUniforms().findLocation("voxelVolumeSize");
+    // batch._glUniform3f(voxelVolumeSizeLocation, voxelVolumeSize.x, voxelVolumeSize.y, voxelVolumeSize.z);
+    batch._glUniform3f(voxelVolumeSizeLocation, 16.0, 16.0, 16.0);
+
+    batch.drawIndexed(gpu::TRIANGLES, (gpu::uint32)mesh->getNumIndices(), 0);
 }
 
 bool RenderableLeoPolyEntityItem::addToScene(EntityItemPointer self,
@@ -159,4 +205,66 @@ namespace render {
             payload->_owner->render(args);
         }
     }
+}
+
+void RenderableLeoPolyEntityItem::getMesh() {
+    //delete _mesh.get();
+    EntityItemID entityUnderSculptID;
+    if (LeoPolyPlugin::Instance().CurrentlyUnderEdit.data1 != 0)
+    {
+        entityUnderSculptID.data1 = LeoPolyPlugin::Instance().CurrentlyUnderEdit.data1;
+        entityUnderSculptID.data2 = LeoPolyPlugin::Instance().CurrentlyUnderEdit.data2;
+        entityUnderSculptID.data3 = LeoPolyPlugin::Instance().CurrentlyUnderEdit.data3;
+        for (int i = 0; i < 8; i++)
+            entityUnderSculptID.data4[i] = LeoPolyPlugin::Instance().CurrentlyUnderEdit.data4[i];
+    }
+    if (getEntityItemID() == entityUnderSculptID) {
+        _leoPolyDataDirty = false;
+        return;
+    }
+
+    auto entity = std::static_pointer_cast<RenderableLeoPolyEntityItem>(getThisPointer());
+    entity->withReadLock([&] {
+
+        QtConcurrent::run([entity] {
+            model::MeshPointer mesh(new model::Mesh());
+
+            // ...
+
+            // auto indexBuffer = std::make_shared<gpu::Buffer>(vecIndices.size() * sizeof(uint32_t),
+            //                                                  (gpu::Byte*)vecIndices.data());
+            // auto indexBufferPtr = gpu::BufferPointer(indexBuffer);
+            // auto indexBufferView = new gpu::BufferView(indexBufferPtr, gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::RAW));
+            // mesh->setIndexBuffer(*indexBufferView);
+
+            // auto vertexBuffer = std::make_shared<gpu::Buffer>(verticesNormalsMaterials.size() *
+            //                                                   sizeof(LeoPoly::PositionMaterialNormal),
+            //                                                   (gpu::Byte*)verticesNormalsMaterials.data());
+            // auto vertexBufferPtr = gpu::BufferPointer(vertexBuffer);
+            // gpu::Resource::Size vertexBufferSize = 0;
+            // if (vertexBufferPtr->getSize() > sizeof(float) * 3) {
+            //     vertexBufferSize = vertexBufferPtr->getSize() - sizeof(float) * 3;
+            // }
+            // auto vertexBufferView = new gpu::BufferView(vertexBufferPtr, 0, vertexBufferSize,
+            //                                             sizeof(LeoPoly::PositionMaterialNormal),
+            //                                             gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW));
+            // mesh->setVertexBuffer(*vertexBufferView);
+            // mesh->addAttribute(gpu::Stream::NORMAL,
+            //                    gpu::BufferView(vertexBufferPtr,
+            //                                    sizeof(float) * 3,
+            //                                    vertexBufferPtr->getSize() - sizeof(float) * 3,
+            //                                    sizeof(LeoPoly::PositionMaterialNormal),
+            //                                    gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW)));
+
+            entity->setMesh(mesh);
+        });
+    });
+}
+
+
+void RenderableLeoPolyEntityItem::setMesh(model::MeshPointer mesh) {
+    // this catches the payload from getMesh
+    withWriteLock([&] {
+        _mesh = mesh;
+    });
 }

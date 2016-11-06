@@ -76,10 +76,16 @@ public:
 
     bool isTransparent() override { return false; }
 
+    void getMesh();
+    void setMesh(model::MeshPointer mesh);
+
 private:
     const int MATERIAL_GPU_SLOT = 3;
     render::ItemID _myItem{ render::Item::INVALID_ITEM_ID };
     static gpu::PipelinePointer _pipeline;
+
+    model::MeshPointer _mesh;
+    std::atomic<bool> _leoPolyDataDirty{ true };
 
     ShapeInfo _shapeInfo;
 };
