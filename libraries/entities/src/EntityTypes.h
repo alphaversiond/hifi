@@ -50,7 +50,7 @@ public:
         PolyLine,
         Shape,
         LeoPoly,
-        LAST = Shape
+        LAST = LeoPoly
     } EntityType;
 
     static const QString& getEntityTypeName(EntityType entityType);
