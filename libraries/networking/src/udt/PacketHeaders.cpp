@@ -47,7 +47,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityAdd:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
-            return VERSION_ENTITIES_ARROW_ACTION;
+            return VERSION_ENTITIES_LEOPOLY;
         case PacketType::AvatarIdentity:
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:

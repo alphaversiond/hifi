@@ -38,6 +38,7 @@
 #include "LineEntityItem.h"
 #include "ParticleEffectEntityItem.h"
 #include "PolyVoxEntityItem.h"
+#include "LeoPolyEntityItem.h"
 #include "SimulationOwner.h"
 #include "SkyboxPropertyGroup.h"
 #include "StagePropertyGroup.h"
@@ -62,6 +63,7 @@ class EntityItemProperties {
     friend class WebEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class LineEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class PolyVoxEntityItem; // TODO: consider removing this friend relationship and use public methods
+    friend class LeoPolyEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class PolyLineEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class ShapeEntityItem; // TODO: consider removing this friend relationship and use public methods
 public:
@@ -217,6 +219,8 @@ public:
     DEFINE_PROPERTY_REF(PROP_OWNING_AVATAR_ID, OwningAvatarID, owningAvatarID, QUuid, UNKNOWN_ENTITY_ID);
 
     DEFINE_PROPERTY_REF(PROP_DPI, DPI, dpi, uint16_t, ENTITY_ITEM_DEFAULT_DPI);
+
+    DEFINE_PROPERTY_REF(PROP_LEOPOLY_URL, LeoPolyURL, leoPolyURL, QString, LeoPolyEntityItem::DEFAULT_LEOPOLY_URL);
 
     static QString getBackgroundModeString(BackgroundMode mode);
 

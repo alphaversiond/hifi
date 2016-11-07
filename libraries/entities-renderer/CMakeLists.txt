@@ -5,8 +5,8 @@ link_hifi_libraries(shared gpu procedural model model-networking script-engine r
 
 target_bullet()
 
-add_dependency_external_projects(polyvox)
+add_dependency_external_projects(polyvox LeoPoly)
 find_package(PolyVox REQUIRED)
-target_include_directories(${TARGET_NAME} SYSTEM PUBLIC ${POLYVOX_INCLUDE_DIRS})
-target_link_libraries(${TARGET_NAME} ${POLYVOX_LIBRARIES})
-
+find_package(LeoPoly REQUIRED)
+target_include_directories(${TARGET_NAME} SYSTEM PUBLIC ${POLYVOX_INCLUDE_DIRS} ${LEOPOLY_INCLUDE_DIRS})
+target_link_libraries(${TARGET_NAME} ${POLYVOX_LIBRARIES} ${LEOPOLY_LIBRARIES})
