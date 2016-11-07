@@ -94,6 +94,13 @@ void RenderableLeoPolyEntityItem::computeShapeInfo(ShapeInfo& info) {
     adjustShapeInfoByRegistration(info);
 }
 
+void RenderableLeoPolyEntityItem::update(const quint64& now) {
+    LeoPolyEntityItem::update(now);
+
+    // TODO - place any "simulation" logic here
+}
+
+
 void RenderableLeoPolyEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableLeoPolyEntityItem::render");
     assert(getType() == EntityTypes::LeoPoly);
