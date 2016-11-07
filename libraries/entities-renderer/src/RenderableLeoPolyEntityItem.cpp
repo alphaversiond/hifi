@@ -98,6 +98,9 @@ void RenderableLeoPolyEntityItem::update(const quint64& now) {
     LeoPolyEntityItem::update(now);
 
     // TODO - place any "simulation" logic here
+    // for example if SculptApp_Frame() needs to be called every frame, this is how it should be done
+
+    //LeoPolyPlugin::Instance().SculptApp_Frame();  // maybe?
 }
 
 
@@ -215,8 +218,9 @@ namespace render {
 }
 
 void RenderableLeoPolyEntityItem::getMesh() {
-    //delete _mesh.get();
     EntityItemID entityUnderSculptID;
+
+    // this appears to be storing the entity item ID in the leopoly plugin, is that true?
     if (LeoPolyPlugin::Instance().CurrentlyUnderEdit.data1 != 0)
     {
         entityUnderSculptID.data1 = LeoPolyPlugin::Instance().CurrentlyUnderEdit.data1;
@@ -225,6 +229,7 @@ void RenderableLeoPolyEntityItem::getMesh() {
         for (int i = 0; i < 8; i++)
             entityUnderSculptID.data4[i] = LeoPolyPlugin::Instance().CurrentlyUnderEdit.data4[i];
     }
+
     if (getEntityItemID() == entityUnderSculptID) {
         _leoPolyDataDirty = false;
         return;
