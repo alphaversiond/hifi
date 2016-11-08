@@ -189,16 +189,17 @@ void RenderableLeoPolyEntityItem::render(RenderArgs* args) {
         return;
     }
 
-    //qDebug() << __FUNCTION__ << "transform.getScale():" << transform.getScale();
+    // get the bounds of the mesh, so we can scale it into the bounds of the entity
     auto numMeshParts = mesh->getNumParts();
     auto bounds = mesh->evalPartsBound(0, (numMeshParts-1));
 
+    // determin the correct scale to fit mesh into entity bounds, set transform accordingly
     auto entityScale = getScale();
     auto meshBoundsScale = bounds.getScale();
     auto fitInBounds = entityScale / meshBoundsScale;
-
     transform.setScale(fitInBounds);
 
+    // TODO - need to set registration point as well....
 
     batch.setModelTransform(transform);
     batch.setInputFormat(mesh->getVertexFormat());
