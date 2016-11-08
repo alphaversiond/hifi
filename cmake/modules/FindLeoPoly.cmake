@@ -14,7 +14,7 @@
 # LEOPOLY_LIBRARIES           - List of LeoPoly libraries
 
 include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
-hifi_library_search_hints("SculptAppDLL")
+hifi_library_search_hints("LeoPoly")
 
 if (WIN32)
     find_path(LEOPOLY_INCLUDE_DIRS Plugin.h HINTS ${LEOPOLY_SEARCH_DIRS})
