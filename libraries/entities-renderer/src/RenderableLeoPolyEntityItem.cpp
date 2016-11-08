@@ -189,6 +189,17 @@ void RenderableLeoPolyEntityItem::render(RenderArgs* args) {
         return;
     }
 
+    //qDebug() << __FUNCTION__ << "transform.getScale():" << transform.getScale();
+    auto numMeshParts = mesh->getNumParts();
+    auto bounds = mesh->evalPartsBound(0, (numMeshParts-1));
+
+    auto entityScale = getScale();
+    auto meshBoundsScale = bounds.getScale();
+    auto fitInBounds = entityScale / meshBoundsScale;
+
+    transform.setScale(fitInBounds);
+
+
     batch.setModelTransform(transform);
     batch.setInputFormat(mesh->getVertexFormat());
     batch.setInputBuffer(gpu::Stream::POSITION, mesh->getVertexBuffer());
@@ -302,22 +313,9 @@ void RenderableLeoPolyEntityItem::getMesh() {
         model::MeshPointer emptyMesh(new model::Mesh()); // an empty mesh....
     } else {
         // FIXME- this is a bit of a hack to work around const-ness
-        model::MeshPointer copyOfMesh(new model::Mesh(*meshes[0])); // 
+        model::MeshPointer copyOfMesh(new model::Mesh(*meshes[0]));
         setMesh(copyOfMesh);
     }
-
-    /*
-    auto entity = std::static_pointer_cast<RenderableLeoPolyEntityItem>(getThisPointer());
-    entity->withReadLock([&] {
-
-        QtConcurrent::run([entity] {
-            model::MeshPointer mesh(new model::Mesh());
-
-            // FIXME -- this was the old approach to loading and parsing the file
-            entity->setMesh(mesh);
-        });
-    });
-    */
 }
 
 
@@ -508,8 +506,6 @@ void RenderableLeoPolyEntityItem::updateGeometryFromLeoPlugin() {
     normals = new float[numNormals * 3];
     indices = new int[numIndices];
     LeoPolyPlugin::Instance().getRawSculptMeshData(vertices, indices, normals);
-
-
 
     // Create a model::Mesh from the flattened mesh from LeoPoly
     model::MeshPointer mesh(new model::Mesh());
