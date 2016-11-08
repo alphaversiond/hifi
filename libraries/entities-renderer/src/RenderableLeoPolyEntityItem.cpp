@@ -55,7 +55,6 @@ gpu::PipelinePointer RenderableLeoPolyEntityItem::_pipeline = nullptr;
 
 
 EntityItemPointer RenderableLeoPolyEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    qDebug() << __FUNCTION__ << "entityID:" << entityID;
     EntityItemPointer entity { new RenderableLeoPolyEntityItem(entityID) };
     entity->setProperties(properties);
     return entity;
@@ -64,11 +63,9 @@ EntityItemPointer RenderableLeoPolyEntityItem::factory(const EntityItemID& entit
 RenderableLeoPolyEntityItem::RenderableLeoPolyEntityItem(const EntityItemID& entityItemID) :
     LeoPolyEntityItem(entityItemID)
 {
-    qDebug() << __FUNCTION__ << "entityID:" << entityItemID;
 }
 
 RenderableLeoPolyEntityItem::~RenderableLeoPolyEntityItem() {
-    qDebug() << __FUNCTION__ << "entityID:" << _id;
 }
 
 bool RenderableLeoPolyEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
@@ -122,11 +119,14 @@ void RenderableLeoPolyEntityItem::update(const quint64& now) {
 
 EntityItemID RenderableLeoPolyEntityItem::getCurrentlyEditingEntityID() {
     EntityItemID entityUnderSculptID;
-    entityUnderSculptID.data1 = LeoPolyPlugin::Instance().CurrentlyUnderEdit.data1;
-    entityUnderSculptID.data2 = LeoPolyPlugin::Instance().CurrentlyUnderEdit.data2;
-    entityUnderSculptID.data3 = LeoPolyPlugin::Instance().CurrentlyUnderEdit.data3;
-    for (int i = 0; i < 8; i++) {
-        entityUnderSculptID.data4[i] = LeoPolyPlugin::Instance().CurrentlyUnderEdit.data4[i];
+
+    if (LeoPolyPlugin::Instance().CurrentlyUnderEdit.data1 != 0) {
+        entityUnderSculptID.data1 = LeoPolyPlugin::Instance().CurrentlyUnderEdit.data1;
+        entityUnderSculptID.data2 = LeoPolyPlugin::Instance().CurrentlyUnderEdit.data2;
+        entityUnderSculptID.data3 = LeoPolyPlugin::Instance().CurrentlyUnderEdit.data3;
+        for (int i = 0; i < 8; i++) {
+            entityUnderSculptID.data4[i] = LeoPolyPlugin::Instance().CurrentlyUnderEdit.data4[i];
+        }
     }
     return entityUnderSculptID;
 }
@@ -152,30 +152,32 @@ void RenderableLeoPolyEntityItem::createShaderPipeline() {
 }
 
 void RenderableLeoPolyEntityItem::render(RenderArgs* args) {
-    qDebug() << __FUNCTION__ << "calling getGeometryResource() url:" << _leoPolyURL;
-
     PerformanceTimer perfTimer("RenderableLeoPolyEntityItem::render");
     assert(getType() == EntityTypes::LeoPoly);
     Q_ASSERT(args->_batch);
 
     // if we don't have a _modelResource yet, then we can't render...
     if (!_modelResource) {
-        qDebug() << __FUNCTION__ << "line:" << __LINE__ << "calling initializeModelResource()";
         initializeModelResource();
         return;
     }
 
     // FIXME - this is janky... 
+    if (!_mesh) {
+        getMesh();
+    }
+
     model::MeshPointer mesh;
     withReadLock([&] {
-        if (!_mesh) {
-            getMesh();
-        }
         mesh = _mesh;
     });
 
     if (!_pipeline) {
         createShaderPipeline();
+    }
+
+    if (!mesh) {
+        return;
     }
 
     gpu::Batch& batch = *args->_batch;
@@ -187,7 +189,17 @@ void RenderableLeoPolyEntityItem::render(RenderArgs* args) {
         return;
     }
 
-    qDebug() << __FUNCTION__ << "about to render some mesh stuff.... num indices:" << mesh->getNumIndices();
+    // get the bounds of the mesh, so we can scale it into the bounds of the entity
+    auto numMeshParts = mesh->getNumParts();
+    auto bounds = mesh->evalPartsBound(0, (numMeshParts-1));
+
+    // determin the correct scale to fit mesh into entity bounds, set transform accordingly
+    auto entityScale = getScale();
+    auto meshBoundsScale = bounds.getScale();
+    auto fitInBounds = entityScale / meshBoundsScale;
+    transform.setScale(fitInBounds);
+
+    // TODO - need to set registration point as well....
 
     batch.setModelTransform(transform);
     batch.setInputFormat(mesh->getVertexFormat());
@@ -215,8 +227,6 @@ bool RenderableLeoPolyEntityItem::addToScene(EntityItemPointer self,
 
     _myItem = scene->allocateID();
 
-    qDebug() << __FUNCTION__ << "_myItem:" << _myItem;
-
     auto renderItem = std::make_shared<LeoPolyPayload>(getThisPointer());
     auto renderData = LeoPolyPayload::Pointer(renderItem);
     auto renderPayload = std::make_shared<LeoPolyPayload::Payload>(renderData);
@@ -233,8 +243,6 @@ bool RenderableLeoPolyEntityItem::addToScene(EntityItemPointer self,
 void RenderableLeoPolyEntityItem::removeFromScene(EntityItemPointer self,
                                                   std::shared_ptr<render::Scene> scene,
                                                   render::PendingChanges& pendingChanges) {
-    qDebug() << __FUNCTION__ << "_myItem:" << _myItem;
-
     pendingChanges.removeItem(_myItem);
     render::Item::clearID(_myItem);
 }
@@ -258,9 +266,7 @@ namespace render {
     }
 
     template <> void payloadRender(const LeoPolyPayload::Pointer& payload, RenderArgs* args) {
-        qDebug() << __FUNCTION__;
         if (args && payload && payload->_owner) {
-            qDebug() << __FUNCTION__ << "about to call _ownder->render()";
             payload->_owner->render(args);
         }
     }
@@ -268,8 +274,6 @@ namespace render {
 
 
 void RenderableLeoPolyEntityItem::initializeModelResource() {
-    qDebug() << __FUNCTION__ << "calling getGeometryResource() url:" << _leoPolyURL;
-
     // FIXME -- some open questions....
     //   1) what do we do if someone changes the URL while under edit?
     //   2) how do we managed the previous mesh resources associated with the old GeometryResource
@@ -282,8 +286,6 @@ void RenderableLeoPolyEntityItem::initializeModelResource() {
 }
 
 void RenderableLeoPolyEntityItem::getMesh() {
-
-
     EntityItemID entityUnderSculptID = getCurrentlyEditingEntityID();
 
     // FIXME -- this seems wrong, but It think I'm begining to understand it.
@@ -312,22 +314,9 @@ void RenderableLeoPolyEntityItem::getMesh() {
         model::MeshPointer emptyMesh(new model::Mesh()); // an empty mesh....
     } else {
         // FIXME- this is a bit of a hack to work around const-ness
-        model::MeshPointer copyOfMesh(new model::Mesh(*meshes[0])); // 
+        model::MeshPointer copyOfMesh(new model::Mesh(*meshes[0]));
         setMesh(copyOfMesh);
     }
-
-    /*
-    auto entity = std::static_pointer_cast<RenderableLeoPolyEntityItem>(getThisPointer());
-    entity->withReadLock([&] {
-
-        QtConcurrent::run([entity] {
-            model::MeshPointer mesh(new model::Mesh());
-
-            // FIXME -- this was the old approach to loading and parsing the file
-            entity->setMesh(mesh);
-        });
-    });
-    */
 }
 
 
@@ -518,8 +507,6 @@ void RenderableLeoPolyEntityItem::updateGeometryFromLeoPlugin() {
     normals = new float[numNormals * 3];
     indices = new int[numIndices];
     LeoPolyPlugin::Instance().getRawSculptMeshData(vertices, indices, normals);
-
-
 
     // Create a model::Mesh from the flattened mesh from LeoPoly
     model::MeshPointer mesh(new model::Mesh());
