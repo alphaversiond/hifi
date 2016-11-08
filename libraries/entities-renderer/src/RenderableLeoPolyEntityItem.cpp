@@ -190,16 +190,20 @@ void RenderableLeoPolyEntityItem::render(RenderArgs* args) {
     }
 
     // get the bounds of the mesh, so we can scale it into the bounds of the entity
-    auto numMeshParts = mesh->getNumParts();
-    auto bounds = mesh->evalPartsBound(0, (numMeshParts-1));
+    int numMeshParts = (int)mesh->getNumParts();
+    auto meshBounds = mesh->evalPartsBound(0, (numMeshParts-1));
 
-    // determin the correct scale to fit mesh into entity bounds, set transform accordingly
+    // determine the correct scale to fit mesh into entity bounds, set transform accordingly
     auto entityScale = getScale();
-    auto meshBoundsScale = bounds.getScale();
+    auto meshBoundsScale = meshBounds.getScale();
     auto fitInBounds = entityScale / meshBoundsScale;
     transform.setScale(fitInBounds);
 
-    // TODO - need to set registration point as well....
+    // make sure the registration point on the model aligns with the registration point in the entity. 
+    auto registrationPoint = getRegistrationPoint(); // vec3(0) to vec3(1) for the entity space
+    auto lowestBounds = meshBounds.getMinimum();
+    glm::vec3 adjustLowestBounds = ((registrationPoint * meshBoundsScale) + lowestBounds) * -1.0f;
+    transform.postTranslate(adjustLowestBounds);
 
     batch.setModelTransform(transform);
     batch.setInputFormat(mesh->getVertexFormat());
@@ -501,7 +505,9 @@ void RenderableLeoPolyEntityItem::updateGeometryFromLeoPlugin() {
     // get the vertices, normals, and indices from LeoPoly
     float* vertices, *normals;
     int *indices;
-    unsigned int numVertices, numNormals, numIndices;
+    unsigned int numVertices = 0;
+    unsigned int numNormals = 0;
+    unsigned int numIndices = 0;
     LeoPolyPlugin::Instance().getSculptMeshNUmberDatas(numVertices, numIndices, numNormals);
     vertices = new float[numVertices * 3];
     normals = new float[numNormals * 3];
