@@ -541,6 +541,7 @@ void OpenGLDisplayPlugin::compositeOverlay() {
 }
 
 void OpenGLDisplayPlugin::compositePointer() {
+    qDebug() << "OpenGLDisplayPlugin internalPresent";
     auto& cursorManager = Cursor::Manager::instance();
     const auto& cursorData = _cursorsData[cursorManager.getCursor()->getIcon()];
     auto cursorTransform = DependencyManager::get<CompositorHelper>()->getReticleTransform(glm::mat4());
@@ -565,6 +566,7 @@ void OpenGLDisplayPlugin::compositePointer() {
 }
 
 void OpenGLDisplayPlugin::compositeScene() {
+    qDebug() << "OpenGLDisplayPlugin compositeScene";
     render([&](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.setFramebuffer(_compositeFramebuffer);
@@ -606,6 +608,7 @@ void OpenGLDisplayPlugin::compositeLayers() {
 }
 
 void OpenGLDisplayPlugin::internalPresent() {
+    qDebug() << "OpenGLDisplayPlugin internalPresent";
 
     render([&](gpu::Batch& batch) {
         batch.enableStereo(false);

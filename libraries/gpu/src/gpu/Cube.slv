@@ -17,12 +17,11 @@
 <$declareStandardTransform()$>
 
 in vec3 inPosition;
-in vec3 inColor;
+in vec3 inTexcoord;
 
 uniform vec4 texcoordRect;
 
 out vec2 varTexCoord0;
-out vec3 vertexColor;
 
 
 void main(void) {
@@ -33,6 +32,5 @@ void main(void) {
     TransformObject obj = getTransformObject();
     <$transformModelToClipPos(cam, obj, pos, gl_Position)$>
 
-    vertexColor=inColor;
-    varTexCoord0 = ((pos.xy + 1.0) * 0.5) * texcoordRect.zw + texcoordRect.xy;
+    varTexCoord0 = inTexcoord.xy;
 }

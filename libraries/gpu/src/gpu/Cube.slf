@@ -15,7 +15,6 @@
 uniform sampler2D colorMap;
 
 in vec2 varTexCoord0;
-int vec3 vertexColor;
 out vec4 outFragColor;
 
 

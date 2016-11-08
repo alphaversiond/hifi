@@ -14,6 +14,9 @@
 #include "stereo/InterleavedStereoDisplayPlugin.h"
 #include "hmd/DebugHmdDisplayPlugin.h"
 #include "Basic2DWindowOpenGLDisplayPlugin.h"
+#include "hmd/DaydreamDisplayPlugin.h"
+#include "stereo/StereoDisplayPlugin.h"
+#include "hmd/DebugHmdDisplayPlugin.h"
 
 const QString& DisplayPlugin::MENU_PATH() {
     static const QString value = "Display";
@@ -21,12 +24,18 @@ const QString& DisplayPlugin::MENU_PATH() {
 }
 #if defined(ANDROID)
 LibInstance::LibInstance(){
-    qDebug() << __FILE__ << "has been initialized";
-    DisplayPlugin* PLUGIN_POOL[] = {
-        new Basic2DWindowOpenGLDisplayPlugin(),
-        nullptr
-    };
-    PluginManager::getInstance()->loadDisplayPlugins(PLUGIN_POOL);
+    static std::once_flag once;
+    std::call_once(once, [&] {
+        qDebug() << __FILE__ << "has been initialized";
+        DisplayPlugin* PLUGIN_POOL[] = {
+            new DaydreamDisplayPlugin(),
+//            new Basic2DWindowOpenGLDisplayPlugin(),
+//            new SideBySideStereoDisplayPlugin(),
+//            new DebugHmdDisplayPlugin(),
+            nullptr
+        };
+        PluginManager::getInstance()->loadDisplayPlugins(PLUGIN_POOL);
+    });
   }
 #endif
 

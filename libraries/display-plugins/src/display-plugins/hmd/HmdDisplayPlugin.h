@@ -29,8 +29,8 @@ public:
     glm::mat4 getEyeToHeadTransform(Eye eye) const override final { return _eyeOffsets[eye]; }
     glm::mat4 getEyeProjection(Eye eye, const glm::mat4& baseProjection) const override final { return _eyeProjections[eye]; }
     glm::mat4 getCullingProjection(const glm::mat4& baseProjection) const override final { return _cullingProjection; }
-    glm::uvec2 getRecommendedUiSize() const override final;
-    glm::uvec2 getRecommendedRenderSize() const override final { return _renderTargetSize; }
+    glm::uvec2 getRecommendedUiSize() const override;
+    glm::uvec2 getRecommendedRenderSize() const override final { qDebug() << "getRecommendedRenderSize " << _renderTargetSize.x << "," << _renderTargetSize.y; return _renderTargetSize; }
     bool isDisplayVisible() const override { return isHmdMounted(); }
 
     QRect getRecommendedOverlayRect() const override final;

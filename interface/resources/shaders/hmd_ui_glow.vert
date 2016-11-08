@@ -20,7 +20,7 @@ layout(std140) uniform overlayBuffer {
     OverlayData overlay;
 };
 
-mat4 mvp = overlay.mvp;
+mat4 mvp;
 
 layout(location = 0) in vec3 Position;
 layout(location = 3) in vec2 TexCoord;
@@ -29,6 +29,7 @@ out vec3 vPosition;
 out vec2 vTexCoord;
 
 void main() {
+  mvp = overlay.mvp;
   gl_Position = mvp * vec4(Position, 1);
   vTexCoord = TexCoord;
   vPosition = Position;

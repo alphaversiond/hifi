@@ -132,6 +132,7 @@ void GLBackend::TransformStageState::update(size_t commandIndex, const StereoSta
 
 void GLBackend::TransformStageState::bindCurrentCamera(int eye) const {
     if (_currentCameraOffset != INVALID_OFFSET) {
+        qDebug() << "GLBackend::TransformStageState::bindCurrentCamera";
         glBindBufferRange(GL_UNIFORM_BUFFER, TRANSFORM_CAMERA_SLOT, _cameraBuffer, _currentCameraOffset + eye * _cameraUboSize, sizeof(CameraBufferElement));
     }
 }

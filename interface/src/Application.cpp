@@ -2028,57 +2028,55 @@ void Application::paintGL() {
                 }
 
                    GLfloat _vertices[] = {
-                        -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
-                        0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
-                        0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-                        0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-                        -0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
-                        -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+                        -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
+                        0.5f, -0.5f, -0.5f, 1.0f, 0.0f,
+                        0.5f,  0.5f, -0.5f, 1.0f, 1.0f,
+                        0.5f,  0.5f, -0.5f, 1.0f, 1.0f,
+                        -0.5f,  0.5f, -0.5f, 0.0f, 1.0f,
+                        -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
                         
-                        -0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
-                        0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
-                        0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-                        0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-                        -0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
-                        -0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+                        -0.5f, -0.5f,  0.5f, 0.0f, 0.0f,
+                        0.5f, -0.5f,  0.5f, 1.0f, 0.0f,
+                        0.5f,  0.5f,  0.5f, 1.0f, 1.0f,
+                        0.5f,  0.5f,  0.5f, 1.0f, 1.0f,
+                        -0.5f,  0.5f,  0.5f, 0.0f, 1.0f,
+                        -0.5f, -0.5f,  0.5f, 0.0f, 0.0f,
                         
-                        -0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
-                        -0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-                        -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
-                        -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
-                        -0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
-                        -0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+                        -0.5f,  0.5f,  0.5f, 1.0f, 0.0f,
+                        -0.5f,  0.5f, -0.5f, 1.0f, 1.0f,
+                        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+                        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+                        -0.5f, -0.5f,  0.5f, 0.0f, 0.0f,
+                        -0.5f,  0.5f,  0.5f, 1.0f, 0.0f,
                         
-                        0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
-                        0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-                        0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
-                        0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
-                        0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
-                        0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+                        0.5f,  0.5f,  0.5f, 1.0f, 0.0f,
+                        0.5f,  0.5f, -0.5f, 1.0f, 1.0f,
+                        0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+                        0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+                        0.5f, -0.5f,  0.5f, 0.0f, 0.0f,
+                        0.5f,  0.5f,  0.5f, 1.0f, 0.0f,
                         
-                        -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
-                        0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-                        0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
-                        0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
-                        -0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
-                        -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+                        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+                        0.5f, -0.5f, -0.5f, 1.0f, 1.0f,
+                        0.5f, -0.5f,  0.5f, 1.0f, 0.0f,
+                        0.5f, -0.5f,  0.5f, 1.0f, 0.0f,
+                        -0.5f, -0.5f,  0.5f, 0.0f, 0.0f,
+                        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
                         
-                        -0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
-                        0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-                        0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
-                        0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
-                        -0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
-                        -0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f
-                    };;
+                        -0.5f,  0.5f, -0.5f, 0.0f, 1.0f,
+                        0.5f,  0.5f, -0.5f, 1.0f, 1.0f,
+                        0.5f,  0.5f,  0.5f, 1.0f, 0.0f,
+                        0.5f,  0.5f,  0.5f, 1.0f, 0.0f,
+                        -0.5f,  0.5f,  0.5f, 0.0f, 0.0f,
+                        -0.5f,  0.5f, -0.5f, 0.0f, 1.0f
+                    };
 
-                int verticesSize = sizeof(GLfloat) * 8 * 36;
+                int verticesSize = sizeof(GLfloat) * 5 * 36;
                 vertices._buffer->append(verticesSize, reinterpret_cast<const gpu::Byte*>(&_vertices));
 
                 cubeBufferFormat.reset(new gpu::Stream::Format());
                 cubeBufferFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
-                cubeBufferFormat->setAttribute(gpu::Stream::COLOR, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RGB), 3 * sizeof(GLfloat));
-                cubeBufferFormat->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), 6 * sizeof(GLfloat));
-
+                cubeBufferFormat->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), 3 * sizeof(GLfloat));
                 //int indicesSize = sizeof(GLuint) * 6;
                 //indices._buffer->append(indicesSize, reinterpret_cast<const gpu::Byte*>(&_indices));
                 auto cubeState = std::make_shared<gpu::State>();
@@ -2102,7 +2100,10 @@ void Application::paintGL() {
                 vec2 mouseSize = vec2(200.0f, 200.0f);
                 //glm::mat4 cursorTransform = glm::scale(glm::translate(glm::rotate(glm::mat4(), glm::radians(numFrame*1.0f), vec3(0.5f,0.5f,0.5f)), vec3(mousePosition, numFrame % 1000 * 1.0f)), vec3(mouseSize, 1.0f));
                 glm::mat4 modelTransform;
-                modelTransform = glm::translate(modelTransform, vec3(0.0, 0.0, -4.0f));
+                //float x = sinf(((float) glm::radians((float)(numFrame % 360))) );
+                //qDebug() << "x degress " <<  (numFrame % 360);
+                //modelTransform = glm::translate(modelTransform, vec3(0.0, 0.0, 0.0));
+                // modelTransform = glm::translate(modelTransform, vec3(sinf(numFrame), 0.0,  (signbit(sinf(numFrame))?-1*numFrame:numFrame) % 100)); this works
                 modelTransform = glm::rotate(modelTransform, glm::radians(numFrame*1.0f), vec3(0.5f,0.5f,0.5f));
 
                 //float dmin = std::min(canvasSize.x, canvasSize.y);
@@ -2123,11 +2124,11 @@ void Application::paintGL() {
         }
         batch.setPipeline(thePipeline);
         batch.setInputFormat(cubeBufferFormat);
-        batch.setInputBuffer(0, vertices._buffer, 0, sizeof(GLfloat) * 8);
+        batch.setInputBuffer(0, vertices._buffer, 0, sizeof(GLfloat) * 5);
         batch.setResourceTexture(0, statusIconMap);
         batch.resetViewTransform();
         batch.setModelTransform(modelTransform);
-        batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLORS | gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(0.0, 0.5, 0.0, 1.0), 1.0f, 0, true);
+        batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLORS | gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(0.0, 0.8, 0.0, 1.0), 1.0f, 0, true);
         batch.draw(gpu::TRIANGLES, 36); // 36
         renderArgs._context->appendFrameBatch(batch);
 
@@ -2224,6 +2225,7 @@ void Application::resizeGL() {
     // Set the desired FBO texture size. If it hasn't changed, this does nothing.
     // Otherwise, it must rebuild the FBOs
     uvec2 framebufferSize = displayPlugin->getRecommendedRenderSize();
+    qDebug() << "framebufferSize " << framebufferSize.x << "," << framebufferSize.y; 
     uvec2 renderSize = uvec2(vec2(framebufferSize) * getRenderResolutionScale());
     if (_renderResolution != renderSize) {
         _renderResolution = renderSize;
@@ -2315,10 +2317,8 @@ bool Application::event(QEvent* event) {
     } else if ((int)event->type() == (int)Paint) {
         // NOTE: This must be updated as close to painting as possible,
         //       or AvatarInputs will mysteriously move to the bottom-right
-        qDebug() << "Application::event 1002 event paint";
-
+        
         AvatarInputs::getInstance()->update();
-        qDebug() << "Application::event 1002 before paintgl";
 
         paintGL();
 
@@ -3526,7 +3526,7 @@ void Application::init() {
         [](){
             qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
             //DependencyManager::get<AddressManager>()->goToEntry();
-            DependencyManager::get<AddressManager>()->handleLookupString("hifi://192.168.1.100/1101.79,460.271,-78.4844/0,-0.496747,0,0.867895");
+            DependencyManager::get<AddressManager>()->handleLookupString("hifi://192.168.1.100/0.0,0.0,-200.0");
 
         });
     } else {
@@ -5656,9 +5656,11 @@ DisplayPluginPointer Application::getActiveDisplayPlugin() const {
 static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool active = false) {
     auto menu = Menu::getInstance();
     QString name = displayPlugin->getName();
+    qDebug() << "[display-plugin] addDisplayPluginToMenu name " << name;
     auto grouping = displayPlugin->getGrouping();
     QString groupingMenu { "" };
     Q_ASSERT(!menu->menuItemExists(MenuOption::OutputMenu, name));
+    qDebug() << "[display-plugin] addDisplayPluginToMenu grouping " << grouping;
 
     // assign the meny grouping based on plugin grouping
     switch (grouping) {
@@ -5672,6 +5674,7 @@ static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool acti
             groupingMenu = "Standard";
             break;
     }
+    qDebug() << "[display-plugin] addDisplayPluginToMenu grouping " << groupingMenu;
 
     static QActionGroup* displayPluginGroup = nullptr;
     if (!displayPluginGroup) {
@@ -5686,8 +5689,10 @@ static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool acti
 
     action->setCheckable(true);
     action->setChecked(active);
+    qDebug() << "[display-plugin] addDisplayPluginToMenu active " << active;
     displayPluginGroup->addAction(action);
     Q_ASSERT(menu->menuItemExists(MenuOption::OutputMenu, name));
+    qDebug() << "[display-plugin] Q_ASSERT";
 }
 
 void Application::updateDisplayMode() {
@@ -5734,6 +5739,7 @@ void Application::updateDisplayMode() {
         standard.insert(std::end(standard), std::begin(developer), std::end(developer));
 
         foreach(auto displayPlugin, standard) {
+            qDebug() << "[display-plugin] Trying to add display plugin to menu " << displayPlugin->getName();
             addDisplayPluginToMenu(displayPlugin, first);
             auto displayPluginName = displayPlugin->getName();
             QObject::connect(displayPlugin.get(), &DisplayPlugin::recommendedFramebufferSizeChanged, [this](const QSize & size) {
@@ -5903,7 +5909,11 @@ CompositorHelper& Application::getApplicationCompositor() const {
 // virtual functions required for PluginContainer
 ui::Menu* Application::getPrimaryMenu() {
     auto appMenu = _window->menuBar();
+#ifdef ANDROID
+    auto uiMenu = static_cast<ui::Menu*>(appMenu);
+#else 
     auto uiMenu = dynamic_cast<ui::Menu*>(appMenu);
+#endif 
     return uiMenu;
 }
 

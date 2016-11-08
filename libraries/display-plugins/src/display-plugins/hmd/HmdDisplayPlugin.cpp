@@ -1,4 +1,4 @@
-﻿//
+//
 //  Created by Bradley Austin Davis on 2016/02/15
 //  Copyright 2016 High Fidelity, Inc.
 //
@@ -72,6 +72,8 @@ QRect HmdDisplayPlugin::getRecommendedOverlayRect() const {
 }
 
 bool HmdDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
+    qDebug() <<  "HmdDisplayPlugin::beginFrameRender";
+
     if (!_vsyncEnabled && !_disablePreviewItemAdded) {
         _container->addMenuItem(PluginType::DISPLAY_PLUGIN, MENU_PATH(), DISABLE_PREVIEW,
             [this](bool clicked) {
@@ -206,6 +208,7 @@ float HmdDisplayPlugin::getLeftCenterPixel() const {
 }
 
 void HmdDisplayPlugin::internalPresent() {
+    qDebug() << "HmdDisplayPlugin::internalPresent";
     PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)presentCount())
 
     // Composite together the scene, overlay and mouse cursor
@@ -605,6 +608,7 @@ void HmdDisplayPlugin::OverlayRenderer::updatePipeline() {
 }
 
 void HmdDisplayPlugin::OverlayRenderer::render(HmdDisplayPlugin& plugin) {
+    qDebug() << "[HmdDisplayPlugin] render"; 
     updatePipeline();
     for_each_eye([&](Eye eye){
         uniforms.mvp = mvps[eye];
