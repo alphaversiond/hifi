@@ -10,7 +10,7 @@ if (WIN32)
   ExternalProject_Add(
         ${EXTERNAL_NAME}
         URL https://s3.amazonaws.com/hifi-public/dependencies/LeoPolySDK-1.zip
-        URL_MD5 a9c042505223112ba023546263ac49ce
+        URL_MD5 90e216f593d09ef89086f94208fb8e20
         CONFIGURE_COMMAND ""
         BUILD_COMMAND ""
         INSTALL_COMMAND ""
@@ -28,7 +28,7 @@ elseif (APPLE)
   ExternalProject_Add(
         ${EXTERNAL_NAME}
         URL https://s3.amazonaws.com/hifi-public/dependencies/LeoPolySDK-1.zip
-        URL_MD5 a9c042505223112ba023546263ac49ce
+        URL_MD5 90e216f593d09ef89086f94208fb8e20
         CONFIGURE_COMMAND ""
         BUILD_COMMAND ""
         INSTALL_COMMAND ""
@@ -47,7 +47,7 @@ else () # Linux
   ExternalProject_Add(
         ${EXTERNAL_NAME}
         URL https://s3.amazonaws.com/hifi-public/dependencies/LeoPolySDK-1.zip
-        URL_MD5 a9c042505223112ba023546263ac49ce
+        URL_MD5 90e216f593d09ef89086f94208fb8e20
         CONFIGURE_COMMAND ""
         BUILD_COMMAND ""
         INSTALL_COMMAND ""
