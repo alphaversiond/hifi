@@ -149,12 +149,15 @@ void RenderableLeoPolyEntityItem::createShaderPipeline() {
 }
 
 void RenderableLeoPolyEntityItem::render(RenderArgs* args) {
+    qDebug() << __FUNCTION__ << "calling getGeometryResource() url:" << _leoPolyURL;
+
     PerformanceTimer perfTimer("RenderableLeoPolyEntityItem::render");
     assert(getType() == EntityTypes::LeoPoly);
     Q_ASSERT(args->_batch);
 
     // if we don't have a _modelResource yet, then we can't render...
     if (!_modelResource) {
+        qDebug() << __FUNCTION__ << "line:" << __LINE__ << "calling initializeModelResource()";
         initializeModelResource();
         return;
     }
@@ -180,6 +183,8 @@ void RenderableLeoPolyEntityItem::render(RenderArgs* args) {
     if (!success) {
         return;
     }
+
+    qDebug() << __FUNCTION__ << "about to render some mesh stuff.... num indices:" << mesh->getNumIndices();
 
     batch.setModelTransform(transform);
     batch.setInputFormat(mesh->getVertexFormat());
@@ -253,6 +258,7 @@ namespace render {
 
 
 void RenderableLeoPolyEntityItem::initializeModelResource() {
+    qDebug() << __FUNCTION__ << "calling getGeometryResource() url:" << _leoPolyURL;
 
     // FIXME -- some open questions....
     //   1) what do we do if someone changes the URL while under edit?
@@ -260,7 +266,9 @@ void RenderableLeoPolyEntityItem::initializeModelResource() {
     //
     //  _modelResource->getURL() ... this might be useful
     // 
-    _modelResource = DependencyManager::get<ModelCache>()->getGeometryResource(_leoPolyURL);
+    if (!_leoPolyURL.isEmpty()) {
+        _modelResource = DependencyManager::get<ModelCache>()->getGeometryResource(_leoPolyURL);
+    }
 }
 
 void RenderableLeoPolyEntityItem::getMesh() {

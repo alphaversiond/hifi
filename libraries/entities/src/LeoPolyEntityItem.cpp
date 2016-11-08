@@ -39,6 +39,7 @@ LeoPolyEntityItem::LeoPolyEntityItem(const EntityItemID& entityItemID) :
 }
 
 
+
 EntityItemProperties LeoPolyEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
 
@@ -82,6 +83,7 @@ int LeoPolyEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* dat
 // TODO: eventually only include properties changed since the params.lastViewFrustumSent time
 EntityPropertyFlags LeoPolyEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
+    requestedProperties += PROP_LEOPOLY_URL;
     return requestedProperties;
 }
 
