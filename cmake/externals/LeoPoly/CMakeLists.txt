@@ -39,7 +39,6 @@ elseif (APPLE)
   set_target_properties(${EXTERNAL_NAME} PROPERTIES FOLDER "hidden/externals")
   ExternalProject_Get_Property(${EXTERNAL_NAME} SOURCE_DIR)
   set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SOURCE_DIR} CACHE TYPE INTERNAL)
-  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/SculptAppDLL.lib CACHE TYPE INTERNAL)
 
 elseif (ANDROID)
 else () # Linux
@@ -58,6 +57,5 @@ else () # Linux
   set_target_properties(${EXTERNAL_NAME} PROPERTIES FOLDER "hidden/externals")
   ExternalProject_Get_Property(${EXTERNAL_NAME} SOURCE_DIR)
   set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SOURCE_DIR} CACHE TYPE INTERNAL)
-  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/SculptAppDLL.lib CACHE TYPE INTERNAL)
 
 endif()
