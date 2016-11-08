@@ -459,7 +459,7 @@ void RenderableLeoPolyEntityItem::importToLeoPoly() {
             indicesFlattened[i] = indices[i];
         }
         matIndexesPerTriangles.resize(matStringsPerTriangles.size());
-        for (int matInd = 0; matInd < materialsToSend.size(); matInd++)
+        for (unsigned int matInd = 0; matInd < materialsToSend.size(); matInd++)
         {
             for (int i = 0; i < matStringsPerTriangles.size(); i++)
             {
@@ -523,7 +523,7 @@ void RenderableLeoPolyEntityItem::updateGeometryFromLeoPlugin() {
 
     // Create a model::Mesh from the flattened mesh from LeoPoly
     model::MeshPointer mesh(new model::Mesh());
-    bool needsMaterialLibrary = false;
+    // bool needsMaterialLibrary = false;
 
     std::vector<VertexNormalMaterial> verticesNormalsMaterials;
 
