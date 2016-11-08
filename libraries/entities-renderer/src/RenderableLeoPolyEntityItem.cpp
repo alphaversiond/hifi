@@ -55,7 +55,8 @@ gpu::PipelinePointer RenderableLeoPolyEntityItem::_pipeline = nullptr;
 
 
 EntityItemPointer RenderableLeoPolyEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer entity{ new RenderableLeoPolyEntityItem(entityID) };
+    qDebug() << __FUNCTION__ << "entityID:" << entityID;
+    EntityItemPointer entity { new RenderableLeoPolyEntityItem(entityID) };
     entity->setProperties(properties);
     return entity;
 }
@@ -63,9 +64,11 @@ EntityItemPointer RenderableLeoPolyEntityItem::factory(const EntityItemID& entit
 RenderableLeoPolyEntityItem::RenderableLeoPolyEntityItem(const EntityItemID& entityItemID) :
     LeoPolyEntityItem(entityItemID)
 {
+    qDebug() << __FUNCTION__ << "entityID:" << entityItemID;
 }
 
 RenderableLeoPolyEntityItem::~RenderableLeoPolyEntityItem() {
+    qDebug() << __FUNCTION__ << "entityID:" << _id;
 }
 
 bool RenderableLeoPolyEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
@@ -209,7 +212,10 @@ void RenderableLeoPolyEntityItem::render(RenderArgs* args) {
 bool RenderableLeoPolyEntityItem::addToScene(EntityItemPointer self,
                                              std::shared_ptr<render::Scene> scene,
                                              render::PendingChanges& pendingChanges) {
+
     _myItem = scene->allocateID();
+
+    qDebug() << __FUNCTION__ << "_myItem:" << _myItem;
 
     auto renderItem = std::make_shared<LeoPolyPayload>(getThisPointer());
     auto renderData = LeoPolyPayload::Pointer(renderItem);
@@ -227,6 +233,8 @@ bool RenderableLeoPolyEntityItem::addToScene(EntityItemPointer self,
 void RenderableLeoPolyEntityItem::removeFromScene(EntityItemPointer self,
                                                   std::shared_ptr<render::Scene> scene,
                                                   render::PendingChanges& pendingChanges) {
+    qDebug() << __FUNCTION__ << "_myItem:" << _myItem;
+
     pendingChanges.removeItem(_myItem);
     render::Item::clearID(_myItem);
 }
@@ -250,7 +258,9 @@ namespace render {
     }
 
     template <> void payloadRender(const LeoPolyPayload::Pointer& payload, RenderArgs* args) {
+        qDebug() << __FUNCTION__;
         if (args && payload && payload->_owner) {
+            qDebug() << __FUNCTION__ << "about to call _ownder->render()";
             payload->_owner->render(args);
         }
     }
