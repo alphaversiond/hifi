@@ -69,6 +69,7 @@ void EntityItemProperties::debugDump() const {
     qCDebug(entities) << "EntityItemProperties...";
     qCDebug(entities) << "    _type=" << EntityTypes::getEntityTypeName(_type);
     qCDebug(entities) << "   _id=" << _id;
+
     qCDebug(entities) << "   _idSet=" << _idSet;
     qCDebug(entities) << "   _position=" << _position.x << "," << _position.y << "," << _position.z;
     qCDebug(entities) << "   _dimensions=" << getDimensions();
@@ -78,6 +79,8 @@ void EntityItemProperties::debugDump() const {
     getAnimation().debugDump();
     getSkybox().debugDump();
     getKeyLight().debugDump();
+
+    qCDebug(entities) << "   _leoPolyURL=" << _leoPolyURL;
 
     qCDebug(entities) << "   changed properties...";
     EntityPropertyFlags props = getChangedProperties();
@@ -336,6 +339,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
 
     CHECK_PROPERTY_CHANGE(PROP_SHAPE, shape);
     CHECK_PROPERTY_CHANGE(PROP_DPI, dpi);
+    CHECK_PROPERTY_CHANGE(PROP_LEOPOLY_URL, leoPolyURL);
 
     changedProperties += _animation.getChangedProperties();
     changedProperties += _keyLight.getChangedProperties();
@@ -749,6 +753,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(owningAvatarID, QUuid, setOwningAvatarID);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(dpi, uint16_t, setDPI);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(leoPolyURL, QString, setLeoPolyURL);
 
     _lastEdited = usecTimestampNow();
 }

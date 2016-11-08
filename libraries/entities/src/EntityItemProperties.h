@@ -360,6 +360,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
         debug << "  position:" << properties.getPosition() << "in meters" << "\n";
     }
 
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, LeoPolyURL, leoPolyURL, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Dimensions, dimensions, "in meters");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Velocity, velocity, "in meters");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Name, name, "");
