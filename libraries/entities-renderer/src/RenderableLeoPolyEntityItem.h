@@ -81,13 +81,31 @@ public:
     void getMesh();
     void setMesh(model::MeshPointer mesh);
 
+    // helper function for determining which entity is currently under sculpt.
+    static EntityItemID getCurrentlyEditingEntityID();
+
+    void setUnderSculpting(bool value); // makes the current entity become the actively sculpted entity
+
 private:
+    class VertexNormalMaterial {
+    public:
+        glm::vec3 vertex;
+        glm::vec3 normal;
+        float material;
+    };
+
+    void updateGeometryFromLeoPlugin();
+    void createShaderPipeline();
+    void importToLeoPoly();
+    void initializeModelResource();
+
     const int MATERIAL_GPU_SLOT = 3;
     render::ItemID _myItem{ render::Item::INVALID_ITEM_ID };
     static gpu::PipelinePointer _pipeline;
 
     model::MeshPointer _mesh;
-    std::atomic<bool> _leoPolyDataDirty{ true };
+
+    GeometryResource::Pointer _modelResource;
 
     ShapeInfo _shapeInfo;
 };

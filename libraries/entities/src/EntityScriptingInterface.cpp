@@ -348,6 +348,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
             return;
         }
 
+
         auto nodeList = DependencyManager::get<NodeList>();
         if (entity->getClientOnly() && entity->getOwningAvatarID() != nodeList->getSessionUUID()) {
             // don't edit other avatar's avatarEntities
@@ -460,6 +461,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
             });
         }
     });
+
     queueEntityMessage(PacketType::EntityEdit, entityID, properties);
     return id;
 }
