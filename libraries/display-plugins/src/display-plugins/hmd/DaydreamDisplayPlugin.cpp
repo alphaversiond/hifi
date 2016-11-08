@@ -222,16 +222,15 @@ void DaydreamDisplayPlugin::customizeContext() {
 bool DaydreamDisplayPlugin::internalActivate() {
     _ipd = 0.0327499993f * 2.0f;
 /* This is the daydream projection matrix */
-   _eyeProjections[0][0] = vec4{ 0.847145, 0.000000, 0.027481, 0.000000 };
-    _eyeProjections[0][1] = vec4{ 0.000000, 0.679134, 0.176295, 0.000000 };
-    _eyeProjections[0][2] = vec4{ 0.000000, 0.000000, -1.000200, -0.200020 };
-    _eyeProjections[0][3] = vec4{ 0.000000, 0.000000, -1.000000, 0.000000 };
-    _eyeProjections[1][0] = vec4{ 0.847145, 0.000000, -0.027481, 0.000000 };
-    _eyeProjections[1][1] = vec4{ 0.000000, 0.679134, 0.176295, 0.000000 };
-    _eyeProjections[1][2] = vec4{ 0.000000, 0.000000, -1.000200, -0.200020 };
-    _eyeProjections[1][3] = vec4{ 0.000000, 0.000000, -1.000000, 0.000000 };
-    
+    _eyeProjections[0][0] = vec4{-0.000005,0.010428,0.847526,0.027109};
+    _eyeProjections[0][1] = vec4{0.682452,0.162940,0.003716,0.000000};
+    _eyeProjections[0][2] = vec4{-0.019558,-0.999806,-0.020130,-0.200020};
+    _eyeProjections[0][3] = vec4{-0.019554,-0.999606,-0.020126,0.000000};
 
+    _eyeProjections[1][0] = vec4{-0.001080,-0.044512,0.846420,-0.027109};
+    _eyeProjections[1][1] = vec4{0.682452,0.162940,0.003716,0.000000};
+    _eyeProjections[1][2] = vec4{-0.019558,-0.999806,-0.020130,-0.200020};
+    _eyeProjections[1][3] = vec4{-0.019554,-0.999606,-0.020126,0.000000};
 
     _eyeProjections[0] = mat4();
     _eyeProjections[1] = mat4();
