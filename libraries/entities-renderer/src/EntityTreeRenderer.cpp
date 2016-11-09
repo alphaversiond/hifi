@@ -71,7 +71,7 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Shape, RenderableShapeEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Box, RenderableShapeEntityItem::boxFactory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Sphere, RenderableShapeEntityItem::sphereFactory)
-    REGISTER_ENTITY_TYPE_WITH_FACTORY(LeoPoly, RenderablePolyVoxEntityItem::factory)
+    REGISTER_ENTITY_TYPE_WITH_FACTORY(LeoPoly, RenderableLeoPolyEntityItem::factory)
 
     _currentHoverOverEntityID = UNKNOWN_ENTITY_ID;
     _currentClickingOnEntityID = UNKNOWN_ENTITY_ID;
@@ -917,6 +917,7 @@ void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
 }
 
 void EntityTreeRenderer::addingEntity(const EntityItemID& entityID) {
+    qDebug() << __FUNCTION__ << "entityID:" << entityID;
     forceRecheckEntities(); // reset our state to force checking our inside/outsideness of entities
     checkAndCallPreload(entityID);
     auto entity = std::static_pointer_cast<EntityTree>(_tree)->findEntityByID(entityID);
@@ -926,11 +927,14 @@ void EntityTreeRenderer::addingEntity(const EntityItemID& entityID) {
 }
 
 void EntityTreeRenderer::addEntityToScene(EntityItemPointer entity) {
+    qDebug() << __FUNCTION__ << "entity:" << entity->getID();
     // here's where we add the entity payload to the scene
     render::PendingChanges pendingChanges;
     auto scene = _viewState->getMain3DScene();
     if (scene) {
+        qDebug() << __FUNCTION__ << "entity:" << entity->getID() << "line:" << __LINE__;
         if (entity->addToScene(entity, scene, pendingChanges)) {
+            qDebug() << __FUNCTION__ << "entity:" << entity->getID() << "line:" << __LINE__;
             _entitiesInScene.insert(entity->getEntityItemID(), entity);
         }
         scene->enqueuePendingChanges(pendingChanges);
