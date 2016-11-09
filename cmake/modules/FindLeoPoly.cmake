@@ -12,17 +12,16 @@
 # LEOPOLY_INCLUDE_DIR         - Path to LeoPoly include dir
 # LEOPOLY_INCLUDE_DIRS        - Path to LeoPoly and zlib include dir (combined from LEOPOLY_INCLUDE_DIR + ZLIB_INCLUDE_DIR)
 # LEOPOLY_LIBRARIES           - List of LeoPoly libraries
-# LEOPOLY_ZLIB_INCLUDE_DIR    - The include dir of zlib headers
 
 include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
 hifi_library_search_hints("leopoly")
 
 if (WIN32)
-    find_path(LEOPOLY_INCLUDE_DIRS leopoly.h PATH_SUFFIXES include/leopoly HINTS ${LEOPOLY_SEARCH_DIRS})
+    find_path(LEOPOLY_INCLUDE_DIRS Plugin.h HINTS ${LEOPOLY_SEARCH_DIRS})
 elseif (APPLE)
-    find_path(LEOPOLY_INCLUDE_DIRS leopoly.h PATH_SUFFIXES include/leopoly HINTS ${LEOPOLY_SEARCH_DIRS})
+    find_path(LEOPOLY_INCLUDE_DIRS Plugin.h HINTS ${LEOPOLY_SEARCH_DIRS})
 else ()
-    find_path(LEOPOLY_INCLUDE_DIRS leopoly.h PATH_SUFFIXES leopoly HINTS ${LEOPOLY_SEARCH_DIRS})
+    find_path(LEOPOLY_INCLUDE_DIRS Plugin.h HINTS ${LEOPOLY_SEARCH_DIRS})
 endif ()
 
 include(FindPackageHandleStandardArgs)
