@@ -77,7 +77,7 @@ if (ANDROID)
 
   set(ANDROID_SDK_ROOT $ENV{ANDROID_HOME})
   set(ANDROID_APP_DISPLAY_NAME Interface)
-  set(ANDROID_API_LEVEL 21)
+  set(ANDROID_API_LEVEL 24)
   set(ANDROID_APK_PACKAGE io.highfidelity.hifiinterface)
   set(ANDROID_ACTIVITY_NAME io.highfidelity.hifiinterface.InterfaceActivity)
   set(ANDROID_APK_VERSION_NAME "0.1")
@@ -211,6 +211,19 @@ target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_BINARY_DIR}/libraries
 #fixme find a way to express faceshift as a plugin
 target_bullet()
 target_opengl()
+
+# just a test, do it separately in a plugin
+if (ANDROID)
+  find_package (GVR)
+  if (GVR_FOUND)
+    include_directories(${GVR_INCLUDE_DIRS})
+    target_link_libraries(${TARGET_NAME} ${GVR_LIBRARIES})
+
+    # Expects the gvr-common library folder to be one level outside $ANDROID_APK_BUILD_DIR
+    file(WRITE "${ANDROID_APK_BUILD_DIR}/project.properties" "android.library.reference.1=../gvr-common")
+
+  endif()
+endif()
 
 if (NOT ANDROID)
   target_glew()

@@ -242,11 +242,11 @@ set( ANDROID_SUPPORTED_ABIS_mips64 "mips64" )
 
 # API level defaults
 set( ANDROID_DEFAULT_NDK_API_LEVEL 8 )
-set( ANDROID_DEFAULT_NDK_API_LEVEL_arm64 21 )
+set( ANDROID_DEFAULT_NDK_API_LEVEL_arm64 24 )
 set( ANDROID_DEFAULT_NDK_API_LEVEL_x86 9 )
-set( ANDROID_DEFAULT_NDK_API_LEVEL_x86_64 21 )
+set( ANDROID_DEFAULT_NDK_API_LEVEL_x86_64 24 )
 set( ANDROID_DEFAULT_NDK_API_LEVEL_mips 9 )
-set( ANDROID_DEFAULT_NDK_API_LEVEL_mips64 21 )
+set( ANDROID_DEFAULT_NDK_API_LEVEL_mips64 24 )
 
 
 macro( __LIST_FILTER listvar regex )
@@ -852,12 +852,14 @@ The possible values are:
 " )
  endif()
 elseif( BUILD_WITH_STANDALONE_TOOLCHAIN )
- if( NOT "${ANDROID_STL}" MATCHES "^(none|gnustl_static|gnustl_shared)$")
+ # added c++_static to be able to use llvm libc++ as a static lib
+ if( NOT "${ANDROID_STL}" MATCHES "^(none|gnustl_static|gnustl_shared|c\\+\\+_static)$")
   message( FATAL_ERROR "ANDROID_STL is set to invalid value \"${ANDROID_STL}\".
 The possible values are:
   none           -> Do not configure the runtime.
   gnustl_static  -> (default) Use the GNU STL as a static library.
   gnustl_shared  -> Use the GNU STL as a shared library.
+  c++_static     -> Use the LLVM libc++ runtime as a static library.
 " )
  endif()
 endif()
