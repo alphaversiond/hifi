@@ -162,12 +162,28 @@
 #include <gpu/Cube_vert.h>
 #include <gpu/Cube_frag.h>
 
+#ifdef ANDROID
+#include "vr/gvr/capi/include/gvr.h"
+#endif
+
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
 #if defined(Q_OS_WIN)
 extern "C" {
  _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
 }
+#endif
+
+#ifdef ANDROID
+
+extern "C" {
+
+JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_functionThatWorks(JNIEnv *jni, jclass clazz, jstring hifiURLString) {
+    qDebug() << "FunctionThatWorks code 8457213 executed in C and received " << hifiURLString;
+}
+
+}
+
 #endif
 
 /*

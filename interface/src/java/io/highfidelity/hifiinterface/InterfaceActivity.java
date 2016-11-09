@@ -18,9 +18,14 @@ import android.view.WindowManager;
 import android.util.Log;
 import org.qtproject.qt5.android.bindings.QtActivity;
 
+import com.google.vr.cardboard.DisplaySynchronizer;
+import com.google.vr.cardboard.DisplayUtils;
+import com.google.vr.ndk.base.GvrApi;
+
 public class InterfaceActivity extends QtActivity {
     
     public static native void handleHifiURL(String hifiURLString);
+    public static native void functionThatWorks(String hifiURLString);
     
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -37,5 +42,9 @@ public class InterfaceActivity extends QtActivity {
             }
         }
         
+        DisplaySynchronizer displaySynchronizer = new DisplaySynchronizer(this, DisplayUtils.getDefaultDisplay(this));
+        GvrApi gvrApi = new GvrApi(this, displaySynchronizer);
+        Log.d("GVR", "gvrApi.toString(): " + gvrApi.toString());
+        functionThatWorks("yeah");
     }
 }
