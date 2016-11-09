@@ -20,7 +20,9 @@
 const QString DaydreamDisplayPlugin::NAME("Daydream");
 
 glm::uvec2 DaydreamDisplayPlugin::getRecommendedUiSize() const {
-    return uvec2(2560, 1440);
+    auto window = _container->getPrimaryWidget();
+    glm::vec2 windowSize = toGlm(window->size());
+    return windowSize;
 }
 
 
@@ -47,10 +49,10 @@ void DaydreamDisplayPlugin::internalPresent() {
             sourceSize.x >>= 1;
         }
 */
-        qDebug() << "[DaydreamDisplayPlugin] sourceSize " << sourceSize; 
-        float shiftLeftBy = getLeftCenterPixel() - (sourceSize.x / 2);
+        qDebug() << "[DaydreamDisplayPlugin] sourceSize " << sourceSize; // 2560, 1440
+        float shiftLeftBy = getLeftCenterPixel() - (sourceSize.x / 2);   //        - 640 =  getLeftCenterPixel - 1280         => getLeftCenterPixel = 640
         float newWidth = sourceSize.x - shiftLeftBy;
-        qDebug() << "[DaydreamDisplayPlugin] shiftLeftBy " << shiftLeftBy; 
+        qDebug() << "[DaydreamDisplayPlugin] shiftLeftBy " << shiftLeftBy;  // -640
 
         const unsigned int RATIO_Y = 9;
         const unsigned int RATIO_X = 16;
@@ -106,12 +108,12 @@ void DaydreamDisplayPlugin::internalPresent() {
 
             qDebug() << "[DaydreamDisplayPlugin] viewport" << viewport.x << "," << viewport.y << "," << viewport.z << "," << viewport.w;
             qDebug() << "[DaydreamDisplayPlugin] scissor" << scissor.x << "," << scissor.y << "," << scissor.z << "," << scissor.w;
-            viewport = ivec4(0,0,2560,1440);
+            viewport = ivec4(0,0,windowSize);
             batch.enableStereo(false);
             batch.resetViewTransform();
             batch.setFramebuffer(gpu::FramebufferPointer());
             batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(0));
-            batch.setStateScissorRect(viewport); // was viewport
+            batch.setStateScissorRect(scissor); // was viewport
             batch.setViewportTransform(viewport);
             batch.setResourceTexture(0, _compositeFramebuffer->getRenderBuffer(0));
             batch.setPipeline(_presentPipeline);
@@ -142,7 +144,6 @@ void DaydreamDisplayPlugin::internalPresent() {
 ivec4 DaydreamDisplayPlugin::getViewportForSourceSize(const uvec2& size) const {
     // screen preview mirroring
     auto window = _container->getPrimaryWidget();
-    qDebug() << "[DaydreamDisplayPlugin] window " << window; 
     auto devicePixelRatio = window->devicePixelRatio();
     auto windowSize = toGlm(window->size());
     qDebug() << "[DaydreamDisplayPlugin] windowSize " << windowSize; 
@@ -222,24 +223,32 @@ void DaydreamDisplayPlugin::customizeContext() {
 bool DaydreamDisplayPlugin::internalActivate() {
     _ipd = 0.0327499993f * 2.0f;
 /* This is the daydream projection matrix */
-    _eyeProjections[0][0] = vec4{-0.000005,0.010428,0.847526,0.027109};
-    _eyeProjections[0][1] = vec4{0.682452,0.162940,0.003716,0.000000};
-    _eyeProjections[0][2] = vec4{-0.019558,-0.999806,-0.020130,-0.200020};
-    _eyeProjections[0][3] = vec4{-0.019554,-0.999606,-0.020126,0.000000};
+    _eyeProjections[0][0] = vec4{-0.846933,0.015647,0.000594,0.000594};
+    _eyeProjections[0][1] = vec4{0.026528,0.160950,-0.999945,-0.999746};
+    _eyeProjections[0][2] = vec4{0.020252,0.682755,-0.022554,-0.022549};
+    _eyeProjections[0][3] = vec4{0.027109,0.000000,-0.200020,0.000000};
 
-    _eyeProjections[1][0] = vec4{-0.001080,-0.044512,0.846420,-0.027109};
-    _eyeProjections[1][1] = vec4{0.682452,0.162940,0.003716,0.000000};
-    _eyeProjections[1][2] = vec4{-0.019558,-0.999806,-0.020130,-0.200020};
-    _eyeProjections[1][3] = vec4{-0.019554,-0.999606,-0.020126,0.000000};
+    // EYE : 0, mvp [], [], [], [0.000594,-0.999746,-0.022549,0.000000]
 
-    _eyeProjections[0] = mat4();
-    _eyeProjections[1] = mat4();
+    _eyeProjections[1][0] = vec4{-0.846901,0.015647,0.000594,0.000594};
+    _eyeProjections[1][1] = vec4{-0.028419,0.160950,-0.999945,-0.999746};
+    _eyeProjections[1][2] = vec4{0.019013,0.682755,-0.022554,-0.022549};
+    _eyeProjections[1][3] = vec4{-0.027109,0.000000,-0.200020,0.000000};
+
+     // transposed EYE : 1, mvp [-0.846901,-0.028419,0.019013,-0.027109], [0.015647,0.160950,0.682755,0.000000], [0.000594,-0.999945,-0.022554,-0.200020], [0.000594,-0.999746,-0.022549,0.000000]
+
+    //_eyeProjections[0] = mat4();
+    //_eyeProjections[1] = mat4();
     
     //_eyeInverseProjections[0] = glm::inverse(_eyeProjections[0]);
     //_eyeInverseProjections[1] = glm::inverse(_eyeProjections[1]);
-    //_eyeOffsets[0][3] = vec4{ -0.0327499993, 0.0, 0.0149999997, 1.0 };
-    //_eyeOffsets[0][3] = vec4{ 0.0327499993, 0.0, 0.0149999997, 1.0 };
-    _renderTargetSize = { 2560, 1440 }; // 3024x1680 
+    _eyeOffsets[0][3] = vec4{ -0.0327499993, 0.0, 0.0149999997, 1.0 };
+    _eyeOffsets[1][3] = vec4{ 0.0327499993, 0.0, 0.0149999997, 1.0 };
+
+    auto window = _container->getPrimaryWidget();
+    glm::vec2 windowSize = toGlm(window->size());
+
+    _renderTargetSize = windowSize; // 3024x1680 
     _cullingProjection = _eyeProjections[0];
     // This must come after the initialization, so that the values calculated
     // above are available during the customizeContext call (when not running

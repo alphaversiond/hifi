@@ -78,7 +78,7 @@ bool DebugHmdDisplayPlugin::internalActivate() {
     _eyeInverseProjections[0] = glm::inverse(_eyeProjections[0]);
     _eyeInverseProjections[1] = glm::inverse(_eyeProjections[1]);
     _eyeOffsets[0][3] = vec4{ -0.0327499993, 0.0, 0.0149999997, 1.0 };
-    _eyeOffsets[0][3] = vec4{ 0.0327499993, 0.0, 0.0149999997, 1.0 };
+    _eyeOffsets[1][3] = vec4{ 0.0327499993, 0.0, 0.0149999997, 1.0 };
     _renderTargetSize = { 3024, 1680 };
     _cullingProjection = _eyeProjections[0];
     // This must come after the initialization, so that the values calculated

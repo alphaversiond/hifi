@@ -2102,8 +2102,7 @@ void Application::paintGL() {
                 glm::mat4 modelTransform;
                 //float x = sinf(((float) glm::radians((float)(numFrame % 360))) );
                 //qDebug() << "x degress " <<  (numFrame % 360);
-                //modelTransform = glm::translate(modelTransform, vec3(0.0, 0.0, 0.0));
-                // modelTransform = glm::translate(modelTransform, vec3(sinf(numFrame), 0.0,  (signbit(sinf(numFrame))?-1*numFrame:numFrame) % 100)); this works
+                modelTransform = glm::translate(modelTransform, vec3(0.0, -1.0f, 0.0f));
                 modelTransform = glm::rotate(modelTransform, glm::radians(numFrame*1.0f), vec3(0.5f,0.5f,0.5f));
 
                 //float dmin = std::min(canvasSize.x, canvasSize.y);
@@ -2128,7 +2127,7 @@ void Application::paintGL() {
         batch.setResourceTexture(0, statusIconMap);
         batch.resetViewTransform();
         batch.setModelTransform(modelTransform);
-        batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLORS | gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(0.0, 0.8, 0.0, 1.0), 1.0f, 0, true);
+        batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLORS | gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(0.0, 0.8, 0.0, 1.0), 100.0f, 0, true);
         batch.draw(gpu::TRIANGLES, 36); // 36
         renderArgs._context->appendFrameBatch(batch);
 
