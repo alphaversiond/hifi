@@ -132,6 +132,7 @@ EntityItemID RenderableLeoPolyEntityItem::getCurrentlyEditingEntityID() {
 }
 
 void RenderableLeoPolyEntityItem::createShaderPipeline() {
+    // FIXME - we should use a different shader
     gpu::ShaderPointer vertexShader = gpu::Shader::createVertex(std::string(polyvox_vert));
     gpu::ShaderPointer pixelShader = gpu::Shader::createPixel(std::string(polyvox_frag));
 
