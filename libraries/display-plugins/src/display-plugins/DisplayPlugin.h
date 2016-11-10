@@ -7,6 +7,8 @@
 //
 
 #include <plugins/DisplayPlugin.h>
+#include "vr/gvr/capi/include/gvr.h"
+#include "vr/gvr/capi/include/gvr_types.h"
 
 #if defined(ANDROID)
 #ifndef hifi_display_plugins_DisplayPlugin_h
@@ -26,5 +28,11 @@ class LibExecutor {
   public: LibExecutor() { libInstance(); }
 };
 static LibExecutor libExecutor;
+
+extern gvr_context* __gvr_context;
+extern std::unique_ptr<gvr::GvrApi> __gvr_api;
+
 #endif
 #endif
+
+

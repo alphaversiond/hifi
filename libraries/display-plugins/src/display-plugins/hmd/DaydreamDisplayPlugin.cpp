@@ -19,6 +19,66 @@
 
 const QString DaydreamDisplayPlugin::NAME("Daydream");
 
+/* TODO: check what matrix system to use overall and see if this is needed */
+std::array<float, 16> MatrixToGLArray(const gvr::Mat4f& matrix) {
+  // Note that this performs a *tranpose* to a column-major matrix array, as
+  // expected by GL.
+  std::array<float, 16> result;
+  for (int i = 0; i < 4; ++i) {
+    for (int j = 0; j < 4; ++j) {
+      result[j * 4 + i] = matrix.m[i][j];
+    }
+  }
+  return result;
+}
+
+gvr::Mat4f MatrixMul(const gvr::Mat4f& m1, const gvr::Mat4f& m2) {
+  gvr::Mat4f result;
+  for (int i = 0; i < 4; ++i) {
+    for (int j = 0; j < 4; ++j) {
+      result.m[i][j] = 0.0f;
+      for (int k = 0; k < 4; ++k) {
+        result.m[i][j] += m1.m[i][k] * m2.m[k][j];
+      }
+    }
+  }
+  return result;
+}
+
+gvr::Mat4f PerspectiveMatrixFromView(const gvr::Rectf& fov,
+                                            float near_clip, float far_clip) {
+  gvr::Mat4f result;
+  const float x_left = -tan(fov.left * M_PI / 180.0f) * near_clip;
+  const float x_right = tan(fov.right * M_PI / 180.0f) * near_clip;
+  const float y_bottom = -tan(fov.bottom * M_PI / 180.0f) * near_clip;
+  const float y_top = tan(fov.top * M_PI / 180.0f) * near_clip;
+  const float zero = 0.0f;
+
+  //CHECK(x_left < x_right && y_bottom < y_top && near_clip < far_clip &&
+    //     near_clip > zero && far_clip > zero);
+  const float X = (2 * near_clip) / (x_right - x_left);
+  const float Y = (2 * near_clip) / (y_top - y_bottom);
+  const float A = (x_right + x_left) / (x_right - x_left);
+  const float B = (y_top + y_bottom) / (y_top - y_bottom);
+  const float C = (near_clip + far_clip) / (near_clip - far_clip);
+  const float D = (2 * near_clip * far_clip) / (near_clip - far_clip);
+
+  for (int i = 0; i < 4; ++i) {
+    for (int j = 0; j < 4; ++j) {
+      result.m[i][j] = 0.0f;
+    }
+  }
+  result.m[0][0] = X;
+  result.m[0][2] = A;
+  result.m[1][1] = Y;
+  result.m[1][2] = B;
+  result.m[2][2] = C;
+  result.m[2][3] = D;
+  result.m[3][2] = -1;
+
+  return result;
+}
+
 glm::uvec2 DaydreamDisplayPlugin::getRecommendedUiSize() const {
     auto window = _container->getPrimaryWidget();
     glm::vec2 windowSize = toGlm(window->size());
@@ -221,6 +281,90 @@ void DaydreamDisplayPlugin::customizeContext() {
 }
 
 bool DaydreamDisplayPlugin::internalActivate() {
+    qDebug() << "[DaydreamDisplayPlugin] internalActivate with _gvr_context " << __gvr_context;
+
+    _gvr_context = __gvr_context;
+
+    _gvr_api = (gvr::GvrApi::WrapNonOwned(_gvr_context));
+    _gvr_api->InitializeGl();
+
+    qDebug() << "[DaydreamDisplayPlugin] internalActivate with _gvr_api " << _gvr_api->GetTimePointNow().monotonic_system_time_nanos;
+
+
+    // Handle to the swapchain. On every frame, we have to check if the buffers
+    // are still the right size for the frame (since they can be resized at any
+    // time). This is done by PrepareFramebuffer().
+    std::unique_ptr<gvr::SwapChain> swapchain;
+
+    // List of rendering params (used to render each eye).
+    gvr::BufferViewportList viewport_list(_gvr_api->CreateEmptyBufferViewportList());
+    gvr::BufferViewport scratch_viewport(_gvr_api->CreateBufferViewport());
+
+    // Size of the offscreen framebuffer.
+    gvr::Sizei framebuf_size;
+
+    std::vector<gvr::BufferSpec> specs;
+    specs.push_back(_gvr_api->CreateBufferSpec());
+    framebuf_size = _gvr_api->GetMaximumEffectiveRenderTargetSize();
+
+    qDebug() << "_framebuf_size " << framebuf_size.width << ", " << framebuf_size.height;
+    // Because we are using 2X MSAA, we can render to half as many pixels and
+    // achieve similar quality. Scale each dimension by sqrt(2)/2 ~= 7/10ths.
+    framebuf_size.width = (7 * framebuf_size.width) / 10;
+    framebuf_size.height = (7 * framebuf_size.height) / 10;
+
+    specs[0].SetSize(framebuf_size);
+    specs[0].SetColorFormat(GVR_COLOR_FORMAT_RGBA_8888);
+    specs[0].SetDepthStencilFormat(GVR_DEPTH_STENCIL_FORMAT_DEPTH_16);
+    specs[0].SetSamples(2);
+    swapchain.reset(new gvr::SwapChain(_gvr_api->CreateSwapChain(specs)));
+
+    viewport_list.SetToRecommendedBufferViewports();
+    gvr::ClockTimePoint pred_time = gvr::GvrApi::GetTimePointNow();
+    pred_time.monotonic_system_time_nanos += 50000000; // 50ms
+    gvr::Mat4f head_view =
+      _gvr_api->GetHeadSpaceFromStartSpaceRotation(pred_time);
+
+    gvr::Mat4f left_eye_view =
+        MatrixMul(_gvr_api->GetEyeFromHeadMatrix(GVR_LEFT_EYE), head_view);
+
+    gvr::Frame frame = swapchain->AcquireFrame();
+    frame.BindBuffer(0);
+    viewport_list.GetBufferViewport(0, &scratch_viewport);
+    gvr::Mat4f proj_matrix =
+    PerspectiveMatrixFromView(scratch_viewport.GetSourceFov(), 0.1, 1000.0);
+
+    qDebug() << "proj_matrix ["<<   proj_matrix.m[0][0] <<"," << proj_matrix.m[0][1] << "," << proj_matrix.m[0][2]<<","<< proj_matrix.m[0][3]<<"] [" <<
+                                    proj_matrix.m[1][0] <<"," << proj_matrix.m[1][1] << "," << proj_matrix.m[1][2]<<","<< proj_matrix.m[1][3]<<"] [" <<
+                                    proj_matrix.m[2][0] <<"," << proj_matrix.m[2][1] << "," << proj_matrix.m[2][2]<<","<< proj_matrix.m[2][3]<<"] [" <<
+                                    proj_matrix.m[3][0] <<"," << proj_matrix.m[3][1] << "," << proj_matrix.m[3][2]<<","<< proj_matrix.m[3][3]<<"]";
+  
+/* swapchain_ 
+  
+
+  gvr::ClockTimePoint pred_time = gvr::GvrApi::GetTimePointNow();
+  pred_time.monotonic_system_time_nanos += kPredictionTimeWithoutVsyncNanos;
+
+  gvr::Mat4f head_view =
+      gvr_api_->GetHeadSpaceFromStartSpaceRotation(pred_time);
+    gvr::Mat4f left_eye_view =
+      Utils::MatrixMul(gvr_api_->GetEyeFromHeadMatrix(GVR_LEFT_EYE), head_view);
+
+
+  gvr::Frame frame = swapchain_->AcquireFrame();
+  frame.BindBuffer(0);
+  viewport_list_.GetBufferViewport(0, &scratch_viewport_);
+    gvr::Mat4f proj_matrix =
+      Utils::PerspectiveMatrixFromView(viewport.GetSourceFov(), kNearClip, kFarClip);
+
+    gvr::Mat4f mv = Utils::MatrixMul(view_matrix, model_matrix);
+    gvr::Mat4f mvp = Utils::MatrixMul(proj_matrix, mv);
+
+  glUniformMatrix4fv(shader_u_mvp_matrix_, 1, GL_FALSE,
+                     Utils::MatrixToGLArray(mvp).data());
+
+*/
+
     _ipd = 0.0327499993f * 2.0f;
 /* This is the daydream projection matrix */
     _eyeProjections[0][0] = vec4{-0.846933,0.015647,0.000594,0.000594};
@@ -264,3 +408,5 @@ void DaydreamDisplayPlugin::updatePresentPose() {
         glm::mat4_cast(glm::angleAxis(yaw, Vectors::UP)) * 
         glm::mat4_cast(glm::angleAxis(pitch, Vectors::RIGHT));
 }
+
+

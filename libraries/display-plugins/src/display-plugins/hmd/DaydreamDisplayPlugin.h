@@ -37,5 +37,8 @@ private:
     float getLeftCenterPixel() const;
     ivec4 getViewportForSourceSize(const uvec2& size) const;
 
+    gvr_context* _gvr_context;
+    std::unique_ptr<gvr::GvrApi> _gvr_api;
+
 };
 

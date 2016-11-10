@@ -18,11 +18,14 @@
 #include "stereo/StereoDisplayPlugin.h"
 #include "hmd/DebugHmdDisplayPlugin.h"
 
+
 const QString& DisplayPlugin::MENU_PATH() {
     static const QString value = "Display";
     return value;
 }
 #if defined(ANDROID)
+gvr_context* __gvr_context;
+
 LibInstance::LibInstance(){
     static std::once_flag once;
     std::call_once(once, [&] {
@@ -37,6 +40,16 @@ LibInstance::LibInstance(){
         PluginManager::getInstance()->loadDisplayPlugins(PLUGIN_POOL);
     });
   }
+
+extern "C" {
+
+JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnCreate(JNIEnv* env, jobject obj, jobject asset_mgr, jlong gvr_context_ptr) {
+    //qDebug() << "nativeOnCreate" << gvr_context_ptr << " On thread " << QThread::currentThreadId();
+    __gvr_context = reinterpret_cast<gvr_context*>(gvr_context_ptr);
+}
+
+}
+
 #endif
 
 // TODO migrate to a DLL model where plugins are discovered and loaded at runtime by the PluginManager class

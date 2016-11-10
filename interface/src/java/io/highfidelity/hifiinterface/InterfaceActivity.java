@@ -12,6 +12,7 @@
 package io.highfidelity.hifiinterface;
 
 import android.content.Intent;
+import android.content.res.AssetManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.WindowManager;
@@ -25,7 +26,13 @@ import com.google.vr.ndk.base.GvrApi;
 public class InterfaceActivity extends QtActivity {
     
     public static native void handleHifiURL(String hifiURLString);
-    public static native void functionThatWorks(String hifiURLString);
+    private native long nativeOnCreate(AssetManager assetManager, long gvrContextPtr);
+
+    private AssetManager assetManager;
+
+    // Opaque native pointer to the Application C++ object.
+    // This object is owned by the InterfaceActivity instance and passed to the native methods.
+    //private long nativeGvrApi;
     
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -45,6 +52,11 @@ public class InterfaceActivity extends QtActivity {
         DisplaySynchronizer displaySynchronizer = new DisplaySynchronizer(this, DisplayUtils.getDefaultDisplay(this));
         GvrApi gvrApi = new GvrApi(this, displaySynchronizer);
         Log.d("GVR", "gvrApi.toString(): " + gvrApi.toString());
-        functionThatWorks("yeah");
+
+        assetManager = getResources().getAssets();
+
+        //nativeGvrApi =
+            nativeOnCreate(assetManager, gvrApi.getNativeGvrContext());
+
     }
 }

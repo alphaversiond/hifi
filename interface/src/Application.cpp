@@ -162,9 +162,6 @@
 #include <gpu/Cube_vert.h>
 #include <gpu/Cube_frag.h>
 
-#ifdef ANDROID
-#include "vr/gvr/capi/include/gvr.h"
-#endif
 
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
@@ -174,17 +171,7 @@ extern "C" {
 }
 #endif
 
-#ifdef ANDROID
 
-extern "C" {
-
-JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_functionThatWorks(JNIEnv *jni, jclass clazz, jstring hifiURLString) {
-    qDebug() << "FunctionThatWorks code 8457213 executed in C and received " << hifiURLString;
-}
-
-}
-
-#endif
 
 /*
 const GLchar* vertexShaderSource = 
@@ -1350,6 +1337,12 @@ void Application::domainConnectionRefused(const QString& reasonMessage, int reas
             break;
     }
 }
+
+#ifdef ANDROID
+void Application::gvr_nativeOnCreate() {
+        qDebug() << "gvr_nativeOnCreate On thread " << QThread::currentThreadId();
+}
+#endif
 
 QString Application::getUserAgent() {
     if (QThread::currentThread() != thread()) {

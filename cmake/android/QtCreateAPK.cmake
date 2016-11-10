@@ -153,7 +153,7 @@ macro(qt_create_apk)
   # copy gvr lib - TODO - improve it so it does not depend on this hardcoded path! This is the path of the [gvr-]common library project folder
   add_custom_target(
     ${TARGET_NAME}-copy-gvr
-    COMMAND ${CMAKE_COMMAND} -E copy_directory "/Users/user/dev/workspace-hifi/tmp/commonexp/gvr-common" "${ANDROID_APK_BUILD_DIR}/../gvr-common"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "/Users/gcalero1984/Documents/workspace-hifi/gvr-common" "${ANDROID_APK_BUILD_DIR}/../gvr-common"
   )
 
   # handle setup for ndk-gdb
