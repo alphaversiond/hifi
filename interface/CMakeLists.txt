@@ -86,6 +86,11 @@ if (ANDROID)
   set(ANDROID_DEPLOY_QT_INSTALL "--install")
 
   set(BUILD_SHARED_LIBS ON)
+
+  # gvr-sdk to library folder - TODO Move this where it should be, related only to our daydream plugin
+  aar_to_libproject ("${ANDROID_LIB_DIR}/gvr-android-sdk/libraries/common/common.aar"
+    "android-${ANDROID_NATIVE_API_LEVEL}"
+    "${CMAKE_CURRENT_BINARY_DIR}/gvr-common")
 endif ()
 
 if (APPLE)

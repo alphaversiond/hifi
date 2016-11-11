@@ -150,12 +150,6 @@ macro(qt_create_apk)
     
   )
 
-  # copy gvr lib - TODO - improve it so it does not depend on this hardcoded path! This is the path of the [gvr-]common library project folder
-  add_custom_target(
-    ${TARGET_NAME}-copy-gvr
-    COMMAND ${CMAKE_COMMAND} -E copy_directory "/Users/gcalero1984/Documents/workspace-hifi/gvr-common" "${ANDROID_APK_BUILD_DIR}/../gvr-common"
-  )
-
   # handle setup for ndk-gdb
   add_custom_target(${TARGET_NAME}-gdb DEPENDS ${TARGET_NAME})
   
@@ -185,7 +179,7 @@ macro(qt_create_apk)
   # use androiddeployqt to create the apk
   add_custom_target(${TARGET_NAME}-apk
     COMMAND ${ANDROID_DEPLOY_QT} --input "${TARGET_NAME}-deployment.json" --output "${ANDROID_APK_OUTPUT_DIR}" --android-platform android-${ANDROID_API_LEVEL} ${ANDROID_DEPLOY_QT_INSTALL} --verbose --deployment bundled "\\${ARGS}"
-    DEPENDS ${TARGET_NAME} ${TARGET_NAME}-copy-res ${TARGET_NAME}-copy-assets ${TARGET_NAME}-copy-java ${TARGET_NAME}-copy-libs ${TARGET_NAME}-gdb ${TARGET_NAME}-copy-resources ${TARGET_NAME}-copy-scripts ${TARGET_NAME}-copy-gvr
+    DEPENDS ${TARGET_NAME} ${TARGET_NAME}-copy-res ${TARGET_NAME}-copy-assets ${TARGET_NAME}-copy-java ${TARGET_NAME}-copy-libs ${TARGET_NAME}-gdb ${TARGET_NAME}-copy-resources ${TARGET_NAME}-copy-scripts
   )
   
   # rename the APK if the caller asked us to
