@@ -150,6 +150,14 @@ macro(qt_create_apk)
     
   )
 
+  # download the protobuf-javanano jar if necessary
+  set(PROTOBUF_JAVANANO_JAR "${ANDROID_APK_BUILD_DIR}/libs/protobuf-javanano-3.0.0-alpha-7.jar")
+  if (NOT EXISTS ${PROTOBUF_JAVANANO_JAR})
+    file(DOWNLOAD "https://repo1.maven.org/maven2/com/google/protobuf/nano/protobuf-javanano/3.0.0-alpha-7/protobuf-javanano-3.0.0-alpha-7.jar"
+                  "${PROTOBUF_JAVANANO_JAR}"
+                  EXPECTED_HASH MD5=a5bf5dced93ffd107aa0c1f0e6390d81)
+  endif ()
+
   # handle setup for ndk-gdb
   add_custom_target(${TARGET_NAME}-gdb DEPENDS ${TARGET_NAME})
   
