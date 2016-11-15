@@ -99,7 +99,8 @@ public:
         SelectedAudioFormat,
         MoreEntityShapes,
         NodeKickRequest,
-        LAST_PACKET_TYPE = NodeKickRequest
+        NodeMuteRequest,
+        LAST_PACKET_TYPE = NodeMuteRequest
     };
 };
 
@@ -188,7 +189,8 @@ const PacketVersion VERSION_MODEL_ENTITIES_SUPPORT_STATIC_MESH = 61;
 const PacketVersion VERSION_MODEL_ENTITIES_SUPPORT_SIMPLE_HULLS = 62;
 const PacketVersion VERSION_WEB_ENTITIES_SUPPORT_DPI = 63;
 const PacketVersion VERSION_ENTITIES_ARROW_ACTION = 64;
-const PacketVersion VERSION_ENTITIES_LEOPOLY = 65;
+const PacketVersion VERSION_ENTITIES_LAST_EDITED_BY = 65;
+const PacketVersion VERSION_ENTITIES_LEOPOLY = 66;
 
 enum class AssetServerPacketVersion: PacketVersion {
     VegasCongestionControl = 19
