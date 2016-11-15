@@ -9,6 +9,24 @@
 
 #include "HmdDisplayPlugin.h"
 
+class GvrState {
+
+public:
+    GvrState(gvr_context *ctx);
+
+    gvr_context* _gvr_context;
+    std::unique_ptr<gvr::GvrApi> _gvr_api;
+
+    std::unique_ptr<gvr::SwapChain> _swapchain;
+    std::unique_ptr<gvr::ControllerApi> _controller_api;
+    gvr::BufferViewportList _viewport_list;
+    gvr::BufferViewport _scratch_viewport;
+    // Size of the offscreen framebuffer.
+    gvr::Sizei _framebuf_size;
+
+};
+
+
 // TODO: move this to plugins and add it as dependency ... somewhere for android
 class DaydreamDisplayPlugin : public HmdDisplayPlugin {
     using Parent = HmdDisplayPlugin;
@@ -37,8 +55,6 @@ private:
     float getLeftCenterPixel() const;
     ivec4 getViewportForSourceSize(const uvec2& size) const;
 
-    gvr_context* _gvr_context;
-    std::unique_ptr<gvr::GvrApi> _gvr_api;
-
+    GvrState * _gvrState;
 };
 

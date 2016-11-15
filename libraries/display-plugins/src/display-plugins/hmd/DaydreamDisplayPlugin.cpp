@@ -19,6 +19,15 @@
 
 const QString DaydreamDisplayPlugin::NAME("Daydream");
 
+GvrState::GvrState(gvr_context *ctx) :
+    _gvr_context(ctx),
+    _gvr_api(gvr::GvrApi::WrapNonOwned(_gvr_context)),
+    _viewport_list(_gvr_api->CreateEmptyBufferViewportList()),
+    _scratch_viewport(_gvr_api->CreateBufferViewport()) {
+
+}
+
+
 /* TODO: check what matrix system to use overall and see if this is needed */
 std::array<float, 16> MatrixToGLArray(const gvr::Mat4f& matrix) {
   // Note that this performs a *tranpose* to a column-major matrix array, as
@@ -121,6 +130,9 @@ void DaydreamDisplayPlugin::internalPresent() {
         glm::ivec4 viewport = getViewportForSourceSize(sourceSize);
         glm::ivec4 scissor = viewport;
 
+        gvr::Frame frame = _gvrState->_swapchain->AcquireFrame();
+        frame.BindBuffer(0);
+
         render([&](gpu::Batch& batch) {
 
             //if (_monoPreview) {
@@ -171,7 +183,7 @@ void DaydreamDisplayPlugin::internalPresent() {
             viewport = ivec4(0,0,windowSize);
             batch.enableStereo(false);
             batch.resetViewTransform();
-            batch.setFramebuffer(gpu::FramebufferPointer());
+            //batch.setFramebuffer(gpu::FramebufferPointer());
             batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(0));
             batch.setStateScissorRect(scissor); // was viewport
             batch.setViewportTransform(viewport);
@@ -179,6 +191,15 @@ void DaydreamDisplayPlugin::internalPresent() {
             batch.setPipeline(_presentPipeline);
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         });
+
+        gvr::ClockTimePoint pred_time = gvr::GvrApi::GetTimePointNow();
+        pred_time.monotonic_system_time_nanos += 50000000; // 50ms
+
+        gvr::Mat4f head_view = _gvrState->_gvr_api->GetHeadSpaceFromStartSpaceRotation(pred_time);
+
+        frame.Unbind();
+        frame.Submit(_gvrState->_viewport_list, head_view);
+
         swapBuffers();
 //    } 
 /*
@@ -283,109 +304,84 @@ void DaydreamDisplayPlugin::customizeContext() {
 bool DaydreamDisplayPlugin::internalActivate() {
     qDebug() << "[DaydreamDisplayPlugin] internalActivate with _gvr_context " << __gvr_context;
 
-    _gvr_context = __gvr_context;
+    _gvrState = new GvrState(__gvr_context);
 
-    _gvr_api = (gvr::GvrApi::WrapNonOwned(_gvr_context));
-    _gvr_api->InitializeGl();
+    if (_gvrState->_gvr_api) {
+        _gvrState->_gvr_api->InitializeGl();
 
-    qDebug() << "[DaydreamDisplayPlugin] internalActivate with _gvr_api " << _gvr_api->GetTimePointNow().monotonic_system_time_nanos;
+        _gvrState->_controller_api.reset(new gvr::ControllerApi);
 
-
-    // Handle to the swapchain. On every frame, we have to check if the buffers
-    // are still the right size for the frame (since they can be resized at any
-    // time). This is done by PrepareFramebuffer().
-    std::unique_ptr<gvr::SwapChain> swapchain;
-
-    // List of rendering params (used to render each eye).
-    gvr::BufferViewportList viewport_list(_gvr_api->CreateEmptyBufferViewportList());
-    gvr::BufferViewport scratch_viewport(_gvr_api->CreateBufferViewport());
-
-    // Size of the offscreen framebuffer.
-    gvr::Sizei framebuf_size;
+        _gvrState->_controller_api->Init(gvr::ControllerApi::DefaultOptions(), _gvrState->_gvr_context);
+        _gvrState->_controller_api->Resume();
+    }
+    qDebug() << "[DaydreamDisplayPlugin] internalActivate with _gvr_api " << _gvrState->_gvr_api->GetTimePointNow().monotonic_system_time_nanos;
 
     std::vector<gvr::BufferSpec> specs;
-    specs.push_back(_gvr_api->CreateBufferSpec());
-    framebuf_size = _gvr_api->GetMaximumEffectiveRenderTargetSize();
+    specs.push_back(_gvrState->_gvr_api->CreateBufferSpec());
+    _gvrState->_framebuf_size = _gvrState->_gvr_api->GetMaximumEffectiveRenderTargetSize();
 
-    qDebug() << "_framebuf_size " << framebuf_size.width << ", " << framebuf_size.height;
+    qDebug() << "_framebuf_size " << _gvrState->_framebuf_size.width << ", " << _gvrState->_framebuf_size.height;
     // Because we are using 2X MSAA, we can render to half as many pixels and
     // achieve similar quality. Scale each dimension by sqrt(2)/2 ~= 7/10ths.
-    framebuf_size.width = (7 * framebuf_size.width) / 10;
-    framebuf_size.height = (7 * framebuf_size.height) / 10;
+    _gvrState->_framebuf_size.width = (7 * _gvrState->_framebuf_size.width) / 10;
+    _gvrState->_framebuf_size.height = (7 * _gvrState->_framebuf_size.height) / 10;
 
-    specs[0].SetSize(framebuf_size);
+    specs[0].SetSize(_gvrState->_framebuf_size);
     specs[0].SetColorFormat(GVR_COLOR_FORMAT_RGBA_8888);
     specs[0].SetDepthStencilFormat(GVR_DEPTH_STENCIL_FORMAT_DEPTH_16);
     specs[0].SetSamples(2);
-    swapchain.reset(new gvr::SwapChain(_gvr_api->CreateSwapChain(specs)));
+    _gvrState->_swapchain.reset(new gvr::SwapChain(_gvrState->_gvr_api->CreateSwapChain(specs)));
 
-    viewport_list.SetToRecommendedBufferViewports();
+    _gvrState->_viewport_list.SetToRecommendedBufferViewports();
     gvr::ClockTimePoint pred_time = gvr::GvrApi::GetTimePointNow();
     pred_time.monotonic_system_time_nanos += 50000000; // 50ms
     gvr::Mat4f head_view =
-      _gvr_api->GetHeadSpaceFromStartSpaceRotation(pred_time);
+      _gvrState->_gvr_api->GetHeadSpaceFromStartSpaceRotation(pred_time);
 
     gvr::Mat4f left_eye_view =
-        MatrixMul(_gvr_api->GetEyeFromHeadMatrix(GVR_LEFT_EYE), head_view);
+        MatrixMul(_gvrState->_gvr_api->GetEyeFromHeadMatrix(GVR_LEFT_EYE), head_view);
+    gvr::Mat4f right_eye_view =
+        MatrixMul(_gvrState->_gvr_api->GetEyeFromHeadMatrix(GVR_RIGHT_EYE), head_view);
 
-    gvr::Frame frame = swapchain->AcquireFrame();
-    frame.BindBuffer(0);
-    viewport_list.GetBufferViewport(0, &scratch_viewport);
+    _gvrState->_viewport_list.GetBufferViewport(0, &_gvrState->_scratch_viewport);
     gvr::Mat4f proj_matrix =
-    PerspectiveMatrixFromView(scratch_viewport.GetSourceFov(), 0.1, 1000.0);
+    PerspectiveMatrixFromView(_gvrState->_scratch_viewport.GetSourceFov(), 0.1, 1000.0);
 
+/*
     qDebug() << "proj_matrix ["<<   proj_matrix.m[0][0] <<"," << proj_matrix.m[0][1] << "," << proj_matrix.m[0][2]<<","<< proj_matrix.m[0][3]<<"] [" <<
                                     proj_matrix.m[1][0] <<"," << proj_matrix.m[1][1] << "," << proj_matrix.m[1][2]<<","<< proj_matrix.m[1][3]<<"] [" <<
                                     proj_matrix.m[2][0] <<"," << proj_matrix.m[2][1] << "," << proj_matrix.m[2][2]<<","<< proj_matrix.m[2][3]<<"] [" <<
                                     proj_matrix.m[3][0] <<"," << proj_matrix.m[3][1] << "," << proj_matrix.m[3][2]<<","<< proj_matrix.m[3][3]<<"]";
-  
-/* swapchain_ 
-  
-
-  gvr::ClockTimePoint pred_time = gvr::GvrApi::GetTimePointNow();
-  pred_time.monotonic_system_time_nanos += kPredictionTimeWithoutVsyncNanos;
-
-  gvr::Mat4f head_view =
-      gvr_api_->GetHeadSpaceFromStartSpaceRotation(pred_time);
-    gvr::Mat4f left_eye_view =
-      Utils::MatrixMul(gvr_api_->GetEyeFromHeadMatrix(GVR_LEFT_EYE), head_view);
-
-
-  gvr::Frame frame = swapchain_->AcquireFrame();
-  frame.BindBuffer(0);
-  viewport_list_.GetBufferViewport(0, &scratch_viewport_);
-    gvr::Mat4f proj_matrix =
-      Utils::PerspectiveMatrixFromView(viewport.GetSourceFov(), kNearClip, kFarClip);
-
-    gvr::Mat4f mv = Utils::MatrixMul(view_matrix, model_matrix);
-    gvr::Mat4f mvp = Utils::MatrixMul(proj_matrix, mv);
-
-  glUniformMatrix4fv(shader_u_mvp_matrix_, 1, GL_FALSE,
-                     Utils::MatrixToGLArray(mvp).data());
-
 */
 
-    _ipd = 0.0327499993f * 2.0f;
-/* This is the daydream projection matrix */
-    _eyeProjections[0][0] = vec4{-0.846933,0.015647,0.000594,0.000594};
-    _eyeProjections[0][1] = vec4{0.026528,0.160950,-0.999945,-0.999746};
-    _eyeProjections[0][2] = vec4{0.020252,0.682755,-0.022554,-0.022549};
-    _eyeProjections[0][3] = vec4{0.027109,0.000000,-0.200020,0.000000};
+    gvr::Mat4f mvp = MatrixMul(proj_matrix, left_eye_view);
 
-    // EYE : 0, mvp [], [], [], [0.000594,-0.999746,-0.022549,0.000000]
-
-    _eyeProjections[1][0] = vec4{-0.846901,0.015647,0.000594,0.000594};
-    _eyeProjections[1][1] = vec4{-0.028419,0.160950,-0.999945,-0.999746};
-    _eyeProjections[1][2] = vec4{0.019013,0.682755,-0.022554,-0.022549};
-    _eyeProjections[1][3] = vec4{-0.027109,0.000000,-0.200020,0.000000};
-
-     // transposed EYE : 1, mvp [-0.846901,-0.028419,0.019013,-0.027109], [0.015647,0.160950,0.682755,0.000000], [0.000594,-0.999945,-0.022554,-0.200020], [0.000594,-0.999746,-0.022549,0.000000]
-
-    //_eyeProjections[0] = mat4();
-    //_eyeProjections[1] = mat4();
     
-    //_eyeInverseProjections[0] = glm::inverse(_eyeProjections[0]);
-    //_eyeInverseProjections[1] = glm::inverse(_eyeProjections[1]);
+    std::array<float, 16> mvpArr = MatrixToGLArray(mvp);
+
+/*    qDebug() << "mvpA Left ["<<   mvpArr[0] <<"," << mvpArr[1] << "," << mvpArr[2]<<","<< mvpArr[3]<<"] [" <<
+                                    mvpArr[4] <<"," << mvpArr[5] << "," << mvpArr[6]<<","<< mvpArr[7]<<"] [" <<
+                                    mvpArr[8] <<"," << mvpArr[9] << "," << mvpArr[10]<<","<< mvpArr[11]<<"] [" <<
+                                    mvpArr[12] <<"," << mvpArr[13] << "," << mvpArr[14]<<","<< mvpArr[15]<<"]";*/
+    _eyeProjections[0][0] = vec4{mvpArr[0],mvpArr[1],mvpArr[2],mvpArr[3]};
+    _eyeProjections[0][1] = vec4{mvpArr[4],mvpArr[5],mvpArr[5],mvpArr[7]};
+    _eyeProjections[0][2] = vec4{mvpArr[8],mvpArr[9],mvpArr[10],mvpArr[11]};
+    _eyeProjections[0][3] = vec4{mvpArr[12],mvpArr[13],mvpArr[14],mvpArr[15]};
+
+    mvp = MatrixMul(proj_matrix, right_eye_view);
+    mvpArr = MatrixToGLArray(mvp);
+    /*qDebug() << "mvpA Right ["<<   mvpArr[0] <<"," << mvpArr[1] << "," << mvpArr[2]<<","<< mvpArr[3]<<"] [" <<
+                                    mvpArr[4] <<"," << mvpArr[5] << "," << mvpArr[6]<<","<< mvpArr[7]<<"] [" <<
+                                    mvpArr[8] <<"," << mvpArr[9] << "," << mvpArr[10]<<","<< mvpArr[11]<<"] [" <<
+                                    mvpArr[12] <<"," << mvpArr[13] << "," << mvpArr[14]<<","<< mvpArr[15]<<"]";*/
+    _eyeProjections[1][0] = vec4{mvpArr[0],mvpArr[1],mvpArr[2],mvpArr[3]};
+    _eyeProjections[1][1] = vec4{mvpArr[4],mvpArr[5],mvpArr[5],mvpArr[7]};
+    _eyeProjections[1][2] = vec4{mvpArr[8],mvpArr[9],mvpArr[10],mvpArr[11]};
+    _eyeProjections[1][3] = vec4{mvpArr[12],mvpArr[13],mvpArr[14],mvpArr[15]};
+
+
+    _ipd = 0.0327499993f * 2.0f;
+
     _eyeOffsets[0][3] = vec4{ -0.0327499993, 0.0, 0.0149999997, 1.0 };
     _eyeOffsets[1][3] = vec4{ 0.0327499993, 0.0, 0.0149999997, 1.0 };
 
@@ -401,12 +397,24 @@ bool DaydreamDisplayPlugin::internalActivate() {
 }
 
 void DaydreamDisplayPlugin::updatePresentPose() {
-    float yaw = 0.0f; //sinf(secTimestampNow()) * 0.5f;
-    float pitch = 0.0f; // cosf(secTimestampNow()) * 0.25f;
+    gvr::ClockTimePoint pred_time = gvr::GvrApi::GetTimePointNow();
+    pred_time.monotonic_system_time_nanos += 50000000; // 50ms
+    gvr::Mat4f head_view =
+      _gvrState->_gvr_api->GetHeadSpaceFromStartSpaceRotation(pred_time);
+
+    glm::mat4 glmHeadView = glm::inverse(glm::make_mat4(&(MatrixToGLArray(head_view)[0])));
+
+    //glm::quat rotation = extractRotation(glmHeadView, true);
+
+    //glm::vec3 angles = safeEulerAngles(rotation);
+    //qDebug() << "angles  : " << angles.x << "," << angles.y << "," << angles.z ;
+
+    //float yaw = angles.y; //sinf(secTimestampNow()) * 0.5f;
+    //float pitch = angles.x; // cosf(secTimestampNow()) * 0.25f;
     // Simulates head pose latency correction
-    _currentPresentFrameInfo.presentPose = 
-        glm::mat4_cast(glm::angleAxis(yaw, Vectors::UP)) * 
-        glm::mat4_cast(glm::angleAxis(pitch, Vectors::RIGHT));
+    _currentPresentFrameInfo.presentPose = glmHeadView;
+       // glm::mat4_cast(glm::angleAxis(yaw, Vectors::UP)) * 
+       // glm::mat4_cast(glm::angleAxis(pitch, Vectors::RIGHT));
 }
 
 

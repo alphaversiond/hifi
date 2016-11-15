@@ -9,6 +9,7 @@
 #include <plugins/DisplayPlugin.h>
 #include "vr/gvr/capi/include/gvr.h"
 #include "vr/gvr/capi/include/gvr_types.h"
+#include "vr/gvr/capi/include/gvr_controller.h"
 
 #if defined(ANDROID)
 #ifndef hifi_display_plugins_DisplayPlugin_h

@@ -2112,7 +2112,7 @@ void Application::paintGL() {
                 //float x = sinf(((float) glm::radians((float)(numFrame % 360))) );
                 //qDebug() << "x degress " <<  (numFrame % 360);
                 modelTransform = glm::translate(modelTransform, vec3(0.0, -1.0f, 0.0f));
-                modelTransform = glm::rotate(modelTransform, glm::radians(numFrame*1.0f), vec3(0.5f,0.5f,0.5f));
+                modelTransform = glm::rotate(modelTransform, glm::radians(numFrame*1.0f), vec3(0.0f,0.0f,1.0f));
 
                 //float dmin = std::min(canvasSize.x, canvasSize.y);
                 //vec2 cubeSize = vec2(dmin/3, dmin/3);
@@ -2125,16 +2125,21 @@ void Application::paintGL() {
         batch.enableStereo(true);
         glm::mat4 projMat;
         _displayViewFrustum.evalProjectionMatrix(projMat);
+        Transform viewTransform;
+        _displayViewFrustum.evalViewTransform(viewTransform);
+        viewTransform.setTranslation(vec3(0.0, 0.0, 0.0));
+
         batch.setProjectionTransform(projMat);
         batch.setFramebuffer(finalFramebuffer);
         if (!thePipeline) {
             qDebug() << "Application::paintGL Setting a null pipeline";
         }
+        batch.setViewTransform(viewTransform);
         batch.setPipeline(thePipeline);
         batch.setInputFormat(cubeBufferFormat);
         batch.setInputBuffer(0, vertices._buffer, 0, sizeof(GLfloat) * 5);
         batch.setResourceTexture(0, statusIconMap);
-        batch.resetViewTransform();
+        //batch.resetViewTransform();
         batch.setModelTransform(modelTransform);
         batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLORS | gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(0.0, 0.8, 0.0, 1.0), 100.0f, 0, true);
         batch.draw(gpu::TRIANGLES, 36); // 36
