@@ -230,6 +230,7 @@ void EntityItemProperties::setBackgroundModeFromString(const QString& background
 EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     EntityPropertyFlags changedProperties;
 
+    CHECK_PROPERTY_CHANGE(PROP_LAST_EDITED_BY, lastEditedBy);
     CHECK_PROPERTY_CHANGE(PROP_POSITION, position);
     CHECK_PROPERTY_CHANGE(PROP_DIMENSIONS, dimensions);
     CHECK_PROPERTY_CHANGE(PROP_ROTATION, rotation);
@@ -372,6 +373,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(ageAsText, formatSecondsElapsed(getAge())); // gettable, but not settable
     }
 
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LAST_EDITED_BY, lastEditedBy);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_POSITION, position);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DIMENSIONS, dimensions);
     if (!skipDefaults) {
@@ -619,6 +621,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
         setType(typeScriptValue.toVariant().toString());
     }
 
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(lastEditedBy, QUuid, setLastEditedBy);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(position, glmVec3, setPosition);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(dimensions, glmVec3, setDimensions);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(rotation, glmQuat, setRotation);
@@ -759,6 +762,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
 }
 
 void EntityItemProperties::merge(const EntityItemProperties& other) {
+    COPY_PROPERTY_IF_CHANGED(lastEditedBy);
     COPY_PROPERTY_IF_CHANGED(position);
     COPY_PROPERTY_IF_CHANGED(dimensions);
     COPY_PROPERTY_IF_CHANGED(rotation);
@@ -1684,6 +1688,7 @@ bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityIt
 }
 
 void EntityItemProperties::markAllChanged() {
+    _lastEditedByChanged = true;
     _simulationOwnerChanged = true;
     _positionChanged = true;
     _dimensionsChanged = true;

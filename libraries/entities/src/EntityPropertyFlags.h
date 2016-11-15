@@ -181,6 +181,7 @@ enum EntityPropertyList {
     PROP_LOCAL_VELOCITY, // only used to convert values to and from scripts
     PROP_LOCAL_ANGULAR_VELOCITY, // only used to convert values to and from scripts
 
+    PROP_LAST_EDITED_BY,
     PROP_LEOPOLY_URL,
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
