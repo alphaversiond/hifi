@@ -24,6 +24,8 @@ public:
     // Size of the offscreen framebuffer.
     gvr::Sizei _framebuf_size;
 
+    // The last controller state (updated once per frame).
+    gvr::ControllerState _controller_state;
 };
 
 

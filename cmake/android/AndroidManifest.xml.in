@@ -20,6 +20,7 @@
       android:label="@string/AppDisplayName"
       android:screenOrientation="landscape"
       android:launchMode="singleTop"
+      android:enableVrMode="com.google.vr.vrcore/com.google.vr.vrcore.common.VrCoreListenerService"
       >
       
       <intent-filter>
@@ -79,6 +80,9 @@
   <!-- The following comment will be replaced upon deployment with default features based on the dependencies of the application.
     Remove the comment if you do not require these default features. -->
   
+    <!-- Required to detect viewer insertion. -->
+  <uses-permission android:name="android.permission.NFC"/>
+
 
   <uses-feature android:name="android.hardware.sensor.accelerometer" android:required="true"/>
   <uses-feature android:name="android.hardware.sensor.gyroscope" android:required="true"/>

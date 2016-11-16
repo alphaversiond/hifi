@@ -303,10 +303,11 @@ void DaydreamDisplayPlugin::customizeContext() {
 
 bool DaydreamDisplayPlugin::internalActivate() {
     qDebug() << "[DaydreamDisplayPlugin] internalActivate with _gvr_context " << __gvr_context;
-
+    _container->setFullscreen(nullptr, true);
     _gvrState = new GvrState(__gvr_context);
 
     if (_gvrState->_gvr_api) {
+        qDebug() << "Initialize _gvr_api GL";
         _gvrState->_gvr_api->InitializeGl();
 
         _gvrState->_controller_api.reset(new gvr::ControllerApi);
@@ -415,6 +416,36 @@ void DaydreamDisplayPlugin::updatePresentPose() {
     _currentPresentFrameInfo.presentPose = glmHeadView;
        // glm::mat4_cast(glm::angleAxis(yaw, Vectors::UP)) * 
        // glm::mat4_cast(glm::angleAxis(pitch, Vectors::RIGHT));
+
+    const int32_t old_status = _gvrState->_controller_state.GetApiStatus();
+    const int32_t old_connection_state = _gvrState->_controller_state.GetConnectionState();
+
+    // Read current controller state.
+    _gvrState->_controller_state.Update(*_gvrState->_controller_api);
+
+  // Print new API status and connection state, if they changed.
+  if (_gvrState->_controller_state.GetApiStatus() != old_status ||
+      _gvrState->_controller_state.GetConnectionState() != old_connection_state) {
+    qDebug() << "[DAYDREAM-CONTROLLER]: Controller API status: "<<
+         gvr_controller_api_status_to_string(_gvrState->_controller_state.GetApiStatus()) << ", connection state: " <<
+         gvr_controller_connection_state_to_string(
+             _gvrState->_controller_state.GetConnectionState());
+  }
+
+  _gvrState->_controller_api->Resume();
+
+  bool isTouching = _gvrState->_controller_state.IsTouching();
+
+  if (isTouching) {
+      gvr_vec2f touchPos = _gvrState->_controller_state.GetTouchPos();
+      qDebug() << "[DAYDREAM-CONTROLLER]: Touching x:" << touchPos.x << " y:" << touchPos.y;
+
+  }
+
+    bool appbutton = _gvrState->_controller_state.GetButtonUp(gvr::kControllerButtonApp);
+  if (appbutton) {
+          qDebug() << "[DAYDREAM-CONTROLLER]: App button pressed";
+  }
 }
 
 
