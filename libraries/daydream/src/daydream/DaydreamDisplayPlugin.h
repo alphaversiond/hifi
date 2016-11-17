@@ -7,7 +7,8 @@
 //
 #pragma once
 
-#include "HmdDisplayPlugin.h"
+#include "display-plugins/hmd/HmdDisplayPlugin.h"
+#include "../DisplayPlugin.h"
 
 class GvrState {
 
