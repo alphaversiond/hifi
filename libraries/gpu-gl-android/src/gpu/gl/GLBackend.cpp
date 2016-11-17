@@ -305,7 +305,6 @@ void GLBackend::syncCache() {
 void GLBackend::setupStereoSide(int side) {
     ivec4 vp = _transform._viewport;
     vp.z /= 2;
-    qDebug() << "GLBackend::setupStereoSide viewport " << (vp.x + side * vp.z) << "," << vp.y << "," << vp.z << "," << vp.w;
     glViewport(vp.x + side * vp.z, vp.y, vp.z, vp.w);
 
     _transform.bindCurrentCamera(side);

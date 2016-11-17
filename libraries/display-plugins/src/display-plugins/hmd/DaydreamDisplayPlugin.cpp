@@ -332,54 +332,10 @@ bool DaydreamDisplayPlugin::internalActivate() {
     specs[0].SetDepthStencilFormat(GVR_DEPTH_STENCIL_FORMAT_DEPTH_16);
     specs[0].SetSamples(2);
     _gvrState->_swapchain.reset(new gvr::SwapChain(_gvrState->_gvr_api->CreateSwapChain(specs)));
-
     _gvrState->_viewport_list.SetToRecommendedBufferViewports();
-    gvr::ClockTimePoint pred_time = gvr::GvrApi::GetTimePointNow();
-    pred_time.monotonic_system_time_nanos += 50000000; // 50ms
-    gvr::Mat4f head_view =
-      _gvrState->_gvr_api->GetHeadSpaceFromStartSpaceRotation(pred_time);
 
-    gvr::Mat4f left_eye_view =
-        MatrixMul(_gvrState->_gvr_api->GetEyeFromHeadMatrix(GVR_LEFT_EYE), head_view);
-    gvr::Mat4f right_eye_view =
-        MatrixMul(_gvrState->_gvr_api->GetEyeFromHeadMatrix(GVR_RIGHT_EYE), head_view);
 
-    _gvrState->_viewport_list.GetBufferViewport(0, &_gvrState->_scratch_viewport);
-    gvr::Mat4f proj_matrix =
-    PerspectiveMatrixFromView(_gvrState->_scratch_viewport.GetSourceFov(), 0.1, 1000.0);
-
-/*
-    qDebug() << "proj_matrix ["<<   proj_matrix.m[0][0] <<"," << proj_matrix.m[0][1] << "," << proj_matrix.m[0][2]<<","<< proj_matrix.m[0][3]<<"] [" <<
-                                    proj_matrix.m[1][0] <<"," << proj_matrix.m[1][1] << "," << proj_matrix.m[1][2]<<","<< proj_matrix.m[1][3]<<"] [" <<
-                                    proj_matrix.m[2][0] <<"," << proj_matrix.m[2][1] << "," << proj_matrix.m[2][2]<<","<< proj_matrix.m[2][3]<<"] [" <<
-                                    proj_matrix.m[3][0] <<"," << proj_matrix.m[3][1] << "," << proj_matrix.m[3][2]<<","<< proj_matrix.m[3][3]<<"]";
-*/
-
-    gvr::Mat4f mvp = MatrixMul(proj_matrix, left_eye_view);
-
-    
-    std::array<float, 16> mvpArr = MatrixToGLArray(mvp);
-
-/*    qDebug() << "mvpA Left ["<<   mvpArr[0] <<"," << mvpArr[1] << "," << mvpArr[2]<<","<< mvpArr[3]<<"] [" <<
-                                    mvpArr[4] <<"," << mvpArr[5] << "," << mvpArr[6]<<","<< mvpArr[7]<<"] [" <<
-                                    mvpArr[8] <<"," << mvpArr[9] << "," << mvpArr[10]<<","<< mvpArr[11]<<"] [" <<
-                                    mvpArr[12] <<"," << mvpArr[13] << "," << mvpArr[14]<<","<< mvpArr[15]<<"]";*/
-    _eyeProjections[0][0] = vec4{mvpArr[0],mvpArr[1],mvpArr[2],mvpArr[3]};
-    _eyeProjections[0][1] = vec4{mvpArr[4],mvpArr[5],mvpArr[5],mvpArr[7]};
-    _eyeProjections[0][2] = vec4{mvpArr[8],mvpArr[9],mvpArr[10],mvpArr[11]};
-    _eyeProjections[0][3] = vec4{mvpArr[12],mvpArr[13],mvpArr[14],mvpArr[15]};
-
-    mvp = MatrixMul(proj_matrix, right_eye_view);
-    mvpArr = MatrixToGLArray(mvp);
-    /*qDebug() << "mvpA Right ["<<   mvpArr[0] <<"," << mvpArr[1] << "," << mvpArr[2]<<","<< mvpArr[3]<<"] [" <<
-                                    mvpArr[4] <<"," << mvpArr[5] << "," << mvpArr[6]<<","<< mvpArr[7]<<"] [" <<
-                                    mvpArr[8] <<"," << mvpArr[9] << "," << mvpArr[10]<<","<< mvpArr[11]<<"] [" <<
-                                    mvpArr[12] <<"," << mvpArr[13] << "," << mvpArr[14]<<","<< mvpArr[15]<<"]";*/
-    _eyeProjections[1][0] = vec4{mvpArr[0],mvpArr[1],mvpArr[2],mvpArr[3]};
-    _eyeProjections[1][1] = vec4{mvpArr[4],mvpArr[5],mvpArr[5],mvpArr[7]};
-    _eyeProjections[1][2] = vec4{mvpArr[8],mvpArr[9],mvpArr[10],mvpArr[11]};
-    _eyeProjections[1][3] = vec4{mvpArr[12],mvpArr[13],mvpArr[14],mvpArr[15]};
-
+    resetEyeProjections();
 
     _ipd = 0.0327499993f * 2.0f;
 
@@ -390,7 +346,6 @@ bool DaydreamDisplayPlugin::internalActivate() {
     glm::vec2 windowSize = toGlm(window->size());
 
     _renderTargetSize = windowSize; // 3024x1680 
-    _cullingProjection = _eyeProjections[0];
     // This must come after the initialization, so that the values calculated
     // above are available during the customizeContext call (when not running
     // in threaded present mode)
@@ -444,8 +399,55 @@ void DaydreamDisplayPlugin::updatePresentPose() {
 
     bool appbutton = _gvrState->_controller_state.GetButtonUp(gvr::kControllerButtonApp);
   if (appbutton) {
-          qDebug() << "[DAYDREAM-CONTROLLER]: App button pressed";
+        qDebug() << "[DAYDREAM-CONTROLLER]: App button pressed";
   }
+
+  if (_gvrState->_controller_state.GetRecentered()) {
+      resetEyeProjections();
+  }
+
+  gvr::ControllerQuat orientation = _gvrState->_controller_state.GetOrientation();
+  qDebug() << "[DAYDREAM-CONTROLLER]: Orientation: " << orientation.qx << "," << orientation.qy << "," << orientation.qz << "," << orientation.qw;
+
+}
+
+void DaydreamDisplayPlugin::resetEyeProjections() {
+        gvr::ClockTimePoint pred_time = gvr::GvrApi::GetTimePointNow();
+    pred_time.monotonic_system_time_nanos += 50000000; // 50ms
+    gvr::Mat4f head_view =
+      _gvrState->_gvr_api->GetHeadSpaceFromStartSpaceRotation(pred_time);
+
+    gvr::Mat4f left_eye_view =
+        MatrixMul(_gvrState->_gvr_api->GetEyeFromHeadMatrix(GVR_LEFT_EYE), head_view);
+    gvr::Mat4f right_eye_view =
+        MatrixMul(_gvrState->_gvr_api->GetEyeFromHeadMatrix(GVR_RIGHT_EYE), head_view);
+
+    _gvrState->_viewport_list.GetBufferViewport(0, &_gvrState->_scratch_viewport);
+    gvr::Mat4f proj_matrix =
+    PerspectiveMatrixFromView(_gvrState->_scratch_viewport.GetSourceFov(), 0.1, 1000.0);
+
+    gvr::Mat4f mvp = MatrixMul(proj_matrix, left_eye_view);
+    std::array<float, 16> mvpArr = MatrixToGLArray(mvp);
+
+    _eyeProjections[0][0] = vec4{mvpArr[0],mvpArr[1],mvpArr[2],mvpArr[3]};
+    _eyeProjections[0][1] = vec4{mvpArr[4],mvpArr[5],mvpArr[5],mvpArr[7]};
+    _eyeProjections[0][2] = vec4{mvpArr[8],mvpArr[9],mvpArr[10],mvpArr[11]};
+    _eyeProjections[0][3] = vec4{mvpArr[12],mvpArr[13],mvpArr[14],mvpArr[15]};
+
+    mvp = MatrixMul(proj_matrix, right_eye_view);
+    mvpArr = MatrixToGLArray(mvp);
+
+    _eyeProjections[1][0] = vec4{mvpArr[0],mvpArr[1],mvpArr[2],mvpArr[3]};
+    _eyeProjections[1][1] = vec4{mvpArr[4],mvpArr[5],mvpArr[5],mvpArr[7]};
+    _eyeProjections[1][2] = vec4{mvpArr[8],mvpArr[9],mvpArr[10],mvpArr[11]};
+    _eyeProjections[1][3] = vec4{mvpArr[12],mvpArr[13],mvpArr[14],mvpArr[15]};
+
+    for_each_eye([&](Eye eye) {
+        _eyeInverseProjections[eye] = glm::inverse(_eyeProjections[eye]);
+    });
+
+    _cullingProjection = _eyeProjections[0];
+
 }
 
 

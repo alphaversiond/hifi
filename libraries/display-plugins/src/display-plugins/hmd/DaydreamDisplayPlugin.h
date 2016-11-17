@@ -56,7 +56,7 @@ private:
     static const QString NAME;
     float getLeftCenterPixel() const;
     ivec4 getViewportForSourceSize(const uvec2& size) const;
-
+    void resetEyeProjections();
     GvrState * _gvrState;
 };
 
