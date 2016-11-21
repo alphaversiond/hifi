@@ -13,7 +13,7 @@ using namespace gpu::gl;
 
 
 GLenum GLTexelFormat::evalGLTexelFormatInternal(const gpu::Element& dstFormat) {
-    qDebug() << "GLTexelFormat::evalGLTexelFormatInternal " << dstFormat.getDimension() << ", " << dstFormat.getSemantic() << ", " << dstFormat.getType();
+//    qDebug() << "GLTexelFormat::evalGLTexelFormatInternal " << dstFormat.getDimension() << ", " << dstFormat.getSemantic() << ", " << dstFormat.getType();
     GLenum result = GL_RGBA8;
     switch (dstFormat.getDimension()) {
         case gpu::SCALAR: {
@@ -202,14 +202,14 @@ GLenum GLTexelFormat::evalGLTexelFormatInternal(const gpu::Element& dstFormat) {
             qCDebug(gpugllogging) << "Unknown combination of texel format";
     }
     
-    qDebug() << "GLTexelFormat::evalGLTexelFormatInternal result " << result;
+    //qDebug() << "GLTexelFormat::evalGLTexelFormatInternal result " << result;
 
     return result;
 }
 
 GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const Element& srcFormat) {
-    qDebug() << "GLTexelFormat::evalGLTexelFormat dst.getDimension=" << dstFormat.getDimension() << " dst.getType=" << dstFormat.getType() << " dst.getSemantic=" << dstFormat.getSemantic();
-    qDebug() << "GLTexelFormat::evalGLTexelFormat src.getDimension=" << srcFormat.getDimension() << " src.getType=" << srcFormat.getType() << " src.getSemantic=" << srcFormat.getSemantic();
+//    qDebug() << "GLTexelFormat::evalGLTexelFormat dst.getDimension=" << dstFormat.getDimension() << " dst.getType=" << dstFormat.getType() << " dst.getSemantic=" << dstFormat.getSemantic();
+//    qDebug() << "GLTexelFormat::evalGLTexelFormat src.getDimension=" << srcFormat.getDimension() << " src.getType=" << srcFormat.getType() << " src.getSemantic=" << srcFormat.getSemantic();
 
     if (dstFormat != srcFormat) {
         GLTexelFormat texel = { GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE };
@@ -633,7 +633,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
         default:
             qCDebug(gpugllogging) << "Unknown combination of texel format";
         }
-        qDebug() << "GLTexelFormat::evalGLTexelFormat Texel.type " << texel.type << " - texel.format=" << texel.format << " texel.internalFormat=" << texel.internalFormat;
+        //qDebug() << "GLTexelFormat::evalGLTexelFormat Texel.type " << texel.type << " - texel.format=" << texel.format << " texel.internalFormat=" << texel.internalFormat;
         return texel;
     }
 }

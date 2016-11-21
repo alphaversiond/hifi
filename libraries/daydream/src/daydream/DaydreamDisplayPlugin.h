@@ -8,26 +8,8 @@
 #pragma once
 
 #include "display-plugins/hmd/HmdDisplayPlugin.h"
-#include "../DisplayPlugin.h"
+#include "../DaydreamPlugin.h"
 
-class GvrState {
-
-public:
-    GvrState(gvr_context *ctx);
-
-    gvr_context* _gvr_context;
-    std::unique_ptr<gvr::GvrApi> _gvr_api;
-
-    std::unique_ptr<gvr::SwapChain> _swapchain;
-    std::unique_ptr<gvr::ControllerApi> _controller_api;
-    gvr::BufferViewportList _viewport_list;
-    gvr::BufferViewport _scratch_viewport;
-    // Size of the offscreen framebuffer.
-    gvr::Sizei _framebuf_size;
-
-    // The last controller state (updated once per frame).
-    gvr::ControllerState _controller_state;
-};
 
 
 // TODO: move this to plugins and add it as dependency ... somewhere for android
@@ -57,7 +39,6 @@ private:
     static const QString NAME;
     float getLeftCenterPixel() const;
     ivec4 getViewportForSourceSize(const uvec2& size) const;
-    void resetEyeProjections();
-    GvrState * _gvrState;
+    void resetEyeProjections(GvrState *);
 };
 

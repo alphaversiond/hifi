@@ -160,19 +160,29 @@ void PluginManager::loadDisplayPlugins(DisplayPlugin* pool[]) {
         DisplayPlugin * plugin = pool[i];
         if (plugin->isSupported()) {
             plugin->init();
-            _androidPlugins.push_back(DisplayPluginPointer(plugin));
-            qDebug() << "Plugin supported " << i;
+            _displayPlugins.push_back(DisplayPluginPointer(plugin));
+            qDebug() << "Display Plugin supported " << i;
+        }
+    }
+}
+
+void PluginManager::loadInputPlugins(InputPlugin *pool[]) {
+    for (int i = 0; pool[i]; ++i) {
+        InputPlugin * plugin = pool[i];
+        if (plugin->isSupported()) {
+            plugin->init();
+            _inputPlugins.push_back(InputPluginPointer(plugin));
+            qDebug() << "Input Plugin supported " << i;
         }
     }
 }
 
 DisplayPluginList getDisplayPlugins() {
-    return PluginManager::getInstance()->_androidPlugins;
+    return PluginManager::getInstance()->_displayPlugins;
 }
 
 InputPluginList getInputPlugins() {
-    InputPluginList result;
-    return result;
+    return PluginManager::getInstance()->_inputPlugins;
 }
 
 void saveInputPluginSettings(const InputPluginList& plugins) {

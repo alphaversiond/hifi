@@ -1,7 +1,7 @@
 set(TARGET_NAME daydream)
 AUTOSCRIBE_SHADER_LIB(gpu daydream)
 setup_hifi_library(OpenGL)
-link_hifi_libraries(shared plugins ui-plugins gl gpu-gl ui render-utils display-plugins)
+link_hifi_libraries(shared plugins ui-plugins gl gpu-gl ui render-utils display-plugins controllers)
 
 target_opengl()
 

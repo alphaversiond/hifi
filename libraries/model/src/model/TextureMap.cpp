@@ -229,7 +229,6 @@ void generateMips(gpu::Texture* texture, QImage& image, gpu::Element formatMip) 
 }
 
 void generateFaceMips(gpu::Texture* texture, QImage& image, gpu::Element formatMip, uint8 face) {
-    qDebug() << "generateFaceMips image " << image.width() << " x " << image.height();
 #if CPU_MIPMAPS
     auto numMips = texture->evalNumMips();
     for (uint16 level = 1; level < numMips; ++level) {
@@ -824,7 +823,6 @@ gpu::Texture* TextureUsage::processCubeTextureColorFromImage(const QImage& srcIm
             }
 
             if (generateMips) {
-                qDebug() << "TextureUsage::processCubeTextureColorFromImage calling generateFaceMips " << f;
                 theTexture->autoGenerateMips(-1);
             }
 

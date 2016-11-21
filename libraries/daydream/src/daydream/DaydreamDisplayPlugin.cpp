@@ -19,14 +19,6 @@
 
 const QString DaydreamDisplayPlugin::NAME("Daydream");
 
-GvrState::GvrState(gvr_context *ctx) :
-    _gvr_context(ctx),
-    _gvr_api(gvr::GvrApi::WrapNonOwned(_gvr_context)),
-    _viewport_list(_gvr_api->CreateEmptyBufferViewportList()),
-    _scratch_viewport(_gvr_api->CreateBufferViewport()) {
-
-}
-
 
 /* TODO: check what matrix system to use overall and see if this is needed */
 std::array<float, 16> MatrixToGLArray(const gvr::Mat4f& matrix) {
@@ -130,7 +122,9 @@ void DaydreamDisplayPlugin::internalPresent() {
         glm::ivec4 viewport = getViewportForSourceSize(sourceSize);
         glm::ivec4 scissor = viewport;
 
-        gvr::Frame frame = _gvrState->_swapchain->AcquireFrame();
+        GvrState *gvrState = GvrState::getInstance();
+        qDebug() << "gvrState " << gvrState << " _gvr_context " << gvrState->_gvr_context;
+        gvr::Frame frame = gvrState->_swapchain->AcquireFrame();
         frame.BindBuffer(0);
 
         render([&](gpu::Batch& batch) {
@@ -195,10 +189,10 @@ void DaydreamDisplayPlugin::internalPresent() {
         gvr::ClockTimePoint pred_time = gvr::GvrApi::GetTimePointNow();
         pred_time.monotonic_system_time_nanos += 50000000; // 50ms
 
-        gvr::Mat4f head_view = _gvrState->_gvr_api->GetHeadSpaceFromStartSpaceRotation(pred_time);
+        gvr::Mat4f head_view = gvrState->_gvr_api->GetHeadSpaceFromStartSpaceRotation(pred_time);
 
         frame.Unbind();
-        frame.Submit(_gvrState->_viewport_list, head_view);
+        frame.Submit(gvrState->_viewport_list, head_view);
 
         swapBuffers();
 //    } 
@@ -304,38 +298,37 @@ void DaydreamDisplayPlugin::customizeContext() {
 bool DaydreamDisplayPlugin::internalActivate() {
     qDebug() << "[DaydreamDisplayPlugin] internalActivate with _gvr_context " << __gvr_context;
     _container->setFullscreen(nullptr, true);
-    _gvrState = new GvrState(__gvr_context);
 
-    if (_gvrState->_gvr_api) {
+    GvrState::init(__gvr_context);
+    GvrState *gvrState = GvrState::getInstance();
+
+    if (gvrState->_gvr_api) {
         qDebug() << "Initialize _gvr_api GL";
-        _gvrState->_gvr_api->InitializeGl();
-
-        _gvrState->_controller_api.reset(new gvr::ControllerApi);
-
-        _gvrState->_controller_api->Init(gvr::ControllerApi::DefaultOptions(), _gvrState->_gvr_context);
-        _gvrState->_controller_api->Resume();
+        gvrState->_gvr_api->InitializeGl();
     }
-    qDebug() << "[DaydreamDisplayPlugin] internalActivate with _gvr_api " << _gvrState->_gvr_api->GetTimePointNow().monotonic_system_time_nanos;
+
+    qDebug() << "[DaydreamDisplayPlugin] internalActivate with _gvr_api " << gvrState->_gvr_api->GetTimePointNow().monotonic_system_time_nanos;
 
     std::vector<gvr::BufferSpec> specs;
-    specs.push_back(_gvrState->_gvr_api->CreateBufferSpec());
-    _gvrState->_framebuf_size = _gvrState->_gvr_api->GetMaximumEffectiveRenderTargetSize();
+    specs.push_back(gvrState->_gvr_api->CreateBufferSpec());
+    gvrState->_framebuf_size = gvrState->_gvr_api->GetMaximumEffectiveRenderTargetSize();
 
-    qDebug() << "_framebuf_size " << _gvrState->_framebuf_size.width << ", " << _gvrState->_framebuf_size.height;
+    qDebug() << "_framebuf_size " << gvrState->_framebuf_size.width << ", " << gvrState->_framebuf_size.height;
     // Because we are using 2X MSAA, we can render to half as many pixels and
     // achieve similar quality. Scale each dimension by sqrt(2)/2 ~= 7/10ths.
-    _gvrState->_framebuf_size.width = (7 * _gvrState->_framebuf_size.width) / 10;
-    _gvrState->_framebuf_size.height = (7 * _gvrState->_framebuf_size.height) / 10;
+    gvrState->_framebuf_size.width = (7 * gvrState->_framebuf_size.width) / 10;
+    gvrState->_framebuf_size.height = (7 * gvrState->_framebuf_size.height) / 10;
 
-    specs[0].SetSize(_gvrState->_framebuf_size);
+    specs[0].SetSize(gvrState->_framebuf_size);
     specs[0].SetColorFormat(GVR_COLOR_FORMAT_RGBA_8888);
     specs[0].SetDepthStencilFormat(GVR_DEPTH_STENCIL_FORMAT_DEPTH_16);
     specs[0].SetSamples(2);
-    _gvrState->_swapchain.reset(new gvr::SwapChain(_gvrState->_gvr_api->CreateSwapChain(specs)));
-    _gvrState->_viewport_list.SetToRecommendedBufferViewports();
+    qDebug() << "Resetting swapchain";
+    gvrState->_swapchain.reset(new gvr::SwapChain(gvrState->_gvr_api->CreateSwapChain(specs)));
+    gvrState->_viewport_list.SetToRecommendedBufferViewports();
 
 
-    resetEyeProjections();
+    resetEyeProjections(gvrState);
 
     _ipd = 0.0327499993f * 2.0f;
 
@@ -355,76 +348,39 @@ bool DaydreamDisplayPlugin::internalActivate() {
 void DaydreamDisplayPlugin::updatePresentPose() {
     gvr::ClockTimePoint pred_time = gvr::GvrApi::GetTimePointNow();
     pred_time.monotonic_system_time_nanos += 50000000; // 50ms
+    
+    GvrState *gvrState = GvrState::getInstance();
     gvr::Mat4f head_view =
-      _gvrState->_gvr_api->GetHeadSpaceFromStartSpaceRotation(pred_time);
+    gvrState->_gvr_api->GetHeadSpaceFromStartSpaceRotation(pred_time);
 
     glm::mat4 glmHeadView = glm::inverse(glm::make_mat4(&(MatrixToGLArray(head_view)[0])));
 
-    //glm::quat rotation = extractRotation(glmHeadView, true);
-
-    //glm::vec3 angles = safeEulerAngles(rotation);
-    //qDebug() << "angles  : " << angles.x << "," << angles.y << "," << angles.z ;
-
-    //float yaw = angles.y; //sinf(secTimestampNow()) * 0.5f;
-    //float pitch = angles.x; // cosf(secTimestampNow()) * 0.25f;
-    // Simulates head pose latency correction
     _currentPresentFrameInfo.presentPose = glmHeadView;
-       // glm::mat4_cast(glm::angleAxis(yaw, Vectors::UP)) * 
-       // glm::mat4_cast(glm::angleAxis(pitch, Vectors::RIGHT));
 
-    const int32_t old_status = _gvrState->_controller_state.GetApiStatus();
-    const int32_t old_connection_state = _gvrState->_controller_state.GetConnectionState();
+    if (gvrState->_controller_state.GetApiStatus() == gvr_controller_api_status::GVR_CONTROLLER_API_OK &&
+        gvrState->_controller_state.GetConnectionState() == gvr_controller_connection_state::GVR_CONTROLLER_CONNECTED) {
 
-    // Read current controller state.
-    _gvrState->_controller_state.Update(*_gvrState->_controller_api);
-
-  // Print new API status and connection state, if they changed.
-  if (_gvrState->_controller_state.GetApiStatus() != old_status ||
-      _gvrState->_controller_state.GetConnectionState() != old_connection_state) {
-    qDebug() << "[DAYDREAM-CONTROLLER]: Controller API status: "<<
-         gvr_controller_api_status_to_string(_gvrState->_controller_state.GetApiStatus()) << ", connection state: " <<
-         gvr_controller_connection_state_to_string(
-             _gvrState->_controller_state.GetConnectionState());
-  }
-
-  _gvrState->_controller_api->Resume();
-
-  bool isTouching = _gvrState->_controller_state.IsTouching();
-
-  if (isTouching) {
-      gvr_vec2f touchPos = _gvrState->_controller_state.GetTouchPos();
-      qDebug() << "[DAYDREAM-CONTROLLER]: Touching x:" << touchPos.x << " y:" << touchPos.y;
-
-  }
-
-    bool appbutton = _gvrState->_controller_state.GetButtonUp(gvr::kControllerButtonApp);
-  if (appbutton) {
-        qDebug() << "[DAYDREAM-CONTROLLER]: App button pressed";
-  }
-
-  if (_gvrState->_controller_state.GetRecentered()) {
-      resetEyeProjections();
-  }
-
-  gvr::ControllerQuat orientation = _gvrState->_controller_state.GetOrientation();
-  qDebug() << "[DAYDREAM-CONTROLLER]: Orientation: " << orientation.qx << "," << orientation.qy << "," << orientation.qz << "," << orientation.qw;
-
+      if (gvrState->_controller_state.GetRecentered()) {
+        qDebug() << "[DAYDREAM-CONTROLLER] Recenter";
+        resetEyeProjections(gvrState);
+      }
+    }
 }
 
-void DaydreamDisplayPlugin::resetEyeProjections() {
+void DaydreamDisplayPlugin::resetEyeProjections(GvrState *gvrState) {
         gvr::ClockTimePoint pred_time = gvr::GvrApi::GetTimePointNow();
     pred_time.monotonic_system_time_nanos += 50000000; // 50ms
     gvr::Mat4f head_view =
-      _gvrState->_gvr_api->GetHeadSpaceFromStartSpaceRotation(pred_time);
+      gvrState->_gvr_api->GetHeadSpaceFromStartSpaceRotation(pred_time);
 
     gvr::Mat4f left_eye_view =
-        MatrixMul(_gvrState->_gvr_api->GetEyeFromHeadMatrix(GVR_LEFT_EYE), head_view);
+        MatrixMul(gvrState->_gvr_api->GetEyeFromHeadMatrix(GVR_LEFT_EYE), head_view);
     gvr::Mat4f right_eye_view =
-        MatrixMul(_gvrState->_gvr_api->GetEyeFromHeadMatrix(GVR_RIGHT_EYE), head_view);
+        MatrixMul(gvrState->_gvr_api->GetEyeFromHeadMatrix(GVR_RIGHT_EYE), head_view);
 
-    _gvrState->_viewport_list.GetBufferViewport(0, &_gvrState->_scratch_viewport);
+    gvrState->_viewport_list.GetBufferViewport(0, &gvrState->_scratch_viewport);
     gvr::Mat4f proj_matrix =
-    PerspectiveMatrixFromView(_gvrState->_scratch_viewport.GetSourceFov(), 0.1, 1000.0);
+    PerspectiveMatrixFromView(gvrState->_scratch_viewport.GetSourceFov(), 0.1, 1000.0);
 
     gvr::Mat4f mvp = MatrixMul(proj_matrix, left_eye_view);
     std::array<float, 16> mvpArr = MatrixToGLArray(mvp);
