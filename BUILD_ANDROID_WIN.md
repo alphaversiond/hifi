@@ -1,7 +1,7 @@
 # HiFi interface - Android build on Windows
 
 ----------------------------------------------------------------
-  ## Prerequisites
+## Prerequisites
 
   * Visual Studio 12.0 (Community is enough)
   * [Qt 5.6.1-1 android](http://download.qt.io/official_releases/qt/5.6/5.6.1-1/qt-opensource-windows-x86-android-5.6.1-1.exe.mirrorlist). Previously used 5.5!
@@ -122,6 +122,10 @@ Edit it, particularly to match paths in your system. Must check these variables 
 ```
 FIX_SCRIBE_OLD
 FIX_SCRIBE_NEW
+```
+And the line that changes dir to libraries should point your actual build-dir\libraries
+```
+cd  C:\Users\user\dev\workspace-hifi\hifi\build-android-interface\libraries
 ```
 
 ## Build
@@ -277,8 +281,9 @@ Create a copy of the existing libprocedural.so file as *libprocedural.o* and the
   ::
   ```
 
-  replacerx.bat (replaces a string in a file and outputs)
-  ```@echo off
+  replacerx.bat (replaces a string in a file and outputs) - **must be in PATH to make fixscribeinmakes.bat work**
+  ```
+  @echo off
   REM -- Prepare the Command Processor --
   SETLOCAL ENABLEEXTENSIONS
   SETLOCAL DISABLEDELAYEDEXPANSION
@@ -475,7 +480,7 @@ c:\Users\user\dev\bin\android-ndk-r12b\sources\cxx-stl\gnu-libstdc++\4.9\libs\ar
 to
 c:\Users\user\dev\bin\android-ndk-r12b\toolchains\my-tc-24-libc\arm-linux-androideabi\lib\armv7-a\
 ```
-## notes
+## Additional changes
 
 ### fix toolchain
 ```
@@ -538,13 +543,38 @@ c:\Users\user\dev\bin\android-ndk-r12b\toolchains\my-tc-24-libc\arm-linux-androi
 ```
 (USE .cmd for compilers)
 
-DO NOT USE \ backslash for 
+### Troubleshooting
+
+## Path errors
+
+At least ANDROID_LIB_DIR and NDK_PATH should use / slashes
 ```
 ANDROID_LIB_DIR
 C:\Users\user\dev\workspace-hifi\hifi>set ANDROID_LIB_DIR=c:/Users/user/dev/workspace-hifi/
 C:\Users\user\dev\workspace-hifi\hifi>setx ANDROID_LIB_DIR %ANDROID_LIB_DIR%
 ```
-NDK PATH must use / slashes too
+
+## Some    l i b w h a t v e r . s o    (e.g. like it being searching for wrong lib names - missing e) not found
 
 Whenever the linker does not find a library, just provide the one with the name "suggested".
-  
+
+## Syntax error when linking libinterface.so
+
+Edit the build_dir/interface/CMakeFiles/interface.dir/build.make:
+Look for the string
+```
+Linking CXX shared library apk/libs/armeabi-v7a/libinterface.so
+```
+Next to it there should be a call to *clang++.cmd*, replace it for **clang38++.exe**
+
+## build.xml error when running qtcreateapk
+
+Apparently the code that runs "android update" on the gvr-common library doesn't run at all on Windows.
+Manually run inside build-dir/interface/gvr-common:
+```
+%ANDROID_HOME%/tools/android update lib-project -p . -t android-24
+```
+(our current target is android-24)
+Run interface-apk again inside build-dir.
+
+
