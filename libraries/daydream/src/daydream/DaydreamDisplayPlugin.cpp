@@ -370,17 +370,14 @@ void DaydreamDisplayPlugin::updatePresentPose() {
 void DaydreamDisplayPlugin::resetEyeProjections(GvrState *gvrState) {
         gvr::ClockTimePoint pred_time = gvr::GvrApi::GetTimePointNow();
     pred_time.monotonic_system_time_nanos += 50000000; // 50ms
-    gvr::Mat4f head_view =
-      gvrState->_gvr_api->GetHeadSpaceFromStartSpaceRotation(pred_time);
 
-    gvr::Mat4f left_eye_view =
-        MatrixMul(gvrState->_gvr_api->GetEyeFromHeadMatrix(GVR_LEFT_EYE), head_view);
-    gvr::Mat4f right_eye_view =
-        MatrixMul(gvrState->_gvr_api->GetEyeFromHeadMatrix(GVR_RIGHT_EYE), head_view);
+    gvr::Mat4f left_eye_view = gvrState->_gvr_api->GetEyeFromHeadMatrix(GVR_LEFT_EYE);
+    gvr::Mat4f right_eye_view =gvrState->_gvr_api->GetEyeFromHeadMatrix(GVR_RIGHT_EYE);
 
-    gvrState->_viewport_list.GetBufferViewport(0, &gvrState->_scratch_viewport);
-    gvr::Mat4f proj_matrix =
-    PerspectiveMatrixFromView(gvrState->_scratch_viewport.GetSourceFov(), 0.1, 1000.0);
+    gvr::BufferViewport scratch_viewport(gvrState->_gvr_api->CreateBufferViewport());
+
+    gvrState->_viewport_list.GetBufferViewport(0, &scratch_viewport);
+    gvr::Mat4f proj_matrix = PerspectiveMatrixFromView(scratch_viewport.GetSourceFov(), 0.1, 1000.0);
 
     gvr::Mat4f mvp = MatrixMul(proj_matrix, left_eye_view);
     std::array<float, 16> mvpArr = MatrixToGLArray(mvp);
@@ -390,6 +387,9 @@ void DaydreamDisplayPlugin::resetEyeProjections(GvrState *gvrState) {
     _eyeProjections[0][2] = vec4{mvpArr[8],mvpArr[9],mvpArr[10],mvpArr[11]};
     _eyeProjections[0][3] = vec4{mvpArr[12],mvpArr[13],mvpArr[14],mvpArr[15]};
 
+    gvrState->_viewport_list.GetBufferViewport(1, &scratch_viewport);
+    
+    proj_matrix = PerspectiveMatrixFromView(scratch_viewport.GetSourceFov(), 0.1, 1000.0);
     mvp = MatrixMul(proj_matrix, right_eye_view);
     mvpArr = MatrixToGLArray(mvp);
 
@@ -403,7 +403,6 @@ void DaydreamDisplayPlugin::resetEyeProjections(GvrState *gvrState) {
     });
 
     _cullingProjection = _eyeProjections[0];
-
 }
 
 
