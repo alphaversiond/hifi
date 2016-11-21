@@ -135,9 +135,130 @@ Inside the build folder, run
 make interface-apk
 ```
 
-### Possible error libprocedural.o?
+## ndk r12b + android-24 + Google VR
 
-If the following error occurs:
+### prerequisites
+
+download gvr
+git clone https://github.com/googlevr/gvr-android-sdk
+(where? in android_lib_dir location, generally one level outside the cloned hifi)
+
+sdk:
+android 7.0
+sdk tools 25.2.2
+sdk platform-tools 25
+
+download r12b
+https://github.com/android-ndk/ndk/wiki
+
+python to make a standalone toolchain
+https://www.python.org/ftp/python/2.7.12/python-2.7.12.msi
+
+new openssl to replace old one
+targeting android-24
+(given a tar.gz, use
+```
+tar -zxvf backup.tar.gz
+```
+from git bash.
+
+### create standalone toolchain
+```
+C:\Users\user\dev\bin\android-ndk-r12b\build\tools>make_standalone_toolchain.py --arch arm --api 24 --stl=libc++ --install-dir C:\Users\user\dev\bin\android-ndk-r12b\toolchains\my-tc-24-libc
+```
+  creates folder
+  ```
+  C:\Users\user\dev\bin\android-ndk-r12b\toolchains\my-tc-24-libc
+  ```
+
+Complete toolchain by copying libsupc
+```
+c:\Users\user\dev\bin\android-ndk-r12b\sources\cxx-stl\gnu-libstdc++\4.9\libs\armeabi-v7a\libsupc++.a
+to
+c:\Users\user\dev\bin\android-ndk-r12b\toolchains\my-tc-24-libc\arm-linux-androideabi\lib\armv7-a\
+```
+## Additional changes
+
+### fix toolchain
+
+Separate the suffix for clang from other tools (so some will use .exe, clang .cmd)
+
+```
++++ b/cmake/android/android.toolchain.cmake
+@@ -362,6 +362,7 @@ if( NOT DEFINED ANDROID_NDK_HOST_X64 AND (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "a
+ endif()
+
+ set( TOOL_OS_SUFFIX "" )
++set( TOOL_OS_CLANG_SCRIPT_SUFFIX "" )
+ if( CMAKE_HOST_APPLE )
+  set( ANDROID_NDK_HOST_SYSTEM_NAME "darwin-x86_64" )
+  set( ANDROID_NDK_HOST_SYSTEM_NAME2 "darwin-x86" )
+@@ -369,6 +370,7 @@ elseif( CMAKE_HOST_WIN32 )
+  set( ANDROID_NDK_HOST_SYSTEM_NAME "windows-x86_64" )
+  set( ANDROID_NDK_HOST_SYSTEM_NAME2 "windows" )
+  set( TOOL_OS_SUFFIX ".exe" )
++ set( TOOL_OS_CLANG_SCRIPT_SUFFIX ".cmd" )
+ elseif( CMAKE_HOST_UNIX )
+  set( ANDROID_NDK_HOST_SYSTEM_NAME "linux-x86_64" )
+  set( ANDROID_NDK_HOST_SYSTEM_NAME2 "linux-x86" )
+@@ -1108,23 +1110,24 @@ else()
+ endif()
+ unset( _ndk_ccache )
+
+-
++message (STATUS "CMAKE_C_COMPILER ${CMAKE_C_COMPILER}")
++message (STATUS "CMAKE_CXX_COMPILER ${CMAKE_CXX_COMPILER}")
+ # setup the cross-compiler
+ if( NOT CMAKE_C_COMPILER )
+  if( NDK_CCACHE AND NOT ANDROID_SYSROOT MATCHES "[ ;\"]" )
+   set( CMAKE_C_COMPILER   "${NDK_CCACHE}" CACHE PATH "ccache as C compiler" )
+   set( CMAKE_CXX_COMPILER "${NDK_CCACHE}" CACHE PATH "ccache as C++ compiler" )
+   if( ANDROID_COMPILER_IS_CLANG )
+-   set( CMAKE_C_COMPILER_ARG1   "${ANDROID_CLANG_TOOLCHAIN_ROOT}/bin/${_clang_name}${TOOL_OS_SUFFIX}"   CACHE PATH "C compiler")
+-   set( CMAKE_CXX_COMPILER_ARG1 "${ANDROID_CLANG_TOOLCHAIN_ROOT}/bin/${_clang_name}++${TOOL_OS_SUFFIX}" CACHE PATH "C++ compiler")
++   set( CMAKE_C_COMPILER_ARG1   "${ANDROID_CLANG_TOOLCHAIN_ROOT}/bin/${_clang_name}${TOOL_OS_CLANG_SCRIPT_SUFFIX}"   CACHE PATH "C compiler")
++   set( CMAKE_CXX_COMPILER_ARG1 "${ANDROID_CLANG_TOOLCHAIN_ROOT}/bin/${_clang_name}++${TOOL_OS_CLANG_SCRIPT_SUFFIX}" CACHE PATH "C++ compiler")
+   else()
+    set( CMAKE_C_COMPILER_ARG1   "${ANDROID_TOOLCHAIN_ROOT}/bin/${ANDROID_TOOLCHAIN_MACHINE_NAME}-gcc${TOOL_OS_SUFFIX}" CACHE PATH "C compiler")
+    set( CMAKE_CXX_COMPILER_ARG1 "${ANDROID_TOOLCHAIN_ROOT}/bin/${ANDROID_TOOLCHAIN_MACHINE_NAME}-g++${TOOL_OS_SUFFIX}" CACHE PATH "C++ compiler")
+   endif()
+  else()
+   if( ANDROID_COMPILER_IS_CLANG )
+-   set( CMAKE_C_COMPILER   "${ANDROID_CLANG_TOOLCHAIN_ROOT}/bin/${_clang_name}${TOOL_OS_SUFFIX}"   CACHE PATH "C compiler")
+-   set( CMAKE_CXX_COMPILER "${ANDROID_CLANG_TOOLCHAIN_ROOT}/bin/${_clang_name}++${TOOL_OS_SUFFIX}" CACHE PATH "C++ compiler")
++   set( CMAKE_C_COMPILER   "${ANDROID_CLANG_TOOLCHAIN_ROOT}/bin/${_clang_name}${TOOL_OS_CLANG_SCRIPT_SUFFIX}"   CACHE PATH "C compiler")
++   set( CMAKE_CXX_COMPILER "${ANDROID_CLANG_TOOLCHAIN_ROOT}/bin/${_clang_name}++${TOOL_OS_CLANG_SCRIPT_SUFFIX}" CACHE PATH "C++ compiler")
+   else()
+    set( CMAKE_C_COMPILER   "${ANDROID_TOOLCHAIN_ROOT}/bin/${ANDROID_TOOLCHAIN_MACHINE_NAME}-gcc${TOOL_OS_SUFFIX}"    CACHE PATH "C compiler" )
+    set( CMAKE_CXX_COMPILER "${ANDROID_TOOLCHAIN_ROOT}/bin/${ANDROID_TOOLCHAIN_MACHINE_NAME}-g++${TOOL_OS_SUFFIX}"    CACHE PATH "C++ compiler" )
+@@ -1144,7 +1147,8 @@ if( NOT CMAKE_C_COMPILER )
+  set( CMAKE_OBJDUMP      "${ANDROID_TOOLCHAIN_ROOT}/bin/${ANDROID_TOOLCHAIN_MACHINE_NAME}-objdump${TOOL_OS_SUFFIX}" CACHE PATH "objdump" )
+  set( CMAKE_RANLIB       "${ANDROID_TOOLCHAIN_ROOT}/bin/${ANDROID_TOOLCHAIN_MACHINE_NAME}-ranlib${TOOL_OS_SUFFIX}"  CACHE PATH "ranlib" )
+ endif()
+-
++message (STATUS "CMAKE_C_COMPILER ${CMAKE_C_COMPILER}")
++message (STATUS "CMAKE_CXX_COMPILER ${CMAKE_CXX_COMPILER}")
+ set( _CMAKE_TOOLCHAIN_PREFIX "${ANDROID_TOOLCHAIN_MACHINE_NAME}-" )
+:
+```
+(USE .cmd for compilers)
+
+### Troubleshooting
+
+#### Path errors
+
+At least ANDROID_LIB_DIR and NDK_PATH should use / slashes
+```
+ANDROID_LIB_DIR
+C:\Users\user\dev\workspace-hifi\hifi>set ANDROID_LIB_DIR=c:/Users/user/dev/workspace-hifi/
+C:\Users\user\dev\workspace-hifi\hifi>setx ANDROID_LIB_DIR %ANDROID_LIB_DIR%
+```
+
+#### Some    l i b w h a t v e r . s o    (e.g. like it being searching for wrong lib names - missing e) not found
+
+Whenever the linker does not find a library, just provide the one with the name "suggested".
+
+Example of the situation with a missing 's' in libprocedural.so (so it looks for libprocedural.o):
 ```
   [ 86%] Linking CXX shared library apk/libs/armeabi-v7a/libinterface.so
   clang++.exe: error: no such file or directory: 'apk/libs/armeabi-v7a/libprocedural.o'
@@ -147,6 +268,29 @@ If the following error occurs:
   make: *** [interface-apk] Error 2
 ```
 Create a copy of the existing libprocedural.so file as *libprocedural.o* and then run make interface-apk again
+
+**It is pending to discover why that happens, this is just a workaround to make it possible to build**
+
+#### Syntax error when linking libinterface.so
+
+Edit the build_dir/interface/CMakeFiles/interface.dir/build.make:
+Look for the string
+```
+Linking CXX shared library apk/libs/armeabi-v7a/libinterface.so
+```
+Next to it there should be a call to *clang++.cmd*, replace it for **clang38++.exe**
+
+#### build.xml error when running qtcreateapk
+
+Apparently the code that runs "android update" on the gvr-common library doesn't run at all on Windows.
+Manually run inside build-dir/interface/gvr-common:
+```
+%ANDROID_HOME%/tools/android update lib-project -p . -t android-24
+```
+(our current target is android-24)
+Run interface-apk again inside build-dir.
+
+
 
 
 ## Appendix - Custom scripts
@@ -437,144 +581,4 @@ IF %ERRORLEVEL% NEQ 0 (
 cd .. 
 ECHO ON
 ```
-
-## ndk r12b + android-24 + Google VR
-
-### prerequisites
-
-download gvr
-git clone https://github.com/googlevr/gvr-android-sdk
-(where? in android_lib_dir location, generally one level outside the cloned hifi)
-
-sdk:
-android 7.0
-sdk tools 25.2.2
-sdk platform-tools 25
-
-download r12b
-https://github.com/android-ndk/ndk/wiki
-
-python to make a standalone toolchain
-https://www.python.org/ftp/python/2.7.12/python-2.7.12.msi
-
-new openssl to replace old one
-targeting android-24
-(given a tar.gz, use
-```
-tar -zxvf backup.tar.gz
-```
-from git bash.
-
-### create standalone toolchain
-```
-C:\Users\user\dev\bin\android-ndk-r12b\build\tools>make_standalone_toolchain.py --arch arm --api 24 --stl=libc++ --install-dir C:\Users\user\dev\bin\android-ndk-r12b\toolchains\my-tc-24-libc
-```
-  creates folder
-  ```
-  C:\Users\user\dev\bin\android-ndk-r12b\toolchains\my-tc-24-libc
-  ```
-
-Complete toolchain by copying libsupc
-```
-c:\Users\user\dev\bin\android-ndk-r12b\sources\cxx-stl\gnu-libstdc++\4.9\libs\armeabi-v7a\libsupc++.a
-to
-c:\Users\user\dev\bin\android-ndk-r12b\toolchains\my-tc-24-libc\arm-linux-androideabi\lib\armv7-a\
-```
-## Additional changes
-
-### fix toolchain
-```
-+++ b/cmake/android/android.toolchain.cmake
-@@ -362,6 +362,7 @@ if( NOT DEFINED ANDROID_NDK_HOST_X64 AND (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "a
- endif()
-
- set( TOOL_OS_SUFFIX "" )
-+set( TOOL_OS_CLANG_SCRIPT_SUFFIX "" )
- if( CMAKE_HOST_APPLE )
-  set( ANDROID_NDK_HOST_SYSTEM_NAME "darwin-x86_64" )
-  set( ANDROID_NDK_HOST_SYSTEM_NAME2 "darwin-x86" )
-@@ -369,6 +370,7 @@ elseif( CMAKE_HOST_WIN32 )
-  set( ANDROID_NDK_HOST_SYSTEM_NAME "windows-x86_64" )
-  set( ANDROID_NDK_HOST_SYSTEM_NAME2 "windows" )
-  set( TOOL_OS_SUFFIX ".exe" )
-+ set( TOOL_OS_CLANG_SCRIPT_SUFFIX ".cmd" )
- elseif( CMAKE_HOST_UNIX )
-  set( ANDROID_NDK_HOST_SYSTEM_NAME "linux-x86_64" )
-  set( ANDROID_NDK_HOST_SYSTEM_NAME2 "linux-x86" )
-@@ -1108,23 +1110,24 @@ else()
- endif()
- unset( _ndk_ccache )
-
--
-+message (STATUS "CMAKE_C_COMPILER ${CMAKE_C_COMPILER}")
-+message (STATUS "CMAKE_CXX_COMPILER ${CMAKE_CXX_COMPILER}")
- # setup the cross-compiler
- if( NOT CMAKE_C_COMPILER )
-  if( NDK_CCACHE AND NOT ANDROID_SYSROOT MATCHES "[ ;\"]" )
-   set( CMAKE_C_COMPILER   "${NDK_CCACHE}" CACHE PATH "ccache as C compiler" )
-   set( CMAKE_CXX_COMPILER "${NDK_CCACHE}" CACHE PATH "ccache as C++ compiler" )
-   if( ANDROID_COMPILER_IS_CLANG )
--   set( CMAKE_C_COMPILER_ARG1   "${ANDROID_CLANG_TOOLCHAIN_ROOT}/bin/${_clang_name}${TOOL_OS_SUFFIX}"   CACHE PATH "C compiler")
--   set( CMAKE_CXX_COMPILER_ARG1 "${ANDROID_CLANG_TOOLCHAIN_ROOT}/bin/${_clang_name}++${TOOL_OS_SUFFIX}" CACHE PATH "C++ compiler")
-+   set( CMAKE_C_COMPILER_ARG1   "${ANDROID_CLANG_TOOLCHAIN_ROOT}/bin/${_clang_name}${TOOL_OS_CLANG_SCRIPT_SUFFIX}"   CACHE PATH "C compiler")
-+   set( CMAKE_CXX_COMPILER_ARG1 "${ANDROID_CLANG_TOOLCHAIN_ROOT}/bin/${_clang_name}++${TOOL_OS_CLANG_SCRIPT_SUFFIX}" CACHE PATH "C++ compiler")
-   else()
-    set( CMAKE_C_COMPILER_ARG1   "${ANDROID_TOOLCHAIN_ROOT}/bin/${ANDROID_TOOLCHAIN_MACHINE_NAME}-gcc${TOOL_OS_SUFFIX}" CACHE PATH "C compiler")
-    set( CMAKE_CXX_COMPILER_ARG1 "${ANDROID_TOOLCHAIN_ROOT}/bin/${ANDROID_TOOLCHAIN_MACHINE_NAME}-g++${TOOL_OS_SUFFIX}" CACHE PATH "C++ compiler")
-   endif()
-  else()
-   if( ANDROID_COMPILER_IS_CLANG )
--   set( CMAKE_C_COMPILER   "${ANDROID_CLANG_TOOLCHAIN_ROOT}/bin/${_clang_name}${TOOL_OS_SUFFIX}"   CACHE PATH "C compiler")
--   set( CMAKE_CXX_COMPILER "${ANDROID_CLANG_TOOLCHAIN_ROOT}/bin/${_clang_name}++${TOOL_OS_SUFFIX}" CACHE PATH "C++ compiler")
-+   set( CMAKE_C_COMPILER   "${ANDROID_CLANG_TOOLCHAIN_ROOT}/bin/${_clang_name}${TOOL_OS_CLANG_SCRIPT_SUFFIX}"   CACHE PATH "C compiler")
-+   set( CMAKE_CXX_COMPILER "${ANDROID_CLANG_TOOLCHAIN_ROOT}/bin/${_clang_name}++${TOOL_OS_CLANG_SCRIPT_SUFFIX}" CACHE PATH "C++ compiler")
-   else()
-    set( CMAKE_C_COMPILER   "${ANDROID_TOOLCHAIN_ROOT}/bin/${ANDROID_TOOLCHAIN_MACHINE_NAME}-gcc${TOOL_OS_SUFFIX}"    CACHE PATH "C compiler" )
-    set( CMAKE_CXX_COMPILER "${ANDROID_TOOLCHAIN_ROOT}/bin/${ANDROID_TOOLCHAIN_MACHINE_NAME}-g++${TOOL_OS_SUFFIX}"    CACHE PATH "C++ compiler" )
-@@ -1144,7 +1147,8 @@ if( NOT CMAKE_C_COMPILER )
-  set( CMAKE_OBJDUMP      "${ANDROID_TOOLCHAIN_ROOT}/bin/${ANDROID_TOOLCHAIN_MACHINE_NAME}-objdump${TOOL_OS_SUFFIX}" CACHE PATH "objdump" )
-  set( CMAKE_RANLIB       "${ANDROID_TOOLCHAIN_ROOT}/bin/${ANDROID_TOOLCHAIN_MACHINE_NAME}-ranlib${TOOL_OS_SUFFIX}"  CACHE PATH "ranlib" )
- endif()
--
-+message (STATUS "CMAKE_C_COMPILER ${CMAKE_C_COMPILER}")
-+message (STATUS "CMAKE_CXX_COMPILER ${CMAKE_CXX_COMPILER}")
- set( _CMAKE_TOOLCHAIN_PREFIX "${ANDROID_TOOLCHAIN_MACHINE_NAME}-" )
-:
-```
-(USE .cmd for compilers)
-
-### Troubleshooting
-
-## Path errors
-
-At least ANDROID_LIB_DIR and NDK_PATH should use / slashes
-```
-ANDROID_LIB_DIR
-C:\Users\user\dev\workspace-hifi\hifi>set ANDROID_LIB_DIR=c:/Users/user/dev/workspace-hifi/
-C:\Users\user\dev\workspace-hifi\hifi>setx ANDROID_LIB_DIR %ANDROID_LIB_DIR%
-```
-
-## Some    l i b w h a t v e r . s o    (e.g. like it being searching for wrong lib names - missing e) not found
-
-Whenever the linker does not find a library, just provide the one with the name "suggested".
-
-## Syntax error when linking libinterface.so
-
-Edit the build_dir/interface/CMakeFiles/interface.dir/build.make:
-Look for the string
-```
-Linking CXX shared library apk/libs/armeabi-v7a/libinterface.so
-```
-Next to it there should be a call to *clang++.cmd*, replace it for **clang38++.exe**
-
-## build.xml error when running qtcreateapk
-
-Apparently the code that runs "android update" on the gvr-common library doesn't run at all on Windows.
-Manually run inside build-dir/interface/gvr-common:
-```
-%ANDROID_HOME%/tools/android update lib-project -p . -t android-24
-```
-(our current target is android-24)
-Run interface-apk again inside build-dir.
-
 
