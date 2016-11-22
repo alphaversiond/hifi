@@ -38,8 +38,7 @@ JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnCrea
  GvrState::GvrState(gvr_context *ctx) :
     _gvr_context(ctx),
     _gvr_api(gvr::GvrApi::WrapNonOwned(_gvr_context)),
-    _viewport_list(_gvr_api->CreateEmptyBufferViewportList()),
-    _scratch_viewport(_gvr_api->CreateBufferViewport()) {
+    _viewport_list(_gvr_api->CreateEmptyBufferViewportList()) {
 
 }
 

@@ -12,6 +12,7 @@
 #include <ui-plugins/PluginContainer.h>
 #include <gl/GLWidget.h>
 #include <gpu/Frame.h>
+#include <CursorManager.h>
 
 #ifdef ANDROID
 #include <QtOpenGL/QGLWidget>
@@ -80,6 +81,39 @@ gvr::Mat4f PerspectiveMatrixFromView(const gvr::Rectf& fov,
   return result;
 }
 
+gvr::Mat4f ControllerQuatToMatrix(const gvr::ControllerQuat& quat) {
+  const float x = quat.qx;
+  const float x2 = quat.qx * quat.qx;
+  const float y = quat.qy;
+  const float y2 = quat.qy * quat.qy;
+  const float z = quat.qz;
+  const float z2 = quat.qz * quat.qz;
+  const float w = quat.qw;
+  const float xy = quat.qx * quat.qy;
+  const float xz = quat.qx * quat.qz;
+  const float xw = quat.qx * quat.qw;
+  const float yz = quat.qy * quat.qz;
+  const float yw = quat.qy * quat.qw;
+  const float zw = quat.qz * quat.qw;
+
+  const float m11 = 1.0f - 2.0f * y2 - 2.0f * z2;
+  const float m12 = 2.0f * (xy - zw);
+  const float m13 = 2.0f * (xz + yw);
+  const float m21 = 2.0f * (xy + zw);
+  const float m22 = 1.0f - 2.0f * x2 - 2.0f * z2;
+  const float m23 = 2.0f * (yz - xw);
+  const float m31 = 2.0f * (xz - yw);
+  const float m32 = 2.0f * (yz + xw);
+  const float m33 = 1.0f - 2.0f * x2 - 2.0f * y2;
+
+  return {
+    m11,  m12,  m13,  0.0f,
+    m21,  m22,  m23,  0.0f,
+    m31,  m32,  m33,  0.0f,
+    0.0f, 0.0f, 0.0f, 1.0f
+  };
+}
+
 glm::uvec2 DaydreamDisplayPlugin::getRecommendedUiSize() const {
     auto window = _container->getPrimaryWidget();
     glm::vec2 windowSize = toGlm(window->size());
@@ -110,10 +144,8 @@ void DaydreamDisplayPlugin::internalPresent() {
             sourceSize.x >>= 1;
         }
 */
-        qDebug() << "[DaydreamDisplayPlugin] sourceSize " << sourceSize; // 2560, 1440
         float shiftLeftBy = getLeftCenterPixel() - (sourceSize.x / 2);   //        - 640 =  getLeftCenterPixel - 1280         => getLeftCenterPixel = 640
         float newWidth = sourceSize.x - shiftLeftBy;
-        qDebug() << "[DaydreamDisplayPlugin] shiftLeftBy " << shiftLeftBy;  // -640
 
         const unsigned int RATIO_Y = 9;
         const unsigned int RATIO_X = 16;
@@ -123,7 +155,6 @@ void DaydreamDisplayPlugin::internalPresent() {
         glm::ivec4 scissor = viewport;
 
         GvrState *gvrState = GvrState::getInstance();
-        qDebug() << "gvrState " << gvrState << " _gvr_context " << gvrState->_gvr_context;
         gvr::Frame frame = gvrState->_swapchain->AcquireFrame();
         frame.BindBuffer(0);
 
@@ -404,5 +435,43 @@ void DaydreamDisplayPlugin::resetEyeProjections(GvrState *gvrState) {
 
     _cullingProjection = _eyeProjections[0];
 }
+
+void DaydreamDisplayPlugin::compositePointer() {
+    qDebug() << "DaydreamDisplayPlugin::compositePointer()";
+    auto& cursorManager = Cursor::Manager::instance();
+    const auto& cursorData = _cursorsData[cursorManager.getCursor()->getIcon()];
+    auto compositorHelper = DependencyManager::get<CompositorHelper>();
+
+    // Reconstruct the headpose from the eye poses
+    //auto headPosition = vec3(glm::inverse(_currentPresentFrameInfo.presentPose)[3]);
+    GvrState *gvrState = GvrState::getInstance();
+
+    gvr::Mat4f controller_matrix = ControllerQuatToMatrix(gvrState->_controller_state.GetOrientation());
+    float scale = 5.0f;
+    gvr::Mat4f neutral_matrix = {
+      scale, 0.0f, 0.0f,   0.0f,
+      0.0f,  scale, 0.0f,  0.0f,
+      0.0f,  0.0f, scale,  -200.0f,
+      0.0f,  0.0f, 0.0f,  1.0f,
+    };
+    gvr::Mat4f model_matrix = MatrixMul(controller_matrix, neutral_matrix);
+    //auto controllerOrientation = vec3(orientation.qx, orientation.qy, orientation.qz);
+    render([&](gpu::Batch& batch) {
+        // FIXME use standard gpu stereo rendering for this.
+        batch.enableStereo(false);
+        batch.setFramebuffer(_compositeFramebuffer);
+        batch.setPipeline(_cursorPipeline);
+        batch.setResourceTexture(0, cursorData.texture);
+        batch.resetViewTransform();
+        for_each_eye([&](Eye eye) {
+            batch.setViewportTransform(eyeViewport(eye));
+            batch.setProjectionTransform(_eyeProjections[eye]);
+            mat4 cursor_matrix = glm::inverse(_currentPresentFrameInfo.presentPose * getEyeToHeadTransform(eye)) * glm::make_mat4(&(MatrixToGLArray(model_matrix)[0]));
+            batch.setModelTransform(cursor_matrix);
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
+        });
+    });
+}
+
 
 

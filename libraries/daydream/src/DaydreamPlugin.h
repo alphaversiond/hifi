@@ -41,7 +41,6 @@ public:
     std::unique_ptr<gvr::SwapChain> _swapchain;
     std::unique_ptr<gvr::ControllerApi> _controller_api;
     gvr::BufferViewportList _viewport_list;
-    gvr::BufferViewport _scratch_viewport;
     // Size of the offscreen framebuffer.
     gvr::Sizei _framebuf_size;
 
