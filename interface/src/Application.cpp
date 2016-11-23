@@ -2097,53 +2097,58 @@ void Application::paintGL() {
         });
 
         qDebug() << "Drawing cube";
-                const auto canvasSize = vec2(finalFramebuffer->getSize());
-                static int numFrame=1024;
-                numFrame++;
-                vec2 mousePosition = vec2(numFrame % (int) canvasSize.x, numFrame % (int) canvasSize.y);
-                mousePosition /= canvasSize;
-                mousePosition *= 2.0;
-                mousePosition -= 1.0;
-                mousePosition.y *= -1.0f;
+            const auto canvasSize = vec2(finalFramebuffer->getSize());
+            static int numFrame=1024;
+            numFrame++;
+    static GLfloat _translation[] = {
+                        0.0f,0.0f,2.0f,
+                        0.0f,0.0f,4.0f,
+                        0.0f,-2.0f,2.0f,
+                        0.0f,-4.0f,2.0f,
+                        2.0f,0.0f,2.0f,
+                        -2.0f,0.0f,2.0f,
+                        3.0f,0.0f,-3.0f,
+                        1.0f,4.0f,2.0f,
+                        -1.0f,-3.0f,-2.0f,
+                        1.0f,4.0f,2.0f
+                };
 
-                vec2 mouseSize = vec2(200.0f, 200.0f);
-                //glm::mat4 cursorTransform = glm::scale(glm::translate(glm::rotate(glm::mat4(), glm::radians(numFrame*1.0f), vec3(0.5f,0.5f,0.5f)), vec3(mousePosition, numFrame % 1000 * 1.0f)), vec3(mouseSize, 1.0f));
-                glm::mat4 modelTransform;
-                //float x = sinf(((float) glm::radians((float)(numFrame % 360))) );
-                //qDebug() << "x degress " <<  (numFrame % 360);
-                modelTransform = glm::translate(modelTransform, vec3(0.0, -4.0f, 0.0f));
-                modelTransform = glm::rotate(modelTransform, glm::radians(numFrame*1.0f), vec3(0.0f,0.0f,1.0f));
-
-                //float dmin = std::min(canvasSize.x, canvasSize.y);
-                //vec2 cubeSize = vec2(dmin/3, dmin/3);
-                //glm::mat4 cubeTransform = glm::rotate(glm::mat4(), (float) glm::radians(45.0f), vec3(0.0f, 0.0f, 1.0f));
         static auto iconMapPath = PathUtils::resourcesPath() +"images/container.jpg";
         static auto statusIconMap = DependencyManager::get<TextureCache>()->getImageTexture(iconMapPath);
 
-        gpu::Batch batch;
+        for (int iCube=0; iCube < 10; iCube++) {
+            gpu::Batch batch;
 
-        batch.enableStereo(true);
-        glm::mat4 projMat;
-        _displayViewFrustum.evalProjectionMatrix(projMat);
-        Transform viewTransform;
-        _displayViewFrustum.evalViewTransform(viewTransform);
-        viewTransform.setTranslation(vec3(0.0, 0.0, 0.0));
+            batch.enableStereo(true);
+            glm::mat4 projMat;
+            _displayViewFrustum.evalProjectionMatrix(projMat);
+            Transform viewTransform;
+            _displayViewFrustum.evalViewTransform(viewTransform);
+            viewTransform.setTranslation(vec3(0.0, 0.0, 0.0));
 
-        batch.setProjectionTransform(projMat);
-        batch.setFramebuffer(finalFramebuffer);
-        if (!thePipeline) {
-            qDebug() << "Application::paintGL Setting a null pipeline";
+            batch.setProjectionTransform(projMat);
+            batch.setFramebuffer(finalFramebuffer);
+            if (!thePipeline) {
+                qDebug() << "Application::paintGL Setting a null pipeline";
+            }
+            batch.setViewTransform(viewTransform);
+            batch.setPipeline(thePipeline);
+            batch.setInputFormat(cubeBufferFormat);
+            batch.setInputBuffer(0, vertices._buffer, 0, sizeof(GLfloat) * 5);
+            batch.setResourceTexture(0, statusIconMap);
+
+            glm::mat4 modelTransform;
+            modelTransform = glm::translate(modelTransform, vec3(_translation[3*iCube], _translation[3*iCube+1], _translation[3*iCube+2]));
+            //modelTransform = glm::rotate(modelTransform, glm::radians(iCube*numFrame*1.0f), vec3(0.0f,0.0f,1.0f));
+
+            batch.setModelTransform(modelTransform);
+            if (iCube == 0) {
+                batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLORS | gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(0.0, 0.8, 0.0, 1.0), 100.0f, 0, true);
+            }
+            batch.draw(gpu::TRIANGLES, 36); // 36
+            renderArgs._context->appendFrameBatch(batch);
+
         }
-        batch.setViewTransform(viewTransform);
-        batch.setPipeline(thePipeline);
-        batch.setInputFormat(cubeBufferFormat);
-        batch.setInputBuffer(0, vertices._buffer, 0, sizeof(GLfloat) * 5);
-        batch.setResourceTexture(0, statusIconMap);
-        //batch.resetViewTransform();
-        batch.setModelTransform(modelTransform);
-        batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLORS | gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(0.0, 0.8, 0.0, 1.0), 100.0f, 0, true);
-        batch.draw(gpu::TRIANGLES, 36); // 36
-        renderArgs._context->appendFrameBatch(batch);
 
     
 
