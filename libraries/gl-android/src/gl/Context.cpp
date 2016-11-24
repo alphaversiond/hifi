@@ -40,6 +40,27 @@ static bool enableDebugLogger = QProcessEnvironment::systemEnvironment().contain
 
 using namespace gl;
 
+
+std::atomic<size_t> Context::_totalSwapchainMemoryUsage { 0 };
+
+size_t Context::getSwapchainMemoryUsage() { return _totalSwapchainMemoryUsage.load(); }
+
+size_t Context::evalSurfaceMemoryUsage(uint32_t width, uint32_t height, uint32_t pixelSize) {
+    return width * height * pixelSize;
+}
+
+void Context::updateSwapchainMemoryUsage(size_t prevSize, size_t newSize) {
+    if (prevSize == newSize) {
+        return;
+    }
+    if (newSize > prevSize) {
+        _totalSwapchainMemoryUsage.fetch_add(newSize - prevSize);
+    } else {
+        _totalSwapchainMemoryUsage.fetch_sub(prevSize - newSize);
+    }
+}
+
+
 Context* Context::PRIMARY = nullptr;
 
 Context::Context() {}
@@ -78,18 +99,35 @@ void Context::release() {
     if (PRIMARY == this) {
         PRIMARY = nullptr;
     }
-    }
+    updateSwapchainMemoryCounter();
+}
 
 Context::~Context() {
     release();
 }
 
+void Context::updateSwapchainMemoryCounter() {
+    if (_window) {
+        auto newSize = _window->size();
+        auto newMemSize = gl::Context::evalSurfaceMemoryUsage(newSize.width(), newSize.height(), (uint32_t) _swapchainPixelSize);
+        gl::Context::updateSwapchainMemoryUsage(_swapchainMemoryUsage, newMemSize);
+        _swapchainMemoryUsage = newMemSize;
+    } else {
+        // No window ? no more swapchain
+        gl::Context::updateSwapchainMemoryUsage(_swapchainMemoryUsage, 0);
+        _swapchainMemoryUsage = 0;
+    }
+}
+
 void Context::setWindow(QWindow* window) {
     release();
     _window = window;
+
 #ifdef Q_OS_WIN
     _hwnd = (HWND)window->winId();
 #endif
+
+    updateSwapchainMemoryCounter();
 }
 
 #ifdef Q_OS_WIN
@@ -98,6 +136,8 @@ static const char* PRIMARY_CONTEXT_PROPERTY_NAME = "com.highfidelity.gl.primaryC
 bool Context::makeCurrent() {
     BOOL result = wglMakeCurrent(_hdc, _hglrc);
     assert(result);
+    updateSwapchainMemoryCounter();
+
     return result;
 }
 
@@ -218,6 +258,11 @@ void Context::create() {
         wglChoosePixelFormatARB(_hdc, &formatAttribs[0], NULL, 1, &pixelFormat, &numFormats);
         DescribePixelFormat(_hdc, pixelFormat, sizeof(pfd), &pfd);
     }
+    // The swap chain  pixel size for swap chains is : rgba32 + depth24stencil8
+    // We don't apply the length of the swap chain into this pixelSize since it is not vsible for the Process (on windows).
+    _swapchainPixelSize = 32 + 32;
+    updateSwapchainMemoryCounter();
+
     SetPixelFormat(_hdc, pixelFormat, &pfd);
     {
         std::vector<int> contextAttribs;
@@ -259,15 +304,10 @@ void Context::create() {
 #endif
 
 void Context::clear() {
-    qDebug() << "Context::clear 000100";
     glClearColor(0, 0, 0, 1);
-    qDebug() << "Context::clear 000101";
     QSize windowSize = _window->size() * _window->devicePixelRatio();
-    qDebug() << "Context::clear 000102";
     glViewport(0, 0, windowSize.width(), windowSize.height());
-    qDebug() << "Context::clear 000103";
     glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    qDebug() << "Context::clear 000104";
     swapBuffers();
 }
 
@@ -283,6 +323,8 @@ void OffscreenContext::create() {
         _window->setSurfaceType(QSurface::OpenGLSurface);
         _window->create();
         setWindow(_window);
+        QSize windowSize = _window->size() * _window->devicePixelRatio();
+        qCDebug(glLogging) << "New Offscreen GLContext, window size = " << windowSize.width() << " , " << windowSize.height();
         QGuiApplication::processEvents();
     }
     Parent::create();

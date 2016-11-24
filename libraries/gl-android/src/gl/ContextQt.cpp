@@ -16,7 +16,7 @@
 #endif
 
 #include "Config.h"
-
+#include "GLHelpers.h"
 #include <QDebug>
 
 using namespace gl;
@@ -49,6 +49,7 @@ void Context::moveToThread(QThread* thread) {
 
 #ifndef Q_OS_WIN
 bool Context::makeCurrent() {
+    updateSwapchainMemoryCounter();
     return _context->makeCurrent(_window);
 }
 

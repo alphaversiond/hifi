@@ -28,8 +28,8 @@ float alpha;
 vec4 glowPoints;
 vec4 glowColors[2];
 
-vec2 extraGlowPoint = overlay.extraGlowPoint;
-vec4 extraGlowColor = overlay.extraGlowColor;
+vec2 extraGlowPoint;
+vec4 extraGlowColor;
 
 in vec3 vPosition;
 in vec2 vTexCoord;
@@ -46,6 +46,8 @@ float easeInOutCubic(float f) {
 }
 
 void main() {
+    extraGlowPoint = overlay.extraGlowPoint;
+    extraGlowColor = overlay.extraGlowColor;
     resolution = overlay.resolutionRadiusAlpha.xy;
     radius = overlay.resolutionRadiusAlpha.z;
     alpha = overlay.resolutionRadiusAlpha.w;

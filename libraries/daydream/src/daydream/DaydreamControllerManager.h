@@ -28,7 +28,7 @@ class DaydreamControllerManager : public InputPlugin {
 public:
     // Plugin functions
     bool isSupported() const override;
-    const QString& getName() const override { return NAME; }
+    const QString getName() const override { return NAME; }
 
     bool activate() override;
     void deactivate() override;
@@ -37,6 +37,8 @@ public:
     void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
 
     void setRenderControllers(bool renderControllers) { /*_renderControllers = renderControllers; */}
+    bool isHandController() const override { return true; }
+
 private:
     class DaydreamControllerDevice : public controller::InputDevice {
     public:

@@ -37,15 +37,19 @@ OffscreenGLCanvas::~OffscreenGLCanvas() {
 }
 
 bool OffscreenGLCanvas::create(QOpenGLContext* sharedContext) {
+    qDebug() << "OffscreenGLCanvas::create " << sharedContext;
     if (nullptr != sharedContext) {
         sharedContext->doneCurrent();
         _context->setShareContext(sharedContext);
     }
     _context->setFormat(getDefaultOpenGLSurfaceFormat());
     qCDebug(glLogging) << "OffscreenGLCanvas::create _context format " << _context->format();
+    qDebug() << "Who is " << _context;
     if (_context->create()) {
+        qDebug() << "QOpenGLContext returned true...";
         _offscreenSurface->setFormat(_context->format());
         _offscreenSurface->create();
+        qDebug() << "... but is it valid? " << _offscreenSurface->isValid();
         return _offscreenSurface->isValid();
     }
     qWarning("Failed to create OffscreenGLCanvas context");
@@ -56,7 +60,6 @@ bool OffscreenGLCanvas::create(QOpenGLContext* sharedContext) {
 bool OffscreenGLCanvas::makeCurrent() {
     bool result = _context->makeCurrent(_offscreenSurface);
     Q_ASSERT(result);
-    
     std::call_once(_reportOnce, [this]{
         qCDebug(glLogging) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
         qCDebug(glLogging) << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));

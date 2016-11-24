@@ -14,12 +14,15 @@
 #ifndef hifi_HFWebEngineProfile_h
 #define hifi_HFWebEngineProfile_h
 
+#ifndef ANDROID
 #include <QtWebEngine/QQuickWebEngineProfile>
 
 class HFWebEngineProfile : public QQuickWebEngineProfile {
 public:
     HFWebEngineProfile(QObject* parent = Q_NULLPTR);
 };
+
+#endif
 
 
 #endif // hifi_HFWebEngineProfile_h

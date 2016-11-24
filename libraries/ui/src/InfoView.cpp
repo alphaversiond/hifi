@@ -39,6 +39,9 @@ QString fetchVersion(const QUrl& url) {
 
 void InfoView::show(const QString& path, bool firstOrChangedOnly, QString urlQuery) {
     static bool registered{ false };
+#ifdef ANDROID
+    if (1==1) return;
+#endif
     if (!registered) {
         registerType();
         registered = true;

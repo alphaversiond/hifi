@@ -26,6 +26,8 @@ class QGLFormat;
 template<class F>
 void setGLFormatVersion(F& format, int major = 3, int minor = 1) { format.setVersion(major, minor); }
 
+size_t evalGLFormatSwapchainPixelSize(const QSurfaceFormat& format);
+
 const QSurfaceFormat& getDefaultOpenGLSurfaceFormat();
 QJsonObject getGLContextData();
 int glVersionToInteger(QString glVersion);

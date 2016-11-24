@@ -172,6 +172,7 @@ public:
     virtual void releaseProgram(GLuint id) const;
     virtual void releaseQuery(GLuint id) const;
     virtual void queueLambda(const std::function<void()> lambda) const;
+    bool isTextureManagementSparseEnabled() const override { return false; }
 
 protected:
 

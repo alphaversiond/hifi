@@ -334,7 +334,7 @@ bool DaydreamDisplayPlugin::internalActivate() {
     GvrState *gvrState = GvrState::getInstance();
 
     if (gvrState->_gvr_api) {
-        qDebug() << "Initialize _gvr_api GL";
+        qDebug() << "Initialize _gvr_api GL " << gvrState;
         gvrState->_gvr_api->InitializeGl();
     }
 

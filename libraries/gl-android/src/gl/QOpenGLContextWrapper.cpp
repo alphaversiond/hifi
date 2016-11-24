@@ -12,7 +12,7 @@
 #include "QOpenGLContextWrapper.h"
 
 #include <QOpenGLContext>
-
+#include <qDebug>
 uint32_t QOpenGLContextWrapper::currentContextVersion() {
     QOpenGLContext* context = QOpenGLContext::currentContext();
     if (!context) {
@@ -46,6 +46,7 @@ void QOpenGLContextWrapper::setFormat(const QSurfaceFormat& format) {
 }
 
 bool QOpenGLContextWrapper::create() {
+    qDebug() << "QOpenGLContextWrapper::create";
     return _context->create();
 }
 
