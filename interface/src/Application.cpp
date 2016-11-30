@@ -2274,7 +2274,7 @@ void Application::paintGL() {
 
             batch.setModelTransform(modelTransform);
             if (iCube == 0) {
-                batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLORS | gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(0.0, 0.8, 0.0, 1.0), 100.0f, 0, true);
+                batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLORS | gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(0.16, 0.47, 0.73, 1.0), 100.0f, 0, true);
             }
             batch.draw(gpu::TRIANGLES, 36); // 36
             renderArgs._context->appendFrameBatch(batch);
