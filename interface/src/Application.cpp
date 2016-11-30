@@ -1342,8 +1342,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     QString skyboxUrl { PathUtils::resourcesPath() + "images/Default-Sky-9-cubemap.jpg" };
     QString skyboxAmbientUrl { PathUtils::resourcesPath() + "images/Default-Sky-9-ambient.jpg" };
 
-    qDebug() << "[SKYBOX] skyboxUrl="<< skyboxUrl;
-
     _defaultSkyboxTexture = textureCache->getImageTexture(skyboxUrl, NetworkTexture::CUBE_TEXTURE, { { "generateIrradiance", false } });
     _defaultSkyboxAmbientTexture = textureCache->getImageTexture(skyboxAmbientUrl, NetworkTexture::CUBE_TEXTURE, { { "generateIrradiance", true } });
 
@@ -2227,8 +2225,7 @@ void Application::paintGL() {
             }
         });
 
-        qDebug() << "Drawing cube";
-            const auto canvasSize = vec2(finalFramebuffer->getSize());
+        qDebug() << "Drawing cube on finalFramebuffer("<<finalFramebuffer->getSize()<<")";
             static int numFrame=1024;
             numFrame++;
         static GLfloat _translation[] = {
@@ -2274,7 +2271,7 @@ void Application::paintGL() {
 
             batch.setModelTransform(modelTransform);
             if (iCube == 0) {
-                batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLORS | gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(0.16, 0.47, 0.73, 1.0), 100.0f, 0, true);
+                batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLORS | gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(0.16, 0.47, 0.73, 1.0), 1000.0f, 0, true);
             }
             batch.draw(gpu::TRIANGLES, 36); // 36
             renderArgs._context->appendFrameBatch(batch);
@@ -2425,7 +2422,7 @@ bool Application::importSVOFromURL(const QString& urlString) {
 }
 
 bool Application::event(QEvent* event) {
-    qDebug() << "Application::event " << event;
+
     if (!Menu::getInstance()) {
         return false;
     }
@@ -2458,7 +2455,6 @@ bool Application::event(QEvent* event) {
     } else if ((int)event->type() == (int)Paint) {
         // NOTE: This must be updated as close to painting as possible,
         //       or AvatarInputs will mysteriously move to the bottom-right
-        qDebug() << "AvatarInputs is " << AvatarInputs::getInstance();
         AvatarInputs::getInstance()->update();
 
         paintGL();
@@ -3659,7 +3655,17 @@ void Application::init() {
 
     _timerStart.start();
     _lastTimeUpdated.start();
-       qCDebug(interfaceapp) << "Loaded settings";
+#ifndef ANDROID    
+    // when +connect_lobby in command line, join steam lobby
+    const QString STEAM_LOBBY_COMMAND_LINE_KEY = "+connect_lobby";
+    int lobbyIndex = arguments().indexOf(STEAM_LOBBY_COMMAND_LINE_KEY);
+    if (lobbyIndex != -1) {
+        QString lobbyId = arguments().value(lobbyIndex + 1);
+        SteamClient::joinLobby(lobbyId);
+    }
+#endif
+
+    qCDebug(interfaceapp) << "Loaded settings";
 
     Leapmotion::init();
 

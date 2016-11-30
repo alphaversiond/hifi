@@ -136,104 +136,17 @@ void DaydreamDisplayPlugin::internalPresent() {
  // Composite together the scene, overlay and mouse cursor
     hmdPresent();
 
-    //if (!_disablePreview) {
-        qDebug() << "[DaydreamDisplayPlugin] !_disablePreview";
-        // screen preview mirroring
-        auto sourceSize = _renderTargetSize;
-/*        if (_monoPreview) {
-            sourceSize.x >>= 1;
-        }
-*/
-        float shiftLeftBy = getLeftCenterPixel() - (sourceSize.x / 2);   //        - 640 =  getLeftCenterPixel - 1280         => getLeftCenterPixel = 640
-        float newWidth = sourceSize.x - shiftLeftBy;
-
-        const unsigned int RATIO_Y = 9;
-        const unsigned int RATIO_X = 16;
-        glm::uvec2 originalClippedSize { newWidth, newWidth * RATIO_Y / RATIO_X };
-
-        glm::ivec4 viewport = getViewportForSourceSize(sourceSize);
-        glm::ivec4 scissor = viewport;
-
         GvrState *gvrState = GvrState::getInstance();
         gvr::Frame frame = gvrState->_swapchain->AcquireFrame();
         frame.BindBuffer(0);
 
-        render([&](gpu::Batch& batch) {
-
-            //if (_monoPreview) {
-                auto window = _container->getPrimaryWidget();
-                float devicePixelRatio = window->devicePixelRatio();
-                glm::vec2 windowSize = toGlm(window->size());
-                windowSize *= devicePixelRatio;
-
-                float windowAspect = aspect(windowSize);  // example: 1920 x 1080 = 1.78
-                float sceneAspect = aspect(originalClippedSize); // usually: 1512 x 850 = 1.78
-
-
-                bool scaleToWidth = windowAspect < sceneAspect;
-
-                float ratio;
-                int scissorOffset;
-
-                if (scaleToWidth) {
-                    ratio = (float)windowSize.x / (float)newWidth;
-                } else {
-                    ratio = (float)windowSize.y / (float)originalClippedSize.y;
-                }
-
-                float scaledShiftLeftBy = shiftLeftBy * ratio;
-
-                int scissorSizeX = originalClippedSize.x * ratio;
-                int scissorSizeY = originalClippedSize.y * ratio;
-
-                int viewportSizeX = sourceSize.x * ratio;
-                int viewportSizeY = sourceSize.y * ratio;
-                int viewportOffset = ((int)windowSize.y - viewportSizeY) / 2;
-
-                if (scaleToWidth) {
-                    scissorOffset = ((int)windowSize.y - scissorSizeY) / 2;
-                    scissor = ivec4(0, scissorOffset, scissorSizeX, scissorSizeY);
-                    viewport = ivec4(-scaledShiftLeftBy, viewportOffset, viewportSizeX, viewportSizeY);
-                } else {
-                    scissorOffset = ((int)windowSize.x - scissorSizeX) / 2;
-                    scissor = ivec4(scissorOffset, 0, scissorSizeX, scissorSizeY);
-                    viewport = ivec4(scissorOffset - scaledShiftLeftBy, viewportOffset, viewportSizeX, viewportSizeY);
-                }
-
-                viewport.z *= 2;
-            //}
-
-            qDebug() << "[DaydreamDisplayPlugin] viewport" << viewport.x << "," << viewport.y << "," << viewport.z << "," << viewport.w;
-            qDebug() << "[DaydreamDisplayPlugin] scissor" << scissor.x << "," << scissor.y << "," << scissor.z << "," << scissor.w;
-            viewport = ivec4(0,0,windowSize);
-            batch.enableStereo(false);
-            batch.resetViewTransform();
-            //batch.setFramebuffer(gpu::FramebufferPointer());
-            batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(0));
-            batch.setStateScissorRect(scissor); // was viewport
-            batch.setViewportTransform(viewport);
-            batch.setResourceTexture(0, _compositeFramebuffer->getRenderBuffer(0));
-            batch.setPipeline(_presentPipeline);
-            batch.draw(gpu::TRIANGLE_STRIP, 4);
-        });
-
-        gvr::ClockTimePoint pred_time = gvr::GvrApi::GetTimePointNow();
-        pred_time.monotonic_system_time_nanos += 50000000; // 50ms
-
-        gvr::Mat4f head_view = gvrState->_gvr_api->GetHeadSpaceFromStartSpaceRotation(pred_time);
-
-        frame.Unbind();
-        frame.Submit(gvrState->_viewport_list, head_view);
-
-        swapBuffers();
-//    } 
-/*
-    
     render([&](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.resetViewTransform();
-        batch.setFramebuffer(gpu::FramebufferPointer());
-        batch.setViewportTransform(ivec4(uvec2(0), getSurfacePixels()));
+        //batch.setFramebuffer(defaultFb);
+        ivec4 viewport(0,0, gvrState->_framebuf_size.width, gvrState->_framebuf_size.height);
+        batch.setViewportTransform(viewport);
+        batch.setStateScissorRect(viewport);
         batch.setResourceTexture(0, _compositeFramebuffer->getRenderBuffer(0));
         if (!_presentPipeline) {
             qDebug() << "OpenGLDisplayPlugin setting null _presentPipeline ";
@@ -242,9 +155,15 @@ void DaydreamDisplayPlugin::internalPresent() {
         batch.setPipeline(_presentPipeline);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
     });
+
+    gvr::ClockTimePoint pred_time = gvr::GvrApi::GetTimePointNow();
+    pred_time.monotonic_system_time_nanos += 50000000; // 50ms
+
+    gvr::Mat4f head_view = gvrState->_gvr_api->GetHeadSpaceFromStartSpaceRotation(pred_time);
+    frame.Unbind();
+    frame.Submit(gvrState->_viewport_list, head_view);
+
     swapBuffers();
-    _presentRate.increment();
-    */
 }
 
 ivec4 DaydreamDisplayPlugin::getViewportForSourceSize(const uvec2& size) const {
@@ -344,11 +263,15 @@ bool DaydreamDisplayPlugin::internalActivate() {
     specs.push_back(gvrState->_gvr_api->CreateBufferSpec());
     gvrState->_framebuf_size = gvrState->_gvr_api->GetMaximumEffectiveRenderTargetSize();
 
-    qDebug() << "_framebuf_size " << gvrState->_framebuf_size.width << ", " << gvrState->_framebuf_size.height;
+    qDebug() << "_framebuf_size " << gvrState->_framebuf_size.width << ", " << gvrState->_framebuf_size.height; //  3426 ,  1770
+
+    auto window = _container->getPrimaryWidget();
+    glm::vec2 windowSize = toGlm(window->size());
+
     // Because we are using 2X MSAA, we can render to half as many pixels and
     // achieve similar quality. Scale each dimension by sqrt(2)/2 ~= 7/10ths.
-    gvrState->_framebuf_size.width = (7 * gvrState->_framebuf_size.width) / 10;
-    gvrState->_framebuf_size.height = (7 * gvrState->_framebuf_size.height) / 10;
+    gvrState->_framebuf_size.width = windowSize.x;//(7 * gvrState->_framebuf_size.width) / 10;
+    gvrState->_framebuf_size.height = windowSize.y; //(7 * gvrState->_framebuf_size.height) / 10;
 
     specs[0].SetSize(gvrState->_framebuf_size);
     specs[0].SetColorFormat(GVR_COLOR_FORMAT_RGBA_8888);
@@ -366,10 +289,8 @@ bool DaydreamDisplayPlugin::internalActivate() {
     _eyeOffsets[0][3] = vec4{ -0.0327499993, 0.0, 0.0149999997, 1.0 };
     _eyeOffsets[1][3] = vec4{ 0.0327499993, 0.0, 0.0149999997, 1.0 };
 
-    auto window = _container->getPrimaryWidget();
-    glm::vec2 windowSize = toGlm(window->size());
+    _renderTargetSize = glm::vec2(gvrState->_framebuf_size.width ,  gvrState->_framebuf_size.height);
 
-    _renderTargetSize = windowSize; // 3024x1680 
     // This must come after the initialization, so that the values calculated
     // above are available during the customizeContext call (when not running
     // in threaded present mode)
@@ -414,7 +335,7 @@ void DaydreamDisplayPlugin::resetEyeProjections(GvrState *gvrState) {
     std::array<float, 16> mvpArr = MatrixToGLArray(mvp);
 
     _eyeProjections[0][0] = vec4{mvpArr[0],mvpArr[1],mvpArr[2],mvpArr[3]};
-    _eyeProjections[0][1] = vec4{mvpArr[4],mvpArr[5],mvpArr[5],mvpArr[7]};
+    _eyeProjections[0][1] = vec4{mvpArr[4],mvpArr[5],mvpArr[6],mvpArr[7]};
     _eyeProjections[0][2] = vec4{mvpArr[8],mvpArr[9],mvpArr[10],mvpArr[11]};
     _eyeProjections[0][3] = vec4{mvpArr[12],mvpArr[13],mvpArr[14],mvpArr[15]};
 
@@ -425,7 +346,7 @@ void DaydreamDisplayPlugin::resetEyeProjections(GvrState *gvrState) {
     mvpArr = MatrixToGLArray(mvp);
 
     _eyeProjections[1][0] = vec4{mvpArr[0],mvpArr[1],mvpArr[2],mvpArr[3]};
-    _eyeProjections[1][1] = vec4{mvpArr[4],mvpArr[5],mvpArr[5],mvpArr[7]};
+    _eyeProjections[1][1] = vec4{mvpArr[4],mvpArr[5],mvpArr[6],mvpArr[7]};
     _eyeProjections[1][2] = vec4{mvpArr[8],mvpArr[9],mvpArr[10],mvpArr[11]};
     _eyeProjections[1][3] = vec4{mvpArr[12],mvpArr[13],mvpArr[14],mvpArr[15]};
 
