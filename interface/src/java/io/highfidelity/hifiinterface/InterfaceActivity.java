@@ -22,11 +22,13 @@ import org.qtproject.qt5.android.bindings.QtActivity;
 import com.google.vr.cardboard.DisplaySynchronizer;
 import com.google.vr.cardboard.DisplayUtils;
 import com.google.vr.ndk.base.GvrApi;
+import android.graphics.Point;
 
 public class InterfaceActivity extends QtActivity {
     
     public static native void handleHifiURL(String hifiURLString);
     private native long nativeOnCreate(AssetManager assetManager, long gvrContextPtr);
+    private native void saveRealScreenSize(int width, int height);
 
     private AssetManager assetManager;
 
@@ -58,5 +60,8 @@ public class InterfaceActivity extends QtActivity {
         //nativeGvrApi =
             nativeOnCreate(assetManager, gvrApi.getNativeGvrContext());
 
+        Point size = new Point();
+        getWindowManager().getDefaultDisplay().getRealSize(size);
+        saveRealScreenSize(size.x, size.y);
     }
 }

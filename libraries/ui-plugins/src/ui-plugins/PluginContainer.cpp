@@ -99,7 +99,12 @@ void PluginContainer::setFullscreen(const QScreen* target, bool hideMenu) {
         target = qApp->primaryScreen();
     }
 
+#ifdef ANDROID
+    // Prevent crash that happens when trying to use the 'smaller' availableGeometry after using the real screen size in MainWindow::restoreGeometry
+    _window->setGeometry(_savedGeometry);
+#else
     _window->setGeometry(target->availableGeometry());
+#endif
     _window->windowHandle()->setScreen((QScreen*)target);
     _window->showFullScreen();
 
