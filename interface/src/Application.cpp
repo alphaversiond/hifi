@@ -1390,6 +1390,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     const QString TUTORIAL_PATH = "/tutorial_begin";
 
+#ifdef ANDROID
+    //DependencyManager::get<AddressManager>()->handleLookupString("hifi://android/0.0,0.0,-200");
+    DependencyManager::get<AddressManager>()->handleLookupString("dev-mobile.highfidelity.io/0.0,0.0,-200");
+#else
     if (shouldGoToTutorial) {
         if(sandboxIsRunning) {
             qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
@@ -1431,7 +1435,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
         }
     }
-
+#endif
     _connectionMonitor.init();
 
     // After all of the constructor is completed, then set firstRun to false.
@@ -1460,12 +1464,6 @@ void Application::domainConnectionRefused(const QString& reasonMessage, int reas
             break;
     }
 }
-
-#ifdef ANDROID
-void Application::gvr_nativeOnCreate() {
-        qDebug() << "gvr_nativeOnCreate On thread " << QThread::currentThreadId();
-}
-#endif
 
 QString Application::getUserAgent() {
     if (QThread::currentThread() != thread()) {

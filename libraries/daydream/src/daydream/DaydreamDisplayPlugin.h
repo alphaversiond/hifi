@@ -9,7 +9,7 @@
 
 #include "display-plugins/hmd/HmdDisplayPlugin.h"
 #include "../DaydreamPlugin.h"
-
+#include "DaydreamHelpers.h"
 
 
 // TODO: move this to plugins and add it as dependency ... somewhere for android

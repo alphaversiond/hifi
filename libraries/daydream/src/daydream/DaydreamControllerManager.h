@@ -20,7 +20,7 @@
 #include <RenderArgs.h>
 #include <render/Scene.h>
 #include "../DaydreamPlugin.h"
-
+#include "DaydreamHelpers.h"
 
 
 class DaydreamControllerManager : public InputPlugin {
@@ -42,19 +42,22 @@ public:
 private:
     class DaydreamControllerDevice : public controller::InputDevice {
     public:
-        DaydreamControllerDevice(DaydreamControllerManager& parent) : controller::InputDevice("DaydreamController"), _parent(parent) { }
+        DaydreamControllerDevice(DaydreamControllerManager& parent) : controller::InputDevice("Daydream"), _parent(parent) { }
         
         using Pointer = std::shared_ptr<DaydreamControllerDevice>;
         controller::Input::NamedVector getAvailableInputs() const override;
         QString getDefaultMappingConfig() const override;
         void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
+        void handleController(GvrState *gvrState, float deltaTime, const controller::InputCalibrationData& inputCalibrationData);
+        void handlePoseEvent(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, gvr::ControllerQuat orientation);
         //void focusOutEvent() override;
-
+        
         DaydreamControllerManager& _parent;
         friend class DaydreamControllerManager;
     };
 
     DaydreamControllerDevice::Pointer _controller;
+    bool _registeredWithInputMapper { false };
     static const QString NAME;
 
 

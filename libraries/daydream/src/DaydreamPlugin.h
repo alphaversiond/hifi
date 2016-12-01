@@ -47,7 +47,7 @@ public:
     // The last controller state (updated once per frame).
     gvr::ControllerState _controller_state;
 
-	int32_t _last_controller_api_status;
+	  int32_t _last_controller_api_status;
     int32_t _last_controller_connection_state;
 
 };

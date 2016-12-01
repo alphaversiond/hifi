@@ -319,9 +319,6 @@ public slots:
 
     void resetSensors(bool andReload = false);
     void setActiveFaceTracker() const;
-#ifdef ANDROID
-    void gvr_nativeOnCreate();
-#endif
 
 #if (PR_BUILD || DEV_BUILD)
     void sendWrongProtocolVersionsSignature(bool checked) { ::sendWrongProtocolVersionsSignature(checked); }
