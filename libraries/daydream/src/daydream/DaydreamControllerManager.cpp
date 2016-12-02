@@ -140,13 +140,6 @@ void DaydreamControllerManager::DaydreamControllerDevice::update(float deltaTime
 }
 
 void DaydreamControllerManager::DaydreamControllerDevice::handleController(GvrState *gvrState, float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
-      bool isTouching = gvrState->_controller_state.IsTouching();
-
-      if (isTouching) {
-          gvr_vec2f touchPos = gvrState->_controller_state.GetTouchPos();
-          qDebug() << "[DAYDREAM-CONTROLLER]: Touching x:" << touchPos.x << " y:" << touchPos.y;
-
-      }
 
       gvr::ControllerQuat orientation = gvrState->_controller_state.GetOrientation();
       handlePoseEvent(deltaTime, inputCalibrationData, orientation);
@@ -157,6 +150,8 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleController(GvrSt
           bool pressed = gvrState->_controller_state.GetButtonDown(static_cast<gvr::ControllerButton>(k)); // Returns whether the given button was just pressed (transient).
           bool pressing = gvrState->_controller_state.GetButtonState(static_cast<gvr::ControllerButton>(k)); // Returns whether the given button is currently pressed.
           bool touched = gvrState->_controller_state.GetButtonUp(static_cast<gvr::ControllerButton>(k)); // Returns whether the given button was just released (transient).
+          handleButtonEvent(deltaTime, i, pressed, touched);
+
           if (pressed) {
             qDebug() << "[DAYDREAM-CONTROLLER]: " << k << " button has just been pressed";
           }
@@ -169,6 +164,17 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleController(GvrSt
           }
         }
       }
+
+
+      bool isTouching = gvrState->_controller_state.IsTouching();
+
+      if (isTouching) {
+          gvr_vec2f touchPos = gvrState->_controller_state.GetTouchPos();
+          qDebug() << "[DAYDREAM-CONTROLLER]: Touching x:" << touchPos.x << " y:" << touchPos.y;
+          handleAxisEvent(deltaTime, i, controllerState.rAxis[i].x, controllerState.rAxis[i].y, isLeftHand);
+      }
+
+
 
         /*vr::VRControllerState_t controllerState = vr::VRControllerState_t();
         if (_system->GetControllerState(deviceIndex, &controllerState)) {
@@ -213,6 +219,64 @@ void DaydreamControllerManager::DaydreamControllerDevice::handlePoseEvent(float 
       //glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
       //_poseStateMap[controller::RIGHT_HAND] = pose.transform(poseMat);
       _poseStateMap[controller::LEFT_HAND] = pose.transform(poseMat);
+}
+
+// These functions do translation from the Steam IDs to the standard controller IDs
+void DaydreamControllerManager::DaydreamControllerDevice::handleButtonEvent(float deltaTime, uint32_t button, bool pressed, bool touched) {
+
+    using namespace controller;
+    // gvr_controller_button::GVR_CONTROLLER_BUTTON_CLICK = 1,  ///< Touchpad Click.
+    // gvr_controller_button::GVR_CONTROLLER_BUTTON_HOME = 2,
+    // gvr_controller_button::GVR_CONTROLLER_BUTTON_APP = 3,
+    // gvr_controller_button::GVR_CONTROLLER_BUTTON_VOLUME_UP = 4,
+    // gvr_controller_button::GVR_CONTROLLER_BUTTON_VOLUME_DOWN = 5,
+
+    if (pressed) {
+        if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_CLICK) {
+            _buttonPressedMap.insert(LT);
+        } else if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_APP) {
+            _buttonPressedMap.insert(LS);
+        } else if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_HOME) {
+            // TODO: we must not use this home button, check the desired mapping
+            _axisStateMap[LEFT_GRIP] = 1.0f;
+        }
+    } else {
+        if (button == == gvr_controller_button::GVR_CONTROLLER_BUTTON_HOME) {
+            _axisStateMap[LEFT_GRIP] = 0.0f;
+        }
+    }
+
+    if (touched) {
+         if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_CLICK) {
+          // TODO: this is also duplicated. Perhaps we discard some feature later
+             _buttonPressedMap.insert(LS_TOUCH);
+        }
+    }
+}
+
+// These functions do translation from the Steam IDs to the standard controller IDs
+void DaydreamControllerManager::DaydreamControllerDevice::handleAxisEvent(float deltaTime, uint32_t axis, float x, float y, bool isLeftHand) {
+    //FIX ME? It enters here every frame: probably we want to enter only if an event occurs
+    axis += vr::k_EButton_Axis0;
+    using namespace controller;
+
+    if (axis == vr::k_EButton_SteamVR_Touchpad) {
+        glm::vec2 stick(x, y);
+        if (isLeftHand) {
+            stick = _filteredLeftStick.process(deltaTime, stick);
+        } else {
+            stick = _filteredRightStick.process(deltaTime, stick);
+        }
+        _axisStateMap[isLeftHand ? LX : RX] = stick.x;
+        _axisStateMap[isLeftHand ? LY : RY] = stick.y;
+    } else if (axis == vr::k_EButton_SteamVR_Trigger) {
+        _axisStateMap[isLeftHand ? LT : RT] = x;
+        // The click feeling on the Vive controller trigger represents a value of *precisely* 1.0, 
+        // so we can expose that as an additional button
+        if (x >= 1.0f) {
+            _buttonPressedMap.insert(isLeftHand ? LT_CLICK : RT_CLICK);
+        }
+    }
 }
 
 controller::Input::NamedVector DaydreamControllerManager::DaydreamControllerDevice::getAvailableInputs() const {
