@@ -51,9 +51,35 @@ private:
         void handleController(GvrState *gvrState, float deltaTime, const controller::InputCalibrationData& inputCalibrationData);
         void handlePoseEvent(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, gvr::ControllerQuat orientation);
         void handleButtonEvent(float deltaTime, uint32_t button, bool pressed, bool touched);
-        void handleAxisEvent(float deltaTime, uint32_t axis, float x, float y);
-        //void focusOutEvent() override;
+        void handleAxisEvent(float deltaTime, float x, float y);
+        void focusOutEvent() override;
         
+        class FilteredStick {
+        public:
+            glm::vec2 process(float deltaTime, const glm::vec2& stick) {
+                // Use a timer to prevent the stick going to back to zero.
+                // This to work around the noisy touch pad that will flash back to zero breifly
+                const float ZERO_HYSTERESIS_PERIOD = 0.2f;  // 200 ms
+                if (glm::length(stick) == 0.0f) {
+                    if (_timer <= 0.0f) {
+                        return glm::vec2(0.0f, 0.0f);
+                    } else {
+                        _timer -= deltaTime;
+                        return _stick;
+                    }
+                } else {
+                    _timer = ZERO_HYSTERESIS_PERIOD;
+                    _stick = stick;
+                    return stick;
+                }
+            }
+        protected:
+            float _timer { 0.0f };
+            glm::vec2 _stick { 0.0f, 0.0f };
+        };
+
+        FilteredStick _filteredLeftStick;
+
         DaydreamControllerManager& _parent;
         friend class DaydreamControllerManager;
     };

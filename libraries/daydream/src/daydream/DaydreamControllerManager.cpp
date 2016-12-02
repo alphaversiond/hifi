@@ -150,7 +150,7 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleController(GvrSt
           bool pressed = gvrState->_controller_state.GetButtonDown(static_cast<gvr::ControllerButton>(k)); // Returns whether the given button was just pressed (transient).
           bool pressing = gvrState->_controller_state.GetButtonState(static_cast<gvr::ControllerButton>(k)); // Returns whether the given button is currently pressed.
           bool touched = gvrState->_controller_state.GetButtonUp(static_cast<gvr::ControllerButton>(k)); // Returns whether the given button was just released (transient).
-          handleButtonEvent(deltaTime, i, pressed, touched);
+          handleButtonEvent(deltaTime, k, pressed, touched);
 
           if (pressed) {
             qDebug() << "[DAYDREAM-CONTROLLER]: " << k << " button has just been pressed";
@@ -171,7 +171,7 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleController(GvrSt
       if (isTouching) {
           gvr_vec2f touchPos = gvrState->_controller_state.GetTouchPos();
           qDebug() << "[DAYDREAM-CONTROLLER]: Touching x:" << touchPos.x << " y:" << touchPos.y;
-          handleAxisEvent(deltaTime, i, controllerState.rAxis[i].x, controllerState.rAxis[i].y, isLeftHand);
+          handleAxisEvent(deltaTime, touchPos.x, touchPos.y);
       }
 
 
@@ -214,7 +214,7 @@ void DaydreamControllerManager::DaydreamControllerDevice::handlePoseEvent(float 
 
       const vec3 linearVelocity(0.5, 0.5, 0.5); //= _nextSimPoseData.linearVelocities[deviceIndex];
       const vec3 angularVelocity(0.3, 0.2, 0.4); // = _nextSimPoseData.angularVelocities[deviceIndex];
-      auto pose = daydreamControllerPoseToHandPose(false, poseMat, linearVelocity, angularVelocity);
+      auto pose = daydreamControllerPoseToHandPose(true, poseMat, linearVelocity, angularVelocity);
       // transform into avatar frame
       //glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
       //_poseStateMap[controller::RIGHT_HAND] = pose.transform(poseMat);
@@ -241,7 +241,7 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleButtonEvent(floa
             _axisStateMap[LEFT_GRIP] = 1.0f;
         }
     } else {
-        if (button == == gvr_controller_button::GVR_CONTROLLER_BUTTON_HOME) {
+        if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_HOME) {
             _axisStateMap[LEFT_GRIP] = 0.0f;
         }
     }
@@ -255,29 +255,30 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleButtonEvent(floa
 }
 
 // These functions do translation from the Steam IDs to the standard controller IDs
-void DaydreamControllerManager::DaydreamControllerDevice::handleAxisEvent(float deltaTime, uint32_t axis, float x, float y, bool isLeftHand) {
+void DaydreamControllerManager::DaydreamControllerDevice::handleAxisEvent(float deltaTime, float x, float y) {
     //FIX ME? It enters here every frame: probably we want to enter only if an event occurs
-    axis += vr::k_EButton_Axis0;
+    //axis += vr::k_EButton_Axis0;
     using namespace controller;
 
-    if (axis == vr::k_EButton_SteamVR_Touchpad) {
+    //if (axis == vr::k_EButton_SteamVR_Touchpad) {
         glm::vec2 stick(x, y);
-        if (isLeftHand) {
-            stick = _filteredLeftStick.process(deltaTime, stick);
-        } else {
-            stick = _filteredRightStick.process(deltaTime, stick);
-        }
-        _axisStateMap[isLeftHand ? LX : RX] = stick.x;
-        _axisStateMap[isLeftHand ? LY : RY] = stick.y;
-    } else if (axis == vr::k_EButton_SteamVR_Trigger) {
+        stick = _filteredLeftStick.process(deltaTime, stick);
+        _axisStateMap[LX] = stick.x;
+        _axisStateMap[LY] = stick.y;
+    /*} else if (axis == vr::k_EButton_SteamVR_Trigger) {
         _axisStateMap[isLeftHand ? LT : RT] = x;
         // The click feeling on the Vive controller trigger represents a value of *precisely* 1.0, 
         // so we can expose that as an additional button
         if (x >= 1.0f) {
             _buttonPressedMap.insert(isLeftHand ? LT_CLICK : RT_CLICK);
         }
-    }
+    }*/
 }
+
+void DaydreamControllerManager::DaydreamControllerDevice::focusOutEvent() {
+    _axisStateMap.clear();
+    _buttonPressedMap.clear();
+};
 
 controller::Input::NamedVector DaydreamControllerManager::DaydreamControllerDevice::getAvailableInputs() const {
     using namespace controller;
