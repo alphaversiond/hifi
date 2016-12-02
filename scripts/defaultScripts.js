@@ -11,6 +11,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+// anddb- Commented js to get a quick functionality of handControllerPointer, we must review it so handControllerGrab works too at least
 var DEFAULT_SCRIPTS = [
     "system/progress.js",
     "system/away.js",
@@ -19,12 +20,12 @@ var DEFAULT_SCRIPTS = [
     "system/goto.js",
     "system/hmd.js",
     "system/marketplaces/marketplace.js",
-    "system/edit.js",
-    "system/mod.js",
-    "system/selectAudioDevice.js",
-    "system/notifications.js",
+    //"system/edit.js",
+    //"system/mod.js",
+    //"system/selectAudioDevice.js",
+    //"system/notifications.js",
     "system/controllers/controllerDisplayManager.js",
-    "system/controllers/handControllerGrab.js",
+    //"system/controllers/handControllerGrab.js",
     "system/controllers/handControllerPointer.js",
     "system/controllers/squeezeHands.js",
     "system/controllers/grab.js",
@@ -67,12 +68,14 @@ if (Menu.menuExists(MENU_CATEGORY) && !Menu.menuItemExists(MENU_CATEGORY, MENU_I
 
 function runDefaultsTogether() {
     for (var j in DEFAULT_SCRIPTS) {
+        print("anddb-defaultScripts.js running " + DEFAULT_SCRIPTS[j]);
         Script.include(DEFAULT_SCRIPTS[j]);
     }
 }
 
 function runDefaultsSeparately() {
     for (var i in DEFAULT_SCRIPTS) {
+        print("anddb-defaultScripts.js running " + DEFAULT_SCRIPTS[i]);
         Script.load(DEFAULT_SCRIPTS[i]);
     }
 }
@@ -81,9 +84,11 @@ if (Menu.isOptionChecked(MENU_ITEM)) {
     // we're debugging individual default scripts
     // so we load each into its own ScriptEngine instance
     debuggingDefaultScripts = true;
+    print("anddb-defaultScripts.js running defaults separately");
     runDefaultsSeparately();
 } else {
     // include all default scripts into this ScriptEngine
+    print("anddb-defaultScripts.js running defaults together");
     runDefaultsTogether();
 }
 
