@@ -419,7 +419,7 @@ void OpenGLDisplayPlugin::customizeContext() {
         }
 
         {
-            qDebug() << "Building Cursor pipeline";
+            //qDebug() << "Building Cursor pipeline";
             auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
             auto ps = gpu::StandardShaderLib::getDrawTexturePS();
             gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
@@ -524,7 +524,7 @@ void OpenGLDisplayPlugin::compositeOverlay() {
         batch.enableStereo(false);
         batch.setFramebuffer(_compositeFramebuffer);
         if (!_overlayPipeline) {
-            qDebug() << "OpenGLDisplayPlugin setting null _overlayPipeline ";
+            //qDebug() << "OpenGLDisplayPlugin setting null _overlayPipeline ";
         }
         batch.setPipeline(_overlayPipeline);
         batch.setResourceTexture(0, _currentFrame->overlay);
@@ -541,7 +541,7 @@ void OpenGLDisplayPlugin::compositeOverlay() {
 }
 
 void OpenGLDisplayPlugin::compositePointer() {
-    qDebug() << "OpenGLDisplayPlugin internalPresent";
+    //qDebug() << "OpenGLDisplayPlugin internalPresent";
     auto& cursorManager = Cursor::Manager::instance();
     const auto& cursorData = _cursorsData[cursorManager.getCursor()->getIcon()];
     auto cursorTransform = DependencyManager::get<CompositorHelper>()->getReticleTransform(glm::mat4());
@@ -566,7 +566,7 @@ void OpenGLDisplayPlugin::compositePointer() {
 }
 
 void OpenGLDisplayPlugin::compositeScene() {
-    qDebug() << "OpenGLDisplayPlugin compositeScene";
+    //qDebug() << "OpenGLDisplayPlugin compositeScene";
     render([&](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.setFramebuffer(_compositeFramebuffer);
@@ -575,7 +575,7 @@ void OpenGLDisplayPlugin::compositeScene() {
         batch.resetViewTransform();
         batch.setProjectionTransform(mat4());
         if (!_simplePipeline) {
-            qDebug() << "OpenGLDisplayPlugin setting null _simplePipeline ";
+            //qDebug() << "OpenGLDisplayPlugin setting null _simplePipeline ";
         }
         batch.setPipeline(_simplePipeline);
         batch.setResourceTexture(0, _currentFrame->framebuffer->getRenderBuffer(0));
@@ -608,7 +608,7 @@ void OpenGLDisplayPlugin::compositeLayers() {
 }
 
 void OpenGLDisplayPlugin::internalPresent() {
-    qDebug() << "OpenGLDisplayPlugin internalPresent";
+    //qDebug() << "OpenGLDisplayPlugin internalPresent";
 
     render([&](gpu::Batch& batch) {
         batch.enableStereo(false);
@@ -617,7 +617,7 @@ void OpenGLDisplayPlugin::internalPresent() {
         batch.setViewportTransform(ivec4(uvec2(0), getSurfacePixels()));
         batch.setResourceTexture(0, _compositeFramebuffer->getRenderBuffer(0));
         if (!_presentPipeline) {
-            qDebug() << "OpenGLDisplayPlugin setting null _presentPipeline ";
+            //qDebug() << "OpenGLDisplayPlugin setting null _presentPipeline ";
         }
 
         batch.setPipeline(_presentPipeline);

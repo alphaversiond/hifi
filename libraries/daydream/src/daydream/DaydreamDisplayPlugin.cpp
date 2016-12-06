@@ -36,7 +36,7 @@ void DaydreamDisplayPlugin::resetSensors() {
 }
 
 void DaydreamDisplayPlugin::internalPresent() {
-    qDebug() << "[DaydreamDisplayPlugin] internalPresent";
+    //qDebug() << "[DaydreamDisplayPlugin] internalPresent";
     PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)presentCount())
 
  // Composite together the scene, overlay and mouse cursor
@@ -55,7 +55,7 @@ void DaydreamDisplayPlugin::internalPresent() {
         batch.setStateScissorRect(viewport);
         batch.setResourceTexture(0, _compositeFramebuffer->getRenderBuffer(0));
         if (!_presentPipeline) {
-            qDebug() << "OpenGLDisplayPlugin setting null _presentPipeline ";
+            //qDebug() << "OpenGLDisplayPlugin setting null _presentPipeline ";
         }
 
         batch.setPipeline(_presentPipeline);
@@ -77,7 +77,7 @@ ivec4 DaydreamDisplayPlugin::getViewportForSourceSize(const uvec2& size) const {
     auto window = _container->getPrimaryWidget();
     auto devicePixelRatio = window->devicePixelRatio();
     auto windowSize = toGlm(window->size());
-    qDebug() << "[DaydreamDisplayPlugin] windowSize " << windowSize; 
+    //qDebug() << "[DaydreamDisplayPlugin] windowSize " << windowSize; 
     windowSize *= devicePixelRatio;
     float windowAspect = aspect(windowSize);
     float sceneAspect = aspect(size);
@@ -127,7 +127,7 @@ bool DaydreamDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
 
     GvrState *gvrState = GvrState::getInstance();
     gvr::ControllerQuat orientation = gvrState->_controller_state.GetOrientation();
-    qDebug() << "[DAYDREAM-CONTROLLER]: DaydreamDisplayPlugin::beginFrameRender " << orientation.qx << "," << orientation.qy << "," << orientation.qz << "," << orientation.qw;
+    //qDebug() << "[DAYDREAM-CONTROLLER]: DaydreamDisplayPlugin::beginFrameRender " << orientation.qx << "," << orientation.qy << "," << orientation.qz << "," << orientation.qw;
 
     gvr::Mat4f controller_matrix = ControllerQuatToMatrix(orientation);
     glm::mat4 poseMat = glm::make_mat4(&(MatrixToGLArray(controller_matrix)[0]));
@@ -197,7 +197,7 @@ void DaydreamDisplayPlugin::customizeContext() {
 }
 
 bool DaydreamDisplayPlugin::internalActivate() {
-    qDebug() << "[DaydreamDisplayPlugin] internalActivate with _gvr_context " << __gvr_context;
+    //qDebug() << "[DaydreamDisplayPlugin] internalActivate with _gvr_context " << __gvr_context;
     _container->setFullscreen(nullptr, true);
 
     GvrState::init(__gvr_context);
@@ -208,13 +208,13 @@ bool DaydreamDisplayPlugin::internalActivate() {
         gvrState->_gvr_api->InitializeGl();
     }
 
-    qDebug() << "[DaydreamDisplayPlugin] internalActivate with _gvr_api " << gvrState->_gvr_api->GetTimePointNow().monotonic_system_time_nanos;
+    //qDebug() << "[DaydreamDisplayPlugin] internalActivate with _gvr_api " << gvrState->_gvr_api->GetTimePointNow().monotonic_system_time_nanos;
 
     std::vector<gvr::BufferSpec> specs;
     specs.push_back(gvrState->_gvr_api->CreateBufferSpec());
     gvrState->_framebuf_size = gvrState->_gvr_api->GetMaximumEffectiveRenderTargetSize();
 
-    qDebug() << "_framebuf_size " << gvrState->_framebuf_size.width << ", " << gvrState->_framebuf_size.height; //  3426 ,  1770
+    //qDebug() << "_framebuf_size " << gvrState->_framebuf_size.width << ", " << gvrState->_framebuf_size.height; //  3426 ,  1770
 
     auto window = _container->getPrimaryWidget();
     glm::vec2 windowSize = toGlm(window->size());
@@ -228,7 +228,7 @@ bool DaydreamDisplayPlugin::internalActivate() {
     specs[0].SetColorFormat(GVR_COLOR_FORMAT_RGBA_8888);
     specs[0].SetDepthStencilFormat(GVR_DEPTH_STENCIL_FORMAT_DEPTH_16);
     specs[0].SetSamples(2);
-    qDebug() << "Resetting swapchain";
+    //qDebug() << "Resetting swapchain";
     gvrState->_swapchain.reset(new gvr::SwapChain(gvrState->_gvr_api->CreateSwapChain(specs)));
     gvrState->_viewport_list.SetToRecommendedBufferViewports();
 
@@ -264,7 +264,7 @@ void DaydreamDisplayPlugin::updatePresentPose() {
         gvrState->_controller_state.GetConnectionState() == gvr_controller_connection_state::GVR_CONTROLLER_CONNECTED) {
 
       if (gvrState->_controller_state.GetRecentered()) {
-        qDebug() << "[DAYDREAM-CONTROLLER] Recenter";
+        //qDebug() << "[DAYDREAM-CONTROLLER] Recenter";
         resetEyeProjections(gvrState);
       }
     }
@@ -309,7 +309,7 @@ void DaydreamDisplayPlugin::resetEyeProjections(GvrState *gvrState) {
 }
 
 void DaydreamDisplayPlugin::compositePointer() {
-    qDebug() << "DaydreamDisplayPlugin::compositePointer()";
+    //qDebug() << "DaydreamDisplayPlugin::compositePointer()";
     auto& cursorManager = Cursor::Manager::instance();
     const auto& cursorData = _cursorsData[cursorManager.getCursor()->getIcon()];
     auto compositorHelper = DependencyManager::get<CompositorHelper>();

@@ -943,7 +943,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         this, &Application::checkSkeleton, Qt::QueuedConnection);
 
     // Setup the userInputMapper with the actions
-    /*
+    
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     connect(userInputMapper.data(), &UserInputMapper::actionEvent, [this](int action, float state) {
         using namespace controller;
@@ -1017,13 +1017,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
 
         if (action == controller::toInt(controller::Action::RETICLE_CLICK)) {
+            qDebug() << "anddb-handControllerPointer.js Application::Application action was controller::Action::RETICLE_CLICK";
             auto reticlePos = getApplicationCompositor().getReticlePosition();
             QPoint localPos(reticlePos.x, reticlePos.y); // both hmd and desktop already handle this in our coordinates.
             if (state) {
+                qDebug() << "anddb-handControllerPointer.js Application::Application sending event reticleClickPressed true";
                 QMouseEvent mousePress(QEvent::MouseButtonPress, localPos, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
                 sendEvent(_glWidget, &mousePress);
                 _reticleClickPressed = true;
             } else {
+                qDebug() << "anddb-handControllerPointer.js Application::Application sending event reticleClickPressed false";
                 QMouseEvent mouseRelease(QEvent::MouseButtonRelease, localPos, Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
                 sendEvent(_glWidget, &mouseRelease);
                 _reticleClickPressed = false;
@@ -1085,12 +1088,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
 
     // Setup the _keyboardMouseDevice, _touchscreenDevice and the user input mapper with the default bindings
-    userInputMapper->registerDevice(_keyboardMouseDevice->getInputDevice());
+//    userInputMapper->registerDevice(_keyboardMouseDevice->getInputDevice());
     // if the _touchscreenDevice is not supported it will not be registered
-    if (_touchscreenDevice) {
+  /*  if (_touchscreenDevice) {
         userInputMapper->registerDevice(_touchscreenDevice->getInputDevice());
-    }
-*/
+    }*/
+
     // force the model the look at the correct directory (weird order of operations issue)
     scriptEngines->setScriptsLocation(scriptEngines->getScriptsLocation());
     // do this as late as possible so that all required subsystems are initialized
@@ -3028,7 +3031,9 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
     auto buttons = event->buttons();
     // Determine if the ReticleClick Action is 1 and if so, fake include the LeftMouseButton
     if (_reticleClickPressed) {
+        qDebug() << "Controller _reticleClickPressed";
         if (button == Qt::NoButton) {
+            qDebug() << "Controller _reticleClickPressed assinging leftButton";
             button = Qt::LeftButton;
         }
         buttons |= Qt::LeftButton;
@@ -3043,6 +3048,7 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
         getOverlays().getOverlayAtPoint(glm::vec2(transformedPos.x(), transformedPos.y()))) {
         getEntities()->mouseMoveEvent(&mappedEvent);
     }
+    qDebug() << "Controller mouseMoveEvent emitting mouse move event";
     _controllerScriptingInterface->emitMouseMoveEvent(&mappedEvent); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
@@ -3051,12 +3057,14 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
     }
 
     if (_keyboardMouseDevice->isActive()) {
+        qDebug() << "Controller mouseMoveEvent keyboardMouseDevice isActive";
         _keyboardMouseDevice->mouseMoveEvent(event);
     }
 
 }
 
 void Application::mousePressEvent(QMouseEvent* event) {
+    qDebug() << "anddb-handControllerPointer.js Application::mousePressEvent";
     // Inhibit the menu if the user is using alt-mouse dragging
     _altPressed = false;
 
@@ -3075,9 +3083,10 @@ void Application::mousePressEvent(QMouseEvent* event) {
         event->buttons(), event->modifiers());
 
     if (!_aboutToQuit) {
+        qDebug() << "anddb-handControllerPointer.js before getEntities()->mousePressEvent";
         getEntities()->mousePressEvent(&mappedEvent);
     }
-
+    qDebug() << "anddb-handControllerPointer.js before emitMousePressEvent";
     _controllerScriptingInterface->emitMousePressEvent(&mappedEvent); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it

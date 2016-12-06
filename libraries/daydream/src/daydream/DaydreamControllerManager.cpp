@@ -29,12 +29,14 @@
 
 
 const QString DaydreamControllerManager::NAME = "Daydream";
+static const char* MENU_PATH = "Avatar" ">" "Daydream Controllers";
 
 bool DaydreamControllerManager::isSupported() const {
     return true; //openVrSupported();
 }
 
 bool DaydreamControllerManager::activate() {
+  _container->addMenu(MENU_PATH);
     InputPlugin::activate();
     qDebug() << "[DAYDREAM-CONTROLLER] DaydreamControllerManager::activate";
 
@@ -200,7 +202,7 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleController(GvrSt
 }
 
 void DaydreamControllerManager::DaydreamControllerDevice::handlePoseEvent(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, gvr::ControllerQuat orientation) {
-      qDebug() << "[DAYDREAM-CONTROLLER]: Orientation: " << orientation.qx << "," << orientation.qy << "," << orientation.qz << "," << orientation.qw;
+      //qDebug() << "[DAYDREAM-CONTROLLER]: Orientation: " << orientation.qx << "," << orientation.qy << "," << orientation.qz << "," << orientation.qw;
       gvr::Mat4f controller_matrix = ControllerQuatToMatrix(orientation);
       float scale = 5.0f;
       gvr::Mat4f neutral_matrix = {
@@ -233,23 +235,23 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleButtonEvent(floa
 
     if (pressed) {
         if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_CLICK) {
-            _buttonPressedMap.insert(LT);
+            _buttonPressedMap.insert(LT_CLICK);
         } else if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_APP) {
-            _buttonPressedMap.insert(LS);
+            //_buttonPressedMap.insert(LS);
         } else if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_HOME) {
             // TODO: we must not use this home button, check the desired mapping
-            _axisStateMap[LEFT_GRIP] = 1.0f;
+            //_axisStateMap[LEFT_GRIP] = 1.0f;
         }
     } else {
         if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_HOME) {
-            _axisStateMap[LEFT_GRIP] = 0.0f;
+            //_axisStateMap[LEFT_GRIP] = 0.0f;
         }
     }
 
     if (touched) {
          if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_CLICK) {
           // TODO: this is also duplicated. Perhaps we discard some feature later
-             _buttonPressedMap.insert(LS_TOUCH);
+             //_buttonPressedMap.insert(LS_TOUCH);
         }
     }
 }
@@ -290,23 +292,23 @@ controller::Input::NamedVector DaydreamControllerManager::DaydreamControllerDevi
 //        makePair(RY, "RY"),
 
         // capacitive touch on the touch pad
-        makePair(LS_TOUCH, "LSTouch"),
+        //makePair(LS_TOUCH, "LSTouch"),
 //        makePair(RS_TOUCH, "RSTouch"),
 
         // touch pad press
         makePair(LS, "LS"),
 //        makePair(RS, "RS"),
         // Differentiate where we are in the touch pad click
-        makePair(LS_CENTER, "LSCenter"),
-        makePair(LS_X, "LSX"),
-        makePair(LS_Y, "LSY"),
+        //makePair(LS_CENTER, "LSCenter"),
+        //makePair(LS_X, "LSX"),
+        //makePair(LS_Y, "LSY"),
 //        makePair(RS_CENTER, "RSCenter"),
 //        makePair(RS_X, "RSX"),
 //        makePair(RS_Y, "RSY"),
 
 
         // triggers
-        makePair(LT, "LT"), // APP button
+        //makePair(LT, "LT"), // APP button
 //        makePair(RT, "RT"),
 
         // Trigger clicks
@@ -314,11 +316,11 @@ controller::Input::NamedVector DaydreamControllerManager::DaydreamControllerDevi
 //        makePair(RT_CLICK, "RTClick"),
 
         // low profile side grip button.
-        makePair(LEFT_GRIP, "LeftGrip"),
+        //makePair(LEFT_GRIP, "LeftGrip"),
 //        makePair(RIGHT_GRIP, "RightGrip"),
 
         // 3d location of controller
-        makePair(LEFT_HAND, "LeftHand"),
+        //makePair(LEFT_HAND, "LeftHand"),
 //        makePair(RIGHT_HAND, "RightHand"),
 
         // app button above trackpad.

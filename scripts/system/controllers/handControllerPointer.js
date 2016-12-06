@@ -99,6 +99,9 @@ function Trigger(label) {
             state = 'partial';
         }
         that.state = state;
+        if (state || Math.random()>0.9) {
+            print('anddb-handControllerPointer.js Trigger.update state ' + state);
+        }
     };
     // Answer a controller source function (answering either 0.0 or 1.0).
     that.partial = function () {
@@ -251,7 +254,7 @@ function activeHudPoint2d(activeHand) { // if controller is valid, update reticl
     var hudPoint3d = calculateRayUICollisionPoint(controllerPosition, controllerDirection);
     if (!hudPoint3d) {
         if (Menu.isOptionChecked("Overlays")) { // With our hud resetting strategy, hudPoint3d should be valid here
-            print('Controller is parallel to HUD');  // so let us know that our assumptions are wrong.
+            print('anddb-handControllerPointer.js Controller is parallel to HUD');  // so let us know that our assumptions are wrong.
         }
         return;
     }
@@ -422,7 +425,7 @@ Script.scriptEnding.connect(clickMapping.disable);
 clickMapping.from(Controller.Standard.RT).peek().to(rightTrigger.triggerPress);
 clickMapping.from(Controller.Standard.LT).peek().to(leftTrigger.triggerPress);
 clickMapping.from(Controller.Standard.RTClick).peek().to(rightTrigger.triggerClick);
-clickMapping.from(Controller.Standard.LTClick).peek().to(leftTrigger.triggerClick);
+clickMapping.from(Controller.Standard.LTClick).debug().peek().to(leftTrigger.triggerClick);
 // Full smoothed trigger is a click.
 function isPointingAtOverlayStartedNonFullTrigger(trigger) {
     // true if isPointingAtOverlay AND we were NOT full triggered when we became so.
@@ -439,12 +442,15 @@ function isPointingAtOverlayStartedNonFullTrigger(trigger) {
             return true;
         }
         lockedIn = !trigger.full();
+        if (lockedIn || Math.random()>0.9) {
+            print('anddb-handControllerPointer.js isPointingAtOverlayStartedNonFullTrigger lockedIn ' + lockedIn);    
+        }
         return lockedIn;
     }
 }
 print("anddb-handControllerPointer.js isPointingAtOverlayStartedNonFullTrigger defined");
 clickMapping.from(rightTrigger.full).when(isPointingAtOverlayStartedNonFullTrigger(rightTrigger)).to(Controller.Actions.ReticleClick);
-clickMapping.from(leftTrigger.full).when(isPointingAtOverlayStartedNonFullTrigger(leftTrigger)).to(Controller.Actions.ReticleClick);
+clickMapping.from(leftTrigger.full).debug().when(isPointingAtOverlayStartedNonFullTrigger(leftTrigger)).to(Controller.Actions.ReticleClick);
 // The following is essentially like Left and Right versions of
 // clickMapping.from(Controller.Standard.RightSecondaryThumb).peek().to(Controller.Actions.ContextMenu);
 // except that we first update the reticle position from the appropriate hand position, before invoking the  .
@@ -520,7 +526,7 @@ print("anddb-handControllerPointer.js setColoredLaser defined");
 //
 function update() {
     var shouldLog = Math.random()>0.9;
-    if (shoudLog)
+    if (shouldLog)
         print("anddb-handControllerPointer.js update()");
     var now = Date.now();
     function off() {
@@ -563,7 +569,7 @@ function update() {
     }
 
 
-    if (shoudLog)
+    if (shouldLog)
         print("anddb-handControllerPointer.js hudPoint2d is at: " + JSON.stringify(hudPoint2d));
     // If there's a HUD element at the (newly moved) reticle, just make it visible and bail.
     if (isPointingAtOverlay(hudPoint2d)) {

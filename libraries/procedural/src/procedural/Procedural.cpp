@@ -122,14 +122,14 @@ bool Procedural::parseShader(const QUrl& shaderPath) {
     if (_shaderUrl.isLocalFile()) {
         _shaderPath = _shaderUrl.toLocalFile();
 #if WANT_DEBUG
-        qDebug() << "Shader path: " << _shaderPath;
+        //qDebug() << "Shader path: " << _shaderPath;
 #endif
         if (!QFile(_shaderPath).exists()) {
             _networkShader.reset();
             return false;;
         }
     } else {
-        qDebug() << "Shader url: " << _shaderUrl;
+        //qDebug() << "Shader url: " << _shaderUrl;
         _networkShader = ShaderCache::instance().getShader(_shaderUrl);
     }
 
@@ -189,7 +189,7 @@ void Procedural::parse(const QJsonObject& proceduralData) {
 }
 
 bool Procedural::ready() {
-    qDebug() << "[SKYBOX] Procedural::Ready " << _enabled;
+    //qDebug() << "[SKYBOX] Procedural::Ready " << _enabled;
     if (!_hasStartedFade) {
         _fadeStartTime = usecTimestampNow();
     }
@@ -211,14 +211,14 @@ bool Procedural::ready() {
 
     // Do we have a network or local shader, and if so, is it loaded?
     if (_shaderPath.isEmpty() && (!_networkShader || !_networkShader->isLoaded())) {
-        qDebug() << "[SKYBOX] Procedural::Ready _shaderPath.isEmpty() && (!_networkShader || !_networkShader->isLoaded())";
+        //qDebug() << "[SKYBOX] Procedural::Ready _shaderPath.isEmpty() && (!_networkShader || !_networkShader->isLoaded())";
         return false;
     }
 
     // Do we have textures, and if so, are they loaded?
     for (size_t i = 0; i < MAX_PROCEDURAL_TEXTURE_CHANNELS; ++i) {
         if (_channels[i] && !_channels[i]->isLoaded()) {
-            qDebug() << "[SKYBOX] Procedural::Ready _channels[i] && !_channels[i]->isLoaded()";
+            //qDebug() << "[SKYBOX] Procedural::Ready _channels[i] && !_channels[i]->isLoaded()";
             return false;
         }
     }
@@ -297,7 +297,7 @@ void Procedural::prepare(gpu::Batch& batch, const glm::vec3& position, const glm
     }
 
     if (!(isFading() ? _transparentPipeline : _opaquePipeline)) {
-        qDebug() << "Precedural setting null pipeline";
+        //qDebug() << "Precedural setting null pipeline";
     }
     
     batch.setPipeline(isFading() ? _transparentPipeline : _opaquePipeline);

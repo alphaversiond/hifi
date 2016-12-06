@@ -132,7 +132,7 @@ void VrMenu::addMenu(QMenu* menu) {
 #else
     QMenu* parentMenu = dynamic_cast<QMenu*>(parent);
 #endif
-    if (parentMenu) {
+    if (parentMenu && menu->menuAction()) {
         MenuUserData* userData = MenuUserData::forObject(parentMenu->menuAction());
         if (!userData) {
             return;

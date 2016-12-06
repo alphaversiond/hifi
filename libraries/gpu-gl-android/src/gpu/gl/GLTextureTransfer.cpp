@@ -51,7 +51,7 @@ GLTextureTransferHelper::~GLTextureTransferHelper() {
 
 void GLTextureTransferHelper::transferTexture(const gpu::TexturePointer& texturePointer) {
     GLTexture* object = Backend::getGPUObject<GLTexture>(*texturePointer);
-    qDebug() << "GLTextureTransferHelper::transferTexture getGPUObject";
+    //qDebug() << "GLTextureTransferHelper::transferTexture getGPUObject";
     Backend::incrementTextureGPUTransferCount();
     object->setSyncState(GLSyncState::Pending);
     Lock lock(_mutex);
@@ -155,7 +155,7 @@ bool GLTextureTransferHelper::process() {
     auto lastReportInterval = now - lastReport;
     if (lastReportInterval > USECS_PER_SECOND * 4) {
         lastReport = now;
-        qDebug() << "Texture list " << _transferringTextures.size();
+        //qDebug() << "Texture list " << _transferringTextures.size();
     }
 
     size_t transferCount = 0;
@@ -165,7 +165,7 @@ bool GLTextureTransferHelper::process() {
         }
         auto texture = *_textureIterator;
         GLTexture* gltexture = Backend::getGPUObject<GLTexture>(*texture);
-        qDebug() << "GLTextureTransferHelper::process  glTexture comes from  Backend::getGPUObject<GLTexture>(*texture)";
+        //qDebug() << "GLTextureTransferHelper::process  glTexture comes from  Backend::getGPUObject<GLTexture>(*texture)";
         if (gltexture->continueTransfer()) {
             ++_textureIterator;
             continue;
