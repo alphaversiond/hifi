@@ -128,7 +128,7 @@ void GLESTexture::transferMip(uint16_t mipLevel, uint8_t face) const {
 }
 
 void GLESTexture::startTransfer() {
-    qDebug() << "GLESTexture::startTransfer() ";
+    //qDebug() << "GLESTexture::startTransfer() ";
     PROFILE_RANGE(__FUNCTION__);
     Parent::startTransfer();
 

@@ -5,6 +5,7 @@
         { "from": "Daydream.LX", "to": "Standard.LX", "debug": true },
         { "from": "Daydream.LTClick", "to": "Standard.LTClick", "debug": true},
         { "from": "Daydream.LT", "to": "Standard.LT", "debug": true},
-        { "from": "Daydream.LS", "to": "Standard.LS", "debug": true }
+        { "from": "Daydream.LS", "to": "Standard.LS", "debug": true },
+        { "from": "Daydream.LeftHand", "to": "Standard.LeftHand", "when": [ "Application.InHMD" ]  }
     ]
 }

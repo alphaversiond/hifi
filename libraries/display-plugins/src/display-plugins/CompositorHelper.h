@@ -192,7 +192,11 @@ public:
     Q_INVOKABLE bool getAllowMouseCapture() { return _compositor->getAllowMouseCapture(); }
     Q_INVOKABLE void setAllowMouseCapture(bool value) { return _compositor->setAllowMouseCapture(value); }
 
-    Q_INVOKABLE bool isPointingAtSystemOverlay() { return !_compositor->getReticleOverDesktop(); }
+    Q_INVOKABLE bool isPointingAtSystemOverlay() {
+        bool pointing = !_compositor->getReticleOverDesktop();
+        qDebug() << "[controller] isPointingAtSystemOverlay " << !_compositor->getReticleOverDesktop();
+        return pointing;
+    }
 
     Q_INVOKABLE bool getVisible() { return _compositor->getReticleVisible(); }
     Q_INVOKABLE void setVisible(bool visible) { _compositor->setReticleVisible(visible); }

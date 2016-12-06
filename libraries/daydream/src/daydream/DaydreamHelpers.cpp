@@ -188,6 +188,7 @@ controller::Pose daydreamControllerPoseToHandPose(bool isLeftHand, const mat4& m
     // handle change in velocity due to translationOffset
     result.velocity = linearVelocity + glm::cross(angularVelocity, position - extractTranslation(mat));
     result.angularVelocity = angularVelocity;
+    result.valid = true;
     return result;
 }
 

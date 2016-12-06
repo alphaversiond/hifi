@@ -152,7 +152,10 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleController(GvrSt
           bool pressed = gvrState->_controller_state.GetButtonDown(static_cast<gvr::ControllerButton>(k)); // Returns whether the given button was just pressed (transient).
           bool pressing = gvrState->_controller_state.GetButtonState(static_cast<gvr::ControllerButton>(k)); // Returns whether the given button is currently pressed.
           bool touched = gvrState->_controller_state.GetButtonUp(static_cast<gvr::ControllerButton>(k)); // Returns whether the given button was just released (transient).
-          handleButtonEvent(deltaTime, k, pressed, touched);
+          if ((pressed || touched || pressing) || rand() % 100 > 98)
+            qDebug() << "[DAYDREAM-CONTROLLER]: call handleButtonEvent(deltaTime: " << deltaTime << ", k: " << k <<
+                      ", pressed: " << pressed << ", touched: " << touched << ",  pressing: " <<  pressing;
+          handleButtonEvent(deltaTime, k, pressed, touched, pressing);
 
           if (pressed) {
             qDebug() << "[DAYDREAM-CONTROLLER]: " << k << " button has just been pressed";
@@ -224,7 +227,7 @@ void DaydreamControllerManager::DaydreamControllerDevice::handlePoseEvent(float 
 }
 
 // These functions do translation from the Steam IDs to the standard controller IDs
-void DaydreamControllerManager::DaydreamControllerDevice::handleButtonEvent(float deltaTime, uint32_t button, bool pressed, bool touched) {
+void DaydreamControllerManager::DaydreamControllerDevice::handleButtonEvent(float deltaTime, uint32_t button, bool pressed, bool touched, bool pressing) {
 
     using namespace controller;
     // gvr_controller_button::GVR_CONTROLLER_BUTTON_CLICK = 1,  ///< Touchpad Click.
@@ -235,6 +238,7 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleButtonEvent(floa
 
     if (pressed) {
         if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_CLICK) {
+          qDebug() << "[DAYDREAM-CONTROLLER]: inserting into _buttonPressedMap LT_CLICK";
             _buttonPressedMap.insert(LT_CLICK);
         } else if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_APP) {
             //_buttonPressedMap.insert(LS);
@@ -247,11 +251,19 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleButtonEvent(floa
             //_axisStateMap[LEFT_GRIP] = 0.0f;
         }
     }
+    if (pressing) {
+        if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_CLICK) {
+          qDebug() << "[DAYDREAM-CONTROLLER]: inserting into _buttonPressedMap LT_CLICK";
+            _buttonPressedMap.insert(LT_CLICK);
+        }
+    }
 
     if (touched) {
          if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_CLICK) {
           // TODO: this is also duplicated. Perhaps we discard some feature later
              //_buttonPressedMap.insert(LS_TOUCH);
+          //qDebug() << "[DAYDREAM-CONTROLLER]: inserting into _buttonPressedMap LT_CLICK";
+          //_buttonPressedMap.insert(LT_CLICK);
         }
     }
 }
@@ -263,10 +275,10 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleAxisEvent(float 
     using namespace controller;
 
     //if (axis == vr::k_EButton_SteamVR_Touchpad) {
-        glm::vec2 stick(x, y);
+        /*glm::vec2 stick(x, y);
         stick = _filteredLeftStick.process(deltaTime, stick);
         _axisStateMap[LX] = stick.x;
-        _axisStateMap[LY] = stick.y;
+        _axisStateMap[LY] = stick.y;  ALL THIS MADE THE CUBES ROTATE INDEFINETELY */
     /*} else if (axis == vr::k_EButton_SteamVR_Trigger) {
         _axisStateMap[isLeftHand ? LT : RT] = x;
         // The click feeling on the Vive controller trigger represents a value of *precisely* 1.0, 
@@ -320,7 +332,7 @@ controller::Input::NamedVector DaydreamControllerManager::DaydreamControllerDevi
 //        makePair(RIGHT_GRIP, "RightGrip"),
 
         // 3d location of controller
-        //makePair(LEFT_HAND, "LeftHand"),
+        makePair(LEFT_HAND, "LeftHand"),
 //        makePair(RIGHT_HAND, "RightHand"),
 
         // app button above trackpad.

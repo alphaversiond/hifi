@@ -124,7 +124,7 @@ RenderShadowTask::RenderShadowTask(CullFunctor cullFunctor) {
 }
 
 void RenderShadowTask::configure(const Config& configuration) {
-    qDebug() << "get<DeferredLightingEffect>() from RenderShadowTask::configure " << DependencyManager::get<DeferredLightingEffect>();
+    //qDebug() << "get<DeferredLightingEffect>() from RenderShadowTask::configure " << DependencyManager::get<DeferredLightingEffect>();
     DependencyManager::set<DeferredLightingEffect>();
     DependencyManager::get<DeferredLightingEffect>()->setShadowMapEnabled(configuration.enabled);
     // This is a task, so must still propogate configure() to its Jobs

@@ -271,8 +271,10 @@ bool CompositorHelper::getReticleOverDesktop() const {
         static const glm::vec2 minOverlayPosition;
         if (glm::any(glm::lessThan(_reticlePositionInHMD, minOverlayPosition)) ||
             glm::any(glm::greaterThan(_reticlePositionInHMD, maxOverlayPosition))) {
+            //qDebug() << "[controller] getReticleOverDesktop is over desktop!";
             return true;
         }
+        //qDebug() << "[controller] getReticleOverDesktop is NOT over desktop, return old value: " << _isOverDesktop;
     }
     return _isOverDesktop;
 }
@@ -449,5 +451,7 @@ QVariant ReticleInterface::getPosition() const {
 }
 
 void ReticleInterface::setPosition(QVariant position) {
-    _compositor->setReticlePosition(vec2FromVariant(position));
+    vec2 pos = vec2FromVariant(position);
+    qDebug() << "[controller] ReticleInterface::setPosition " << pos.x << pos.y;
+    _compositor->setReticlePosition(pos);
 }

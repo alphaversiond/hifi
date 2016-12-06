@@ -1895,9 +1895,16 @@ void Application::initializeUi() {
     // This will set up the input plugins UI
     _activeInputPlugins.clear();
     foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
+#ifdef ANDROID
+        //const QString DaydreamControllerManager::NAME = "Daydream";
+        /*if ("Daydream" == inputPlugin->getName()) {
+            _keyboardMouseDevice = std::dynamic_pointer_cast<KeyboardMouseDevice>(inputPlugin);
+        }*/
+#else
         if (KeyboardMouseDevice::NAME == inputPlugin->getName()) {
             _keyboardMouseDevice = std::dynamic_pointer_cast<KeyboardMouseDevice>(inputPlugin);
         }
+#endif
         if (TouchscreenDevice::NAME == inputPlugin->getName()) {
             _touchscreenDevice = std::dynamic_pointer_cast<TouchscreenDevice>(inputPlugin);
         }
@@ -2226,7 +2233,7 @@ void Application::paintGL() {
             }
         });
 
-        qDebug() << "Drawing cube on finalFramebuffer("<<finalFramebuffer->getSize()<<")";
+        //qDebug() << "Drawing cube on finalFramebuffer("<<finalFramebuffer->getSize()<<")";
             static int numFrame=1024;
             numFrame++;
         static GLfloat _translation[] = {
@@ -2258,7 +2265,7 @@ void Application::paintGL() {
             batch.setProjectionTransform(projMat);
             batch.setFramebuffer(finalFramebuffer);
             if (!thePipeline) {
-                qDebug() << "Application::paintGL Setting a null pipeline";
+                //qDebug() << "Application::paintGL Setting a null pipeline";
             }
             batch.setViewTransform(viewTransform);
             batch.setPipeline(thePipeline);
@@ -3050,16 +3057,16 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
     }
     qDebug() << "Controller mouseMoveEvent emitting mouse move event";
     _controllerScriptingInterface->emitMouseMoveEvent(&mappedEvent); // send events to any registered scripts
-
+    qDebug() << "Controller mouseMoveEvent isMouseCaptured?";
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface->isMouseCaptured()) {
         return;
     }
-
-    if (_keyboardMouseDevice->isActive()) {
+    qDebug() << "Controller mouseMoveEvent _keyboardMouseDevice->isActive()?";
+    //if (_keyboardMouseDevice->isActive()) {
         qDebug() << "Controller mouseMoveEvent keyboardMouseDevice isActive";
-        _keyboardMouseDevice->mouseMoveEvent(event);
-    }
+    //    _keyboardMouseDevice->mouseMoveEvent(event);
+    //}
 
 }
 
