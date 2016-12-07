@@ -20,6 +20,8 @@
 // When partially squeezing over a HUD element, a laser or the reticle is shown where the active hand
 // controller beam intersects the HUD.
 
+print("anddb-handControllerPointer.js start");
+print("anddb-handControllerPointer.js including controllers.js");
 Script.include("../libraries/controllers.js");
 
 // UTILITIES -------------
@@ -34,6 +36,7 @@ function setupHandler(event, handler) {
     });
 }
 
+print("anddb-handControllerPointer.js setupHandler defined");
 // If some capability is not available until expiration milliseconds after the last update.
 function TimeLock(expiration) {
     var last = 0;
@@ -45,6 +48,7 @@ function TimeLock(expiration) {
     };
 }
 
+print("anddb-handControllerPointer.js TimeLock defined");
 var handControllerLockOut = new TimeLock(2000);
 
 function Trigger(label) {
@@ -112,6 +116,7 @@ function Trigger(label) {
     };
 }
 
+print("anddb-handControllerPointer.js Trigger defined");
 // VERTICAL FIELD OF VIEW ---------
 //
 // Cache the verticalFieldOfView setting and update it every so often.
@@ -120,6 +125,7 @@ function updateFieldOfView() {
     verticalFieldOfView = Settings.getValue('fieldOfView') || DEFAULT_VERTICAL_FIELD_OF_VIEW;
 }
 
+print("anddb-handControllerPointer.js updateFieldOfView defined");
 // SHIMS ----------
 //
 var weMovedReticle = false;
@@ -139,6 +145,7 @@ function ignoreMouseActivity() {
     weMovedReticle = false;
     return true;
 }
+print("anddb-handControllerPointer.js ignoreMouseActivity defined");
 var MARGIN = 25;
 var reticleMinX = MARGIN, reticleMaxX, reticleMinY = MARGIN, reticleMaxY;
 function updateRecommendedArea() {
@@ -174,6 +181,7 @@ function isPointingAtOverlay(optionalHudPosition2d) {
     return isPointing;
 }
 
+print("anddb-handControllerPointer.js isPointingAtOverlay defined");
 // Generalized HUD utilities, with or without HMD:
 // This "var" is for documentation. Do not change the value!
 var PLANAR_PERPENDICULAR_HUD_DISTANCE = 1;
@@ -195,6 +203,7 @@ function calculateRayUICollisionPoint(position, direction) {
     var scale = numerator / denominator;
     return Vec3.sum(position, Vec3.multiply(scale, direction));
 }
+print("anddb-handControllerPointer.js calculateRayUICollisionPoint defined");
 var DEGREES_TO_HALF_RADIANS = Math.PI / 360;
 function overlayFromWorldPoint(point) {
     // Answer the 2d pixel-space location in the HUD that covers the given 3D point.
@@ -218,6 +227,7 @@ function overlayFromWorldPoint(point) {
     return { x: horizontalPixels, y: verticalPixels };
 }
 
+print("anddb-handControllerPointer.js overlayFromWorldPoint defined");
 var gamePad = Controller.findDevice("GamePad");
 function activeHudPoint2dGamePad() {
     if (!HMD.active) {
@@ -243,6 +253,7 @@ function activeHudPoint2dGamePad() {
     return hudPoint2d;
 }
 
+print("anddb-handControllerPointer.js activeHudPoint2dGamePad defined");
 
 function activeHudPoint2d(activeHand) { // if controller is valid, update reticle position and answer 2d point. Otherwise falsey.
     var shouldLog = activeTrigger.full() || Math.random()>0.5;
@@ -276,6 +287,7 @@ function activeHudPoint2d(activeHand) { // if controller is valid, update reticl
     return hudPoint2d;
 }
 
+print("anddb-handControllerPointer.js activeHudPoint2d defined");
 // MOUSE ACTIVITY --------
 //
 var isSeeking = false;
@@ -334,6 +346,7 @@ function updateSeeking(doNotStartSeeking) {
     }
 }
 
+print("anddb-handControllerPointer.js updateSeeking defined");
 var mouseCursorActivity = new TimeLock(5000);
 var APPARENT_MAXIMUM_DEPTH = 100.0; // this is a depth at which things all seem sufficiently distant
 function updateMouseActivity(isClick) {
@@ -389,6 +402,7 @@ function onMouseMove() {
 function onMouseClick() {
     updateMouseActivity(true);
 }
+print("anddb-handControllerPointer.js onMouseClick defined");
 setupHandler(Controller.mouseMoveEvent, onMouseMove);
 setupHandler(Controller.mousePressEvent, onMouseClick);
 setupHandler(Controller.mouseDoublePressEvent, onMouseClick);
@@ -398,12 +412,12 @@ setupHandler(Controller.mouseDoublePressEvent, onMouseClick);
 
 var leftTrigger = new Trigger('left');
 var rightTrigger = new Trigger('right');
-var activeTrigger = leftTrigger;
-var activeHand = Controller.Standard.LeftHand;
+var activeTrigger = rightTrigger;
+var activeHand = Controller.Standard.RightHand;
 var LEFT_HUD_LASER = 1;
 var RIGHT_HUD_LASER = 2;
 var BOTH_HUD_LASERS = LEFT_HUD_LASER + RIGHT_HUD_LASER;
-var activeHudLaser = LEFT_HUD_LASER;
+var activeHudLaser = RIGHT_HUD_LASER;
 function toggleHand() { // unequivocally switch which hand controls mouse position
     if (activeHand === Controller.Standard.RightHand) {
         activeHand = Controller.Standard.LeftHand;
@@ -424,6 +438,7 @@ function makeToggleAction(hand) { // return a function(0|1) that makes the speci
     };
 }
 
+print("anddb-handControllerPointer.js makeToggleAction defined");
 var clickMapping = Controller.newMapping('handControllerPointer-click');
 Script.scriptEnding.connect(clickMapping.disable);
 
@@ -472,17 +487,8 @@ function isPointingAtOverlayStartedNonFullTrigger(trigger) {
     }
 }
 print("anddb-handControllerPointer.js isPointingAtOverlayStartedNonFullTrigger defined");
-
-//clickMapping.from(rightTrigger.full).when(isPointingAtOverlayStartedNonFullTrigger(rightTrigger)).to(Controller.Actions.ReticleClick);
-//clickMapping.from(leftTrigger.full).when(isPointingAtOverlayStartedNonFullTrigger(leftTrigger)).to(Controller.Actions.ReticleClick);
-//clickMapping.from(leftTrigger.full).debug().when(isPointingAtOverlayStartedNonFullTrigger(leftTrigger)).to(Controller.Actions.ReticleClick);
-
-clickMapping.from(leftTrigger.full).when(isPointingAtOverlayStartedNonFullTrigger(leftTrigger)).to(function (clicked) {
-    if (clicked || Math.random()>0.98) {
-        print("anddb-handControllerPointer.js leftTrigger full? " + clicked );
-    }
-});
-
+clickMapping.from(rightTrigger.full).when(isPointingAtOverlayStartedNonFullTrigger(rightTrigger)).to(Controller.Actions.ReticleClick);
+clickMapping.from(leftTrigger.full).when(isPointingAtOverlayStartedNonFullTrigger(leftTrigger)).to(Controller.Actions.ReticleClick);
 // The following is essentially like Left and Right versions of
 // clickMapping.from(Controller.Standard.RightSecondaryThumb).peek().to(Controller.Actions.ContextMenu);
 // except that we first update the reticle position from the appropriate hand position, before invoking the  .
@@ -507,7 +513,8 @@ clickMapping.from(Controller.Standard.Start).peek().to(function (clicked) {
 
       wantsMenu = clicked;
 });
-clickMapping.from(Controller.Hardware.Keyboard.RightMouseClicked).peek().to(function () {
+/* // anddb- TODO Keyboard must work in all platforms except mobile, restore it and find a way to disable it (e.g. for android) */
+/*clickMapping.from(Controller.Hardware.Keyboard.RightMouseClicked).peek().to(function () {
     // Allow the reticle depth to be set correctly:
     // Wait a tick for the context menu to be displayed, and then simulate a (non-hand-controller) mouse move
     // so that the system updates qml state (Reticle.pointingAtSystemOverlay) before it gives us a mouseMove.
@@ -516,13 +523,14 @@ clickMapping.from(Controller.Hardware.Keyboard.RightMouseClicked).peek().to(func
     Script.setTimeout(function () {
         Reticle.setPosition(Reticle.position);
     }, 0);
-});
+});*/
 // Partial smoothed trigger is activation.
 //clickMapping.from(rightTrigger.partial).to(makeToggleAction(Controller.Standard.RightHand));
 //clickMapping.from(leftTrigger.partial).to(makeToggleAction(Controller.Standard.LeftHand));
 clickMapping.from(leftTrigger.full).to(makeToggleAction(Controller.Standard.LeftHand));
 clickMapping.enable();
 
+print("anddb-handControllerPointer.js clickMapping defined");
 // VISUAL AID -----------
 // Same properties as handControllerGrab search sphere
 var LASER_ALPHA = 0.5;
@@ -552,6 +560,7 @@ function setColoredLaser() { // answer trigger state if lasers supported, else f
     return HMD.setHandLasers(activeHudLaser, true, color, SYSTEM_LASER_DIRECTION) && activeTrigger.state;
 }
 
+print("anddb-handControllerPointer.js setColoredLaser defined");
 // MAIN OPERATIONS -----------
 //
 function update() {
@@ -630,11 +639,13 @@ function update() {
     Reticle.visible = false;
 }
 
+print("anddb-handControllerPointer.js update defined");
 var BASIC_TIMER_INTERVAL = 20; // 20ms = 50hz good enough
 var updateIntervalTimer = Script.setInterval(function(){
     update();
 }, BASIC_TIMER_INTERVAL);
 
+print("anddb-handControllerPointer.js updateIntervalTimer defined");
 
 // Check periodically for changes to setup.
 var SETTINGS_CHANGE_RECHECK_INTERVAL = 10 * 1000; // 10 seconds
@@ -644,6 +655,7 @@ function checkSettings() {
 }
 checkSettings();
 
+print("anddb-handControllerPointer.js checkSettings called");
 var settingsChecker = Script.setInterval(checkSettings, SETTINGS_CHANGE_RECHECK_INTERVAL);
 Script.scriptEnding.connect(function () {
     Script.clearInterval(settingsChecker);
@@ -651,4 +663,5 @@ Script.scriptEnding.connect(function () {
     OffscreenFlags.navigationFocusDisabled = false;
 });
 
+print("anddb-handControllerPointer.js end");
 }()); // END LOCAL_SCOPE
