@@ -36,7 +36,6 @@ void DaydreamDisplayPlugin::resetSensors() {
 }
 
 void DaydreamDisplayPlugin::internalPresent() {
-    qDebug() << "[DaydreamDisplayPlugin] internalPresent";
     PROFILE_RANGE_EX(__FUNCTION__, 0xff00ff00, (uint64_t)presentCount())
 
  // Composite together the scene, overlay and mouse cursor
@@ -49,14 +48,14 @@ void DaydreamDisplayPlugin::internalPresent() {
     render([&](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.resetViewTransform();
-        //batch.setFramebuffer(defaultFb);
+        //batch.setFramebuffer(gpu::FramebufferPointer());
         ivec4 viewport(0,0, gvrState->_framebuf_size.width, gvrState->_framebuf_size.height);
         batch.setViewportTransform(viewport);
         batch.setStateScissorRect(viewport);
         batch.setResourceTexture(0, _compositeFramebuffer->getRenderBuffer(0));
-        if (!_presentPipeline) {
-            qDebug() << "OpenGLDisplayPlugin setting null _presentPipeline ";
-        }
+//        if (!_presentPipeline) {
+//            qDebug() << "OpenGLDisplayPlugin setting null _presentPipeline ";
+//        }
 
         batch.setPipeline(_presentPipeline);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
@@ -77,7 +76,6 @@ ivec4 DaydreamDisplayPlugin::getViewportForSourceSize(const uvec2& size) const {
     auto window = _container->getPrimaryWidget();
     auto devicePixelRatio = window->devicePixelRatio();
     auto windowSize = toGlm(window->size());
-    qDebug() << "[DaydreamDisplayPlugin] windowSize " << windowSize; 
     windowSize *= devicePixelRatio;
     float windowAspect = aspect(windowSize);
     float sceneAspect = aspect(size);
@@ -126,60 +124,26 @@ bool DaydreamDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
 
 
     GvrState *gvrState = GvrState::getInstance();
-    gvr::ControllerQuat orientation = gvrState->_controller_state.GetOrientation();
-    qDebug() << "[DAYDREAM-CONTROLLER]: DaydreamDisplayPlugin::beginFrameRender " << orientation.qx << "," << orientation.qy << "," << orientation.qz << "," << orientation.qw;
-
-    gvr::Mat4f controller_matrix = ControllerQuatToMatrix(orientation);
-    glm::mat4 poseMat = glm::make_mat4(&(MatrixToGLArray(controller_matrix)[0]));
-
-    //const vec3 linearVelocity(0.5, 0.5, 0.5); //= _nextSimPoseData.linearVelocities[deviceIndex];
-    //const vec3 angularVelocity(0.3, 0.2, 0.4); // = _nextSimPoseData.angularVelocities[deviceIndex];
-    //auto pose = daydreamControllerPoseToHandPose(true, poseMat, linearVelocity, angularVelocity);
-    // transform into avatar frame
-    //glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
-    //_poseStateMap[controller::RIGHT_HAND] = pose.transform(poseMat);
-    //_poseStateMap[controller::LEFT_HAND] = pose.transform(poseMat);
-
-
-/*
-_currentRenderFrameInfo = FrameInfo();
-    _currentRenderFrameInfo.sensorSampleTime = ovr_GetTimeInSeconds();
-    _currentRenderFrameInfo.predictedDisplayTime = ovr_GetPredictedDisplayTime(_session, frameIndex);
-    auto trackingState = ovr_GetTrackingState(_session, _currentRenderFrameInfo.predictedDisplayTime, ovrTrue);
-    _currentRenderFrameInfo.renderPose = toGlm(trackingState.HeadPose.ThePose);
-    _currentRenderFrameInfo.presentPose = _currentRenderFrameInfo.renderPose;
-
+    glm::quat orientation = toGlm(gvrState->_controller_state.GetOrientation());
     std::array<glm::mat4, 2> handPoses;
-    // Make controller poses available to the presentation thread
-    ovr_for_each_hand([&](ovrHandType hand) {
-        static const auto REQUIRED_HAND_STATUS = ovrStatus_OrientationTracked & ovrStatus_PositionTracked;
-        if (REQUIRED_HAND_STATUS != (trackingState.HandStatusFlags[hand] & REQUIRED_HAND_STATUS)) {
-            return;
-        }
+    //static const glm::quat HAND_TO_LASER_ROTATION = glm::rotation(Vectors::UNIT_Z, Vectors::UNIT_NEG_Y); // the angle between (0,0,1) and (0, -1, 0)
+    handPoses[1] = glm::translate(glm::mat4(), /* this is like a head-to-hand translation matrix */glm::vec3(0.1, 0.0, 0.0)) * 
+                                    glm::mat4_cast(orientation /** HAND_TO_LASER_ROTATION*/);
 
-        auto correctedPose = ovrControllerPoseToHandPose(hand, trackingState.HandPoses[hand]);
-        static const glm::quat HAND_TO_LASER_ROTATION = glm::rotation(Vectors::UNIT_Z, Vectors::UNIT_NEG_Y);
-        handPoses[hand] = glm::translate(glm::mat4(), correctedPose.translation) * glm::mat4_cast(correctedPose.rotation * HAND_TO_LASER_ROTATION);
-    });
-
-    withNonPresentThreadLock([&] {
-        _uiModelTransform = DependencyManager::get<CompositorHelper>()->getModelTransform();
-        _handPoses = handPoses;
-        _frameInfos[frameIndex] = _currentRenderFrameInfo;
-    });*/
-
+    handPoses[0] = glm::translate(glm::mat4(), glm::vec3(-0.1, 0.0, 0.0)) * glm::mat4_cast(orientation /** HAND_TO_LASER_ROTATION*/);
 
     withNonPresentThreadLock([&] {
         _uiModelTransform = DependencyManager::get<CompositorHelper>()->getModelTransform();
         _frameInfos[frameIndex] = _currentRenderFrameInfo;
         
-        _handPoses[0] = poseMat;
+        _handPoses[0] = handPoses[0];//glm::translate(mat4(), vec3(0.1f, 0.3f, 0.0f));
         _handLasers[0].color = vec4(1, 0, 0, 1);
         _handLasers[0].mode = HandLaserMode::Overlay;
 
-        _handPoses[1] = glm::translate(mat4(), vec3(0.1f, 0.3f, 0.0f));
+        _handPoses[1] = handPoses[1];
         _handLasers[1].color = vec4(0, 1, 1, 1);
         _handLasers[1].mode = HandLaserMode::Overlay;
+
     });
     return Parent::beginFrameRender(frameIndex);
 }
@@ -197,7 +161,6 @@ void DaydreamDisplayPlugin::customizeContext() {
 }
 
 bool DaydreamDisplayPlugin::internalActivate() {
-    qDebug() << "[DaydreamDisplayPlugin] internalActivate with _gvr_context " << __gvr_context;
     _container->setFullscreen(nullptr, true);
 
     GvrState::init(__gvr_context);
@@ -207,8 +170,6 @@ bool DaydreamDisplayPlugin::internalActivate() {
         qDebug() << "Initialize _gvr_api GL " << gvrState;
         gvrState->_gvr_api->InitializeGl();
     }
-
-    qDebug() << "[DaydreamDisplayPlugin] internalActivate with _gvr_api " << gvrState->_gvr_api->GetTimePointNow().monotonic_system_time_nanos;
 
     std::vector<gvr::BufferSpec> specs;
     specs.push_back(gvrState->_gvr_api->CreateBufferSpec());
@@ -228,7 +189,6 @@ bool DaydreamDisplayPlugin::internalActivate() {
     specs[0].SetColorFormat(GVR_COLOR_FORMAT_RGBA_8888);
     specs[0].SetDepthStencilFormat(GVR_DEPTH_STENCIL_FORMAT_DEPTH_16);
     specs[0].SetSamples(2);
-    qDebug() << "Resetting swapchain";
     gvrState->_swapchain.reset(new gvr::SwapChain(gvrState->_gvr_api->CreateSwapChain(specs)));
     gvrState->_viewport_list.SetToRecommendedBufferViewports();
 
@@ -264,7 +224,6 @@ void DaydreamDisplayPlugin::updatePresentPose() {
         gvrState->_controller_state.GetConnectionState() == gvr_controller_connection_state::GVR_CONTROLLER_CONNECTED) {
 
       if (gvrState->_controller_state.GetRecentered()) {
-        qDebug() << "[DAYDREAM-CONTROLLER] Recenter";
         resetEyeProjections(gvrState);
       }
     }
@@ -309,7 +268,6 @@ void DaydreamDisplayPlugin::resetEyeProjections(GvrState *gvrState) {
 }
 
 void DaydreamDisplayPlugin::compositePointer() {
-    qDebug() << "DaydreamDisplayPlugin::compositePointer()";
     auto& cursorManager = Cursor::Manager::instance();
     const auto& cursorData = _cursorsData[cursorManager.getCursor()->getIcon()];
     auto compositorHelper = DependencyManager::get<CompositorHelper>();

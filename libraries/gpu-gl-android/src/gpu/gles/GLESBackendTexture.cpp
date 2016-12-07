@@ -40,7 +40,6 @@ GLTexture* GLESBackend::syncGPUObject(const TexturePointer& texture, bool transf
 
 GLESTexture::GLESTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GLuint externalId) 
     : GLTexture(backend, texture, externalId) {
-    qDebug() << "GLESTexture::GLESTexture texture = " << " externalId " << externalId;
 }
 
 GLESTexture::GLESTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, bool transferrable) 
@@ -48,7 +47,6 @@ GLESTexture::GLESTexture(const std::weak_ptr<GLBackend>& backend, const Texture&
 }
 
 void GLESTexture::generateMips() const {
-    qDebug() << "GLESTexture::generateMips for target " << _target;
     withPreservedTexture([&] {
         glGenerateMipmap(_target);
     });
@@ -67,8 +65,6 @@ void GLESTexture::allocateStorage() const {
         glTexStorage2D(_target, usedMipLevels(), texelFormat.internalFormat, dimensions.x, dimensions.y);
         (void)CHECK_GL_ERROR();
     } else {*/
-        qDebug() << "GLESTexture::allocateStorage minMip: " << _minMip << ", maxMip: " << _maxMip << " internalFormat: " << texelFormat.internalFormat << " format " << texelFormat.format << " type " << texelFormat.type;
-
         for (uint16_t l = _minMip; l <= _maxMip; l++) {
             // Get the mip level dimensions, accounting for the downgrade level
             Vec3u dimensions = _gpuObject.evalMipDimensions(l);
@@ -101,7 +97,7 @@ void GLESTexture::updateSize() const {
             for (GLuint level = _minMip; level < _maxMip; level++) {
                 GLint levelSize{ 0 };
                 //glGetTexLevelParameteriv(proxyType, level, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, &levelSize);
-                qDebug() << "TODO: GLBackendTexture.cpp:updateSize GL_TEXTURE_COMPRESSED_IMAGE_SIZE";
+                //qDebug() << "TODO: GLBackendTexture.cpp:updateSize GL_TEXTURE_COMPRESSED_IMAGE_SIZE";
                 levelSize *= numFaces;
                 
                 if (levelSize <= 0) {
@@ -128,7 +124,6 @@ void GLESTexture::transferMip(uint16_t mipLevel, uint8_t face) const {
 }
 
 void GLESTexture::startTransfer() {
-    qDebug() << "GLESTexture::startTransfer() ";
     PROFILE_RANGE(__FUNCTION__);
     Parent::startTransfer();
 

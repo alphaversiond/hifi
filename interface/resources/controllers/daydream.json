@@ -1,22 +1,11 @@
 {
     "name": "Daydream to Standard",
     "channels": [
-        { "from": "Daydream.LY", "when": "Daydream.LSY", "filters": ["invert"], "to": "Standard.LY" },
-        { "from": "Daydream.LX", "when": "Daydream.LSX", "to": "Standard.LX" },
-        { 
-            "from": "Daydream.LT", "to": "Standard.LT",
-            "filters": [
-                { "type": "deadZone", "min": 0.05 }
-            ]
-        },
-        { "from": "Daydream.LTClick", "to": "Standard.LTClick" },
-
-        { "from": "Daydream.LeftGrip", "to": "Standard.LeftGrip" },
-        { "from": "Daydream.LS", "to": "Standard.LS" },
-        { "from": "Daydream.LSTouch", "to": "Standard.LSTouch" },
-
-        { "from": "Daydream.LSCenter", "to": "Standard.LeftPrimaryThumb" },
-
-        { "from": "Daydream.LeftHand", "to": "Standard.LeftHand", "when": [ "Application.InHMD" ]  }
+        { "from": "Daydream.LY", "to": "Standard.LY", "debug": true},
+        { "from": "Daydream.LX", "to": "Standard.LX", "debug": true },
+        { "from": "Daydream.LTClick", "to": "Standard.LTClick", "debug": true},
+        { "from": "Daydream.LT", "to": "Standard.LT", "debug": true},
+        { "from": "Daydream.LS", "to": "Standard.LS", "debug": true },
+        { "from": "Daydream.LeftHand", "to": "Standard.LeftHand", "when": [ "Application.InHMD" ]  }    
     ]
 }

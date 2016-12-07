@@ -105,7 +105,7 @@ gvr::Mat4f ControllerQuatToMatrix(const gvr::ControllerQuat& quat) {
   };
 }
 
-controller::Pose daydreamControllerPoseToHandPose(bool isLeftHand, const mat4& mat, const vec3& linearVelocity, const vec3& angularVelocity) {
+controller::Pose daydreamControllerPoseToHandPose(bool isLeftHand, glm::quat rotation) {
     // When the sensor-to-world rotation is identity the coordinate axes look like this:
     //
     //                       user
@@ -166,28 +166,24 @@ controller::Pose daydreamControllerPoseToHandPose(bool isLeftHand, const mat4& m
     static const glm::quat rightRotationOffset = glm::inverse(rightQuarterZ * eighthX) * touchToHand;
 
     // this needs to match the leftBasePosition in tutorial/viveControllerConfiguration.js:21
-    static const float CONTROLLER_LATERAL_OFFSET = 0.0381f;
-    static const float CONTROLLER_VERTICAL_OFFSET = 0.0495f;
-    static const float CONTROLLER_FORWARD_OFFSET = 0.1371f;
-    static const glm::vec3 CONTROLLER_OFFSET(CONTROLLER_LATERAL_OFFSET, CONTROLLER_VERTICAL_OFFSET, CONTROLLER_FORWARD_OFFSET);
-
+    static const float CONTROLLER_LENGTH_OFFSET = 0.0762f;  // three inches
+    static const glm::vec3 CONTROLLER_OFFSET = glm::vec3(CONTROLLER_LENGTH_OFFSET / 2.0f,
+        CONTROLLER_LENGTH_OFFSET / 2.0f,
+        CONTROLLER_LENGTH_OFFSET * 2.0f);
+    
     static const glm::vec3 leftTranslationOffset = glm::vec3(-1.0f, 1.0f, 1.0f) * CONTROLLER_OFFSET;
     static const glm::vec3 rightTranslationOffset = CONTROLLER_OFFSET;
 
     auto translationOffset = (isLeftHand ? leftTranslationOffset : rightTranslationOffset);
     auto rotationOffset = (isLeftHand ? leftRotationOffset : rightRotationOffset);
 
-    glm::vec3 position = extractTranslation(mat);
-    glm::quat rotation = glm::normalize(glm::quat_cast(mat));
-
-    position += rotation * translationOffset;
-    rotation = rotation * rotationOffset;
-
-    // transform into avatar frame
-    auto result = controller::Pose(position, rotation);
-    // handle change in velocity due to translationOffset
-    result.velocity = linearVelocity + glm::cross(angularVelocity, position - extractTranslation(mat));
-    result.angularVelocity = angularVelocity;
-    return result;
+    controller::Pose pose;
+    pose.translation = glm::vec3(0.0, 0.0, 0.0);
+    pose.translation += rotation * translationOffset;
+    pose.rotation = rotation * rotationOffset;
+    pose.angularVelocity = glm::vec3(0.0, 0.0, 0.0); // toGlm(handPose.AngularVelocity);
+    pose.velocity = glm::vec3(0.0, 0.0, 0.0); // toGlm(handPose.LinearVelocity);
+    pose.valid = true;
+    return pose;
 }
 

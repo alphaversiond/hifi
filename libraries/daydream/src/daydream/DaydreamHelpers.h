@@ -24,5 +24,8 @@ gvr::Mat4f PerspectiveMatrixFromView(const gvr::Rectf& fov, float near_clip, flo
 
 gvr::Mat4f ControllerQuatToMatrix(const gvr::ControllerQuat& quat);
 
-controller::Pose daydreamControllerPoseToHandPose(bool isLeftHand, const mat4& mat, const vec3& linearVelocity, const vec3& angularVelocity);
+controller::Pose daydreamControllerPoseToHandPose(bool isLeftHand, glm::quat rotation);
 
+inline glm::quat toGlm(const gvr::ControllerQuat & dq) {
+    return glm::make_quat(&dq.qx);
+}

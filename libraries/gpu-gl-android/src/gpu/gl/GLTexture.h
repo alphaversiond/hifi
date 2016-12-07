@@ -35,8 +35,6 @@ public:
 
         // Special case external textures
         if (texture.getUsage().isExternal()) {
-            qDebug() << "GLTexture.h sync isExternal ";
-
             Texture::ExternalUpdates updates = texture.getUpdates();
             if (!updates.empty()) {
                 Texture::ExternalRecycler recycler = texture.getExternalRecycler();
@@ -62,7 +60,6 @@ public:
                 }
 
                 // Create the new texture object (replaces any previous texture object)
-                qDebug() << "GLTexture.h sync new GLTextureType" << needTransfer;
                 new GLTextureType(backend.shared_from_this(), texture, update.first);
             }
 
@@ -85,7 +82,6 @@ public:
             // This automatically any previous texture
             object = new GLTextureType(backend.shared_from_this(), texture, needTransfer);
             if (!object->_transferrable) {
-                qDebug() << "GLTexture.h sync object->createTexture()";
                 object->createTexture();
                 object->_contentStamp = texture.getDataStamp();
                 object->postTransfer();

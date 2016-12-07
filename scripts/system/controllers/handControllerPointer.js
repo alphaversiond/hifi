@@ -68,7 +68,11 @@ function Trigger(label) {
     };
     // Current smoothed state, without hysteresis. Answering booleans.
     that.triggerSmoothedClick = function () {
-        return that.triggerClicked;
+        var clicked = that.triggerClicked;
+        if (clicked || Math.random()>0.98) {
+            print('anddb-handControllerPointer.js Trigger.triggerSmoothedClick clicked? ' + clicked + ' trigger ' + that.label);
+        }
+        return clicked;    
     };
     that.triggerSmoothedSqueezed = function () {
         return that.triggerValue > that.TRIGGER_ON_VALUE;
@@ -95,6 +99,9 @@ function Trigger(label) {
             state = 'partial';
         }
         that.state = state;
+        if (state || Math.random()>0.98) {
+            print('anddb-handControllerPointer.js Trigger.update state ' + that.state + ' trigger ' + that.label);
+        }
     };
     // Answer a controller source function (answering either 0.0 or 1.0).
     that.partial = function () {
@@ -143,6 +150,8 @@ var setReticlePosition = function (point2d) {
     weMovedReticle = true;
     point2d.x = Math.max(reticleMinX, Math.min(point2d.x, reticleMaxX));
     point2d.y = Math.max(reticleMinY, Math.min(point2d.y, reticleMaxY));
+    if (Math.random()>0.75)
+        print('anddb-handControllerPointer.js setReticlePosition ' + JSON.stringify(point2d));
     Reticle.setPosition(point2d);
 };
 
@@ -156,7 +165,13 @@ function findRayIntersection(pickRay) {
     return result;
 }
 function isPointingAtOverlay(optionalHudPosition2d) {
-    return Reticle.pointingAtSystemOverlay || Overlays.getOverlayAtPoint(optionalHudPosition2d || Reticle.position);
+    var isPointing = Reticle.pointingAtSystemOverlay || Overlays.getOverlayAtPoint(optionalHudPosition2d || Reticle.position);
+    if (isPointing || Math.random()>0.98) {
+        print("anddb-handControllerPointer.js isPointingAtOverlay " + isPointing + " Reticle.pointingAtSystemOverlay " + Reticle.pointingAtSystemOverlay + 
+            ' optionalHudPosition2d ' + optionalHudPosition2d + ' Reticle.position ' + JSON.stringify(Reticle.position) + 
+            ' Overlays.getOverlayAtPoint(optionalHudPosition2d || Reticle.position) ' + Overlays.getOverlayAtPoint(optionalHudPosition2d || Reticle.position) );
+    }
+    return isPointing;
 }
 
 // Generalized HUD utilities, with or without HMD:
@@ -230,22 +245,31 @@ function activeHudPoint2dGamePad() {
 
 
 function activeHudPoint2d(activeHand) { // if controller is valid, update reticle position and answer 2d point. Otherwise falsey.
+    var shouldLog = activeTrigger.full() || Math.random()>0.5;
+    print("anddb-handControllerPointer.js activeHudPoint2d start activeHand " + activeHand);
     var controllerPose = getControllerWorldLocation(activeHand, true); // note: this will return head pose if hand pose is invalid (third eye)
     if (!controllerPose.valid) {
+        if (shouldLog)
+            print('anddb-handControllerPointer.js activeHudPoint2d invalid!');
         return; // Controller is cradled.
     }
     var controllerPosition = controllerPose.position;
     var controllerDirection = Quat.getUp(controllerPose.rotation);
 
+    if (shouldLog)
+        print('anddb-handControllerPointer.js activeHudPoint2d calling calculateRayUICollisionPoint');
+
     var hudPoint3d = calculateRayUICollisionPoint(controllerPosition, controllerDirection);
     if (!hudPoint3d) {
         if (Menu.isOptionChecked("Overlays")) { // With our hud resetting strategy, hudPoint3d should be valid here
-            print('Controller is parallel to HUD');  // so let us know that our assumptions are wrong.
+            print('anddb-handControllerPointer.js Controller is parallel to HUD');  // so let us know that our assumptions are wrong.
         }
+        if (shouldLog)
+            print('anddb-handControllerPointer.js activeHudPoint2d BAD hudPoint3d');
         return;
     }
     var hudPoint2d = overlayFromWorldPoint(hudPoint3d);
-
+    print('anddb-handControllerPointer.js activeHudPoint2d GOOD? hudPoint3d ' + JSON.stringify(hudPoint3d));
     // We don't know yet if we'll want to make the cursor or laser visble, but we need to move it to see if
     // it's pointing at a QML tool (aka system overlay).
     setReticlePosition(hudPoint2d);
@@ -374,12 +398,12 @@ setupHandler(Controller.mouseDoublePressEvent, onMouseClick);
 
 var leftTrigger = new Trigger('left');
 var rightTrigger = new Trigger('right');
-var activeTrigger = rightTrigger;
-var activeHand = Controller.Standard.RightHand;
+var activeTrigger = leftTrigger;
+var activeHand = Controller.Standard.LeftHand;
 var LEFT_HUD_LASER = 1;
 var RIGHT_HUD_LASER = 2;
 var BOTH_HUD_LASERS = LEFT_HUD_LASER + RIGHT_HUD_LASER;
-var activeHudLaser = RIGHT_HUD_LASER;
+var activeHudLaser = LEFT_HUD_LASER;
 function toggleHand() { // unequivocally switch which hand controls mouse position
     if (activeHand === Controller.Standard.RightHand) {
         activeHand = Controller.Standard.LeftHand;
@@ -408,6 +432,12 @@ clickMapping.from(Controller.Standard.RT).peek().to(rightTrigger.triggerPress);
 clickMapping.from(Controller.Standard.LT).peek().to(leftTrigger.triggerPress);
 clickMapping.from(Controller.Standard.RTClick).peek().to(rightTrigger.triggerClick);
 clickMapping.from(Controller.Standard.LTClick).peek().to(leftTrigger.triggerClick);
+/*clickMapping.from(Controller.Standard.LTClick).debug().peek().to(function (clicked) {
+    if (clicked || Math.random()>0.98) {
+        print("anddb-handControllerPointer.js clickMapping for LTClick? " + clicked );
+    }
+});*/
+
 // Full smoothed trigger is a click.
 function isPointingAtOverlayStartedNonFullTrigger(trigger) {
     // true if isPointingAtOverlay AND we were NOT full triggered when we became so.
@@ -415,20 +445,44 @@ function isPointingAtOverlayStartedNonFullTrigger(trigger) {
     var lockedIn = false;
     return function () {
         if (trigger !== activeTrigger) {
+//            if (lockedIn || Math.random()>0.98) {
+                print('anddb-handControllerPointer.js isPointingAtOverlayStartedNonFullTrigger (!== case) lockedIn ' + lockedIn + ' returning (trigger not active)'
+                    + ' trigger: ' + trigger.label + '(' + trigger.full() + ') activeTrigger: ' + activeTrigger.label + '(' + activeTrigger.full() + ')');
+//            }
             return lockedIn = false;
         }
         if (!isPointingAtOverlay()) {
+            if (lockedIn || Math.random()>0.98) {
+                print('anddb-handControllerPointer.js isPointingAtOverlayStartedNonFullTrigger lockedIn ' + lockedIn + ' returning (NOT POINTING AT OVERLAY)' + ' trigger: ' + trigger.label );
+            }
             return lockedIn = false;
         }
         if (lockedIn) {
+            if (lockedIn || Math.random()>0.98) {
+                print('anddb-handControllerPointer.js isPointingAtOverlayStartedNonFullTrigger returning TRUE lockedIn ' + lockedIn + ' returning' + ' trigger: ' + trigger.label );
+            }
             return true;
         }
-        lockedIn = !trigger.full();
+        lockedIn = /*!*/trigger.full();
+        if (lockedIn || Math.random()>0.98) {
+            print('anddb-handControllerPointer.js isPointingAtOverlayStartedNonFullTrigger lockedIn (POINTING, LOCKED IN prev, is ActiveTrigger) ' + lockedIn + ' trigger: ' + trigger.label + '(' + trigger.full() + ')');    
+        }
+        print('anddb-handControllerPointer.js isPointingAtOverlayStartedNonFullTrigger lockedIn TRUE');    
         return lockedIn;
     }
 }
-clickMapping.from(rightTrigger.full).when(isPointingAtOverlayStartedNonFullTrigger(rightTrigger)).to(Controller.Actions.ReticleClick);
-clickMapping.from(leftTrigger.full).when(isPointingAtOverlayStartedNonFullTrigger(leftTrigger)).to(Controller.Actions.ReticleClick);
+print("anddb-handControllerPointer.js isPointingAtOverlayStartedNonFullTrigger defined");
+
+//clickMapping.from(rightTrigger.full).when(isPointingAtOverlayStartedNonFullTrigger(rightTrigger)).to(Controller.Actions.ReticleClick);
+//clickMapping.from(leftTrigger.full).when(isPointingAtOverlayStartedNonFullTrigger(leftTrigger)).to(Controller.Actions.ReticleClick);
+//clickMapping.from(leftTrigger.full).debug().when(isPointingAtOverlayStartedNonFullTrigger(leftTrigger)).to(Controller.Actions.ReticleClick);
+
+clickMapping.from(leftTrigger.full).when(isPointingAtOverlayStartedNonFullTrigger(leftTrigger)).to(function (clicked) {
+    if (clicked || Math.random()>0.98) {
+        print("anddb-handControllerPointer.js leftTrigger full? " + clicked );
+    }
+});
+
 // The following is essentially like Left and Right versions of
 // clickMapping.from(Controller.Standard.RightSecondaryThumb).peek().to(Controller.Actions.ContextMenu);
 // except that we first update the reticle position from the appropriate hand position, before invoking the  .
@@ -464,8 +518,9 @@ clickMapping.from(Controller.Hardware.Keyboard.RightMouseClicked).peek().to(func
     }, 0);
 });
 // Partial smoothed trigger is activation.
-clickMapping.from(rightTrigger.partial).to(makeToggleAction(Controller.Standard.RightHand));
-clickMapping.from(leftTrigger.partial).to(makeToggleAction(Controller.Standard.LeftHand));
+//clickMapping.from(rightTrigger.partial).to(makeToggleAction(Controller.Standard.RightHand));
+//clickMapping.from(leftTrigger.partial).to(makeToggleAction(Controller.Standard.LeftHand));
+clickMapping.from(leftTrigger.full).to(makeToggleAction(Controller.Standard.LeftHand));
 clickMapping.enable();
 
 // VISUAL AID -----------
@@ -500,6 +555,9 @@ function setColoredLaser() { // answer trigger state if lasers supported, else f
 // MAIN OPERATIONS -----------
 //
 function update() {
+    var shouldLog = Math.random()>0.98;
+    if (shouldLog)
+        print("anddb-handControllerPointer.js update()");
     var now = Date.now();
     function off() {
         expireMouseCursor();
@@ -540,6 +598,9 @@ function update() {
         return off();
     }
 
+
+    if (shouldLog)
+        print("anddb-handControllerPointer.js hudPoint2d is at: " + JSON.stringify(hudPoint2d));
 
     // If there's a HUD element at the (newly moved) reticle, just make it visible and bail.
     if (isPointingAtOverlay(hudPoint2d)) {

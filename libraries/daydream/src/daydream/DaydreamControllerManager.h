@@ -50,7 +50,7 @@ private:
         void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
         void handleController(GvrState *gvrState, float deltaTime, const controller::InputCalibrationData& inputCalibrationData);
         void handlePoseEvent(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, gvr::ControllerQuat orientation);
-        void handleButtonEvent(float deltaTime, uint32_t button, bool pressed, bool touched);
+        void handleButtonEvent(float deltaTime, uint32_t button, bool pressed, bool touched, bool pressing);
         void handleAxisEvent(float deltaTime, float x, float y);
         void focusOutEvent() override;
         

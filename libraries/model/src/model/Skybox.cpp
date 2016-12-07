@@ -21,20 +21,16 @@
 using namespace model;
 
 Skybox::Skybox() {
-    qDebug() << "[SKYBOX] Skybox::Skybox";
-
     Schema schema;
     _schemaBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema));
 }
 
 void Skybox::setColor(const Color& color) {
-    qDebug() << "[SKYBOX] Skybox::setColor " << color;
     _schemaBuffer.edit<Schema>().color = color;
     _empty = false;
 }
 
 void Skybox::setCubemap(const gpu::TexturePointer& cubemap) {
-    qDebug() << "[SKYBOX] Skybox::setCubemap";
     _cubemap = cubemap;
     if (cubemap) {
         _empty = false;
@@ -42,7 +38,6 @@ void Skybox::setCubemap(const gpu::TexturePointer& cubemap) {
 }
 
 void Skybox::updateSchemaBuffer() const {
-    qDebug() << "[SKYBOX] Skybox::updateSchemaBuffer";
     auto blend = 0.0f;
     if (getCubemap() && getCubemap()->isDefined()) {
         blend = 0.5f;
@@ -59,37 +54,31 @@ void Skybox::updateSchemaBuffer() const {
 }
 
 void Skybox::clear() {
-    qDebug() << "[SKYBOX] Skybox::clear";
     _schemaBuffer.edit<Schema>().color = vec3(0);
     _cubemap = nullptr;
     _empty = true;
 }
 
 void Skybox::prepare(gpu::Batch& batch, int textureSlot, int bufferSlot) const {
-    qDebug() << "[SKYBOX] Skybox::prepare";
     if (bufferSlot > -1) {
         batch.setUniformBuffer(bufferSlot, _schemaBuffer);
     }
 
     if (textureSlot > -1) {
-        qDebug() << "[SKYBOX] textureSlot = " << textureSlot;
         gpu::TexturePointer skymap = getCubemap();
         // FIXME: skymap->isDefined may not be threadsafe
         if (skymap && skymap->isDefined()) {
-            qDebug() << "[SKYBOX] setResourceTexture";
             batch.setResourceTexture(textureSlot, skymap);
         }
     }
 }
 
 void Skybox::render(gpu::Batch& batch, const ViewFrustum& frustum) const {
-    qDebug() << "[SKYBOX] render 1";
     updateSchemaBuffer();
     Skybox::render(batch, frustum, (*this));
 }
 
 void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Skybox& skybox) {
-    qDebug() << "[SKYBOX] render 2";
     // Create the static shared elements used to render the skybox
     static gpu::BufferPointer theConstants;
     static gpu::PipelinePointer thePipeline;
@@ -130,5 +119,4 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
     batch.draw(gpu::TRIANGLE_STRIP, 4);
 
     batch.setResourceTexture(SKYBOX_SKYMAP_SLOT, nullptr);
-    qDebug() << "[SKYBOX] render end";
 }

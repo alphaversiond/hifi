@@ -449,5 +449,7 @@ QVariant ReticleInterface::getPosition() const {
 }
 
 void ReticleInterface::setPosition(QVariant position) {
-    _compositor->setReticlePosition(vec2FromVariant(position));
+    vec2 pos = vec2FromVariant(position);
+    qDebug() << "[controller] ReticleInterface::setPosition " << pos.x << pos.y;
+    _compositor->setReticlePosition(pos);
 }

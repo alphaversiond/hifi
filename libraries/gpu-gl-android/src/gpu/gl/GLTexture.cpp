@@ -198,7 +198,6 @@ GLTexture::~GLTexture() {
 }
 
 void GLTexture::createTexture() {
-    qDebug() << "GLESTexture::createTexture";
     withPreservedTexture([&] {
         allocateStorage();
         (void)CHECK_GL_ERROR();
@@ -294,12 +293,10 @@ void GLTexture::initTextureTransferHelper() {
 }
 
 void GLTexture::startTransfer() {
-    qDebug() << "GLTexture::startTransfer";
     createTexture();
 }
 
 void GLTexture::finishTransfer() {
-    qDebug() << "GLTexture::finishTransfer";
     if (_gpuObject.isAutogenerateMips()) {
         generateMips();
     }
