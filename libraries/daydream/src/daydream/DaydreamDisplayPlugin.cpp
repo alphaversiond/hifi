@@ -125,12 +125,16 @@ bool DaydreamDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
 
     GvrState *gvrState = GvrState::getInstance();
     glm::quat orientation = toGlm(gvrState->_controller_state.GetOrientation());
+    
+    
+    auto correctedLeftPose = daydreamControllerPoseToHandPose(true, orientation);
+    auto correctedRightPose = daydreamControllerPoseToHandPose(false, orientation);
+    
     std::array<glm::mat4, 2> handPoses;
     //static const glm::quat HAND_TO_LASER_ROTATION = glm::rotation(Vectors::UNIT_Z, Vectors::UNIT_NEG_Y); // the angle between (0,0,1) and (0, -1, 0)
-    handPoses[1] = glm::translate(glm::mat4(), /* this is like a head-to-hand translation matrix */glm::vec3(0.1, 0.0, 0.0)) * 
-                                    glm::mat4_cast(orientation /** HAND_TO_LASER_ROTATION*/);
 
-    handPoses[0] = glm::translate(glm::mat4(), glm::vec3(-0.1, 0.0, 0.0)) * glm::mat4_cast(orientation /** HAND_TO_LASER_ROTATION*/);
+    handPoses[0] = glm::translate(glm::mat4(), correctedLeftPose.translation) * glm::mat4_cast(correctedLeftPose.rotation /** HAND_TO_LASER_ROTATION*/);
+    handPoses[1] = glm::translate(glm::mat4(), correctedRightPose.translation) * glm::mat4_cast(correctedRightPose.rotation /** HAND_TO_LASER_ROTATION*/);
 
     withNonPresentThreadLock([&] {
         _uiModelTransform = DependencyManager::get<CompositorHelper>()->getModelTransform();
