@@ -65,6 +65,7 @@
     }
 
     this.activate = function() {
+        print("avatarMover.activate");
         //activate a light at the movers position
         this.properties = Entities.getEntityProperties(this.entityId);
         this.getUserData();
@@ -132,6 +133,7 @@
     }
 
     this.update = function(deltaTime) {
+        print("avatarMover.update");
         self.properties = Entities.getEntityProperties(self.entityId);
         self.getUserData();
         self.updateOverlays();

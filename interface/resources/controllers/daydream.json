@@ -1,11 +1,11 @@
 {
     "name": "Daydream to Standard",
     "channels": [
-        { "from": "Daydream.LY", "to": "Standard.LY", "debug": true},
-        { "from": "Daydream.LX", "to": "Standard.LX", "debug": true },
-        { "from": "Daydream.LTClick", "to": "Standard.LTClick", "debug": true},
-        { "from": "Daydream.LT", "to": "Standard.LT", "debug": true},
-        { "from": "Daydream.LS", "to": "Standard.LS", "debug": true },
-        { "from": "Daydream.LeftHand", "to": "Standard.LeftHand", "when": [ "Application.InHMD" ]  }    
+        { "from": "Daydream.DU", "to": "Standard.DU", "debug": true},
+        { "from": "Daydream.DD", "to": "Standard.DD", "debug": true },
+        { "from": "Daydream.DL", "to": "Standard.DL", "debug": true},
+        { "from": "Daydream.DR", "to": "Standard.DR", "debug": true },
+        { "from": "Daydream.RTClick", "to": "Standard.RTClick", "debug": true},
+        { "from": "Daydream.RightHand", "to": "Standard.RightHand", "when": [ "Application.InHMD" ]  }    
     ]
 }

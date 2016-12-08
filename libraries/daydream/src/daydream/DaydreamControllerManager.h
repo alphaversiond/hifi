@@ -33,7 +33,7 @@ public:
     bool activate() override;
     void deactivate() override;
 
-    void pluginFocusOutEvent() override { /*_inputDevice->focusOutEvent(); */ }
+    void pluginFocusOutEvent() override;
     void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
 
     void setRenderControllers(bool renderControllers) { /*_renderControllers = renderControllers; */}
@@ -51,7 +51,7 @@ private:
         void handleController(GvrState *gvrState, float deltaTime, const controller::InputCalibrationData& inputCalibrationData);
         void handlePoseEvent(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, gvr::ControllerQuat orientation);
         void handleButtonEvent(float deltaTime, uint32_t button, bool pressed, bool touched, bool pressing);
-        void handleAxisEvent(float deltaTime, float x, float y);
+        void handleAxisEvent(float deltaTime, bool isTouching, gvr_vec2f touchPos);
         void focusOutEvent() override;
         
         class FilteredStick {

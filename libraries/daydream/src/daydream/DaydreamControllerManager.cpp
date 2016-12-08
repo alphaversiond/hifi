@@ -94,6 +94,14 @@ void DaydreamControllerManager::pluginUpdate(float deltaTime, const controller::
 
 }
 
+void DaydreamControllerManager::pluginFocusOutEvent() {
+  qDebug() << "pluginFocusOutEvent pluginFocusOutEvent pluginFocusOutEvent";
+    if (_controller) {
+        _controller->focusOutEvent();
+    }
+}
+
+
 // An enum for buttons which do not exist in the StandardControls enum
 enum DaydreamButtonChannel {
     APP_BUTTON = controller::StandardButtonChannel::NUM_STANDARD_BUTTONS,
@@ -172,12 +180,8 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleController(GvrSt
 
 
       bool isTouching = gvrState->_controller_state.IsTouching();
-
-      if (isTouching) {
-          gvr_vec2f touchPos = gvrState->_controller_state.GetTouchPos();
-          qDebug() << "[DAYDREAM-CONTROLLER]: Touching x:" << touchPos.x << " y:" << touchPos.y;
-          handleAxisEvent(deltaTime, touchPos.x, touchPos.y);
-      }
+      gvr_vec2f touchPos = gvrState->_controller_state.GetTouchPos();
+      handleAxisEvent(deltaTime, isTouching, touchPos);
     
 }
 
@@ -188,6 +192,9 @@ void DaydreamControllerManager::DaydreamControllerDevice::handlePoseEvent(float 
     glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
     
     _poseStateMap[controller::RIGHT_HAND] = pose.transform(controllerToAvatar);
+
+    pose = daydreamControllerPoseToHandPose(true, orientation);    
+    _poseStateMap[controller::LEFT_HAND] = pose.transform(controllerToAvatar);
 }
 
 // These functions do translation from the Steam IDs to the standard controller IDs
@@ -227,28 +234,21 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleButtonEvent(floa
 }
 
 // These functions do translation from the Steam IDs to the standard controller IDs
-void DaydreamControllerManager::DaydreamControllerDevice::handleAxisEvent(float deltaTime, float x, float y) {
-    //FIX ME? It enters here every frame: probably we want to enter only if an event occurs
-    //axis += vr::k_EButton_Axis0;
+void DaydreamControllerManager::DaydreamControllerDevice::handleAxisEvent(float deltaTime, bool isTouching, gvr_vec2f touchPos) {
     using namespace controller;
-
-    //if (axis == vr::k_EButton_SteamVR_Touchpad) {
-/*        glm::vec2 stick(x, y);
-        stick = _filteredLeftStick.process(deltaTime, stick);
-        _axisStateMap[LX] = stick.x;
-        _axisStateMap[LY] = stick.y;
-        */
-    /*} else if (axis == vr::k_EButton_SteamVR_Trigger) {
-        _axisStateMap[isLeftHand ? LT : RT] = x;
-        // The click feeling on the Vive controller trigger represents a value of *precisely* 1.0, 
-        // so we can expose that as an additional button
-        if (x >= 1.0f) {
-            _buttonPressedMap.insert(isLeftHand ? LT_CLICK : RT_CLICK);
-        }
-    }*/
+    if (isTouching) {
+      glm::vec2 stick(2*(touchPos.x-0.5f), 2*(touchPos.y-0.5f));
+      stick = _filteredLeftStick.process(deltaTime, stick);
+      qDebug() << "[DAYDREAM-CONTROLLER]: Touching x:" << stick.x << " y:" << stick.y;
+      _buttonPressedMap.insert(stick.x > 0? DR : DL);
+      _buttonPressedMap.insert(stick.y > 0? DU : DD);
+    } else {
+      _axisStateMap.clear();
+    }
 }
 
 void DaydreamControllerManager::DaydreamControllerDevice::focusOutEvent() {
+  qDebug() << "DaydreamControllerDevice::focusOutEvent DaydreamControllerDevice::focusOutEvent DaydreamControllerDevice::focusOutEvent ";
     _axisStateMap.clear();
     _buttonPressedMap.clear();
 };
@@ -257,17 +257,13 @@ controller::Input::NamedVector DaydreamControllerManager::DaydreamControllerDevi
     using namespace controller;
     QVector<Input::NamedPair> availableInputs{
         // Trackpad analogs
-        makePair(LX, "LX"), // left X
-        makePair(LY, "LY"), // left Y
-//        makePair(RX, "RX"),
-//        makePair(RY, "RY"),
-
-        // capacitive touch on the touch pad
-        //makePair(LS_TOUCH, "LSTouch"),
-//        makePair(RS_TOUCH, "RSTouch"),
+        makePair(DU, "DU"),
+        makePair(DD, "DD"),
+        makePair(DL, "DL"),
+        makePair(DR, "DR"),
 
         // touch pad press
-        makePair(LS, "LS"),
+//        makePair(LS, "LS"),
 //        makePair(RS, "RS"),
         // Differentiate where we are in the touch pad click
         //makePair(LS_CENTER, "LSCenter"),
@@ -283,7 +279,7 @@ controller::Input::NamedVector DaydreamControllerManager::DaydreamControllerDevi
 //        makePair(RT, "RT"),
 
         // Trigger clicks
-        makePair(LT_CLICK, "LTClick"),
+        makePair(RT_CLICK, "RTClick"),
 //        makePair(RT_CLICK, "RTClick"),
 
         // low profile side grip button.
@@ -291,7 +287,7 @@ controller::Input::NamedVector DaydreamControllerManager::DaydreamControllerDevi
 //        makePair(RIGHT_GRIP, "RightGrip"),
 
         // 3d location of controller
-        makePair(LEFT_HAND, "LeftHand"),
+        makePair(RIGHT_HAND, "RightHand"),
 //        makePair(RIGHT_HAND, "RightHand"),
 
         // app button above trackpad.

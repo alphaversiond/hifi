@@ -587,17 +587,17 @@ void OpenGLDisplayPlugin::compositeLayers() {
 
     {
         PROFILE_RANGE_EX("compositeOverlay", 0xff0077ff, (uint64_t)presentCount())
-        compositeOverlay();
+        //compositeOverlay();
     }
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
 //    if (compositorHelper->getReticleVisible()) {
         PROFILE_RANGE_EX("compositePointer", 0xff0077ff, (uint64_t)presentCount())
-        compositePointer();
+        //compositePointer();
 //    }
 
     {
         PROFILE_RANGE_EX("compositeExtra", 0xff0077ff, (uint64_t)presentCount())
-        compositeExtra();
+        //compositeExtra();
     }
 }
 

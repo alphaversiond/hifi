@@ -44,6 +44,7 @@ Batch::Batch() {
     _data.reserve(_dataMax);
     _objects.reserve(_objectsMax);
     _drawCallInfos.reserve(_drawCallInfosMax);
+    _debugBatch = false;
 }
 
 Batch::Batch(const Batch& batch_) {

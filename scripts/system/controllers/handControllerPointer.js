@@ -525,9 +525,9 @@ clickMapping.from(Controller.Standard.Start).peek().to(function (clicked) {
     }, 0);
 });*/
 // Partial smoothed trigger is activation.
-//clickMapping.from(rightTrigger.partial).to(makeToggleAction(Controller.Standard.RightHand));
-//clickMapping.from(leftTrigger.partial).to(makeToggleAction(Controller.Standard.LeftHand));
+clickMapping.from(rightTrigger.full).to(makeToggleAction(Controller.Standard.RightHand));
 clickMapping.from(leftTrigger.full).to(makeToggleAction(Controller.Standard.LeftHand));
+//clickMapping.from(leftTrigger.full).to(makeToggleAction(Controller.Standard.LeftHand));
 clickMapping.enable();
 
 print("anddb-handControllerPointer.js clickMapping defined");

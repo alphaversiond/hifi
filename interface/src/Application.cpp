@@ -2250,6 +2250,7 @@ void Application::paintGL() {
 
         for (int iCube=0; iCube < 10; iCube++) {
             gpu::Batch batch;
+            batch._debugBatch = true;
 
             batch.enableStereo(true);
             glm::mat4 projMat;
@@ -3056,7 +3057,7 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
         return;
     }
 
-    if (_keyboardMouseDevice->isActive()) {
+    if (_keyboardMouseDevice && _keyboardMouseDevice->isActive()) {
         _keyboardMouseDevice->mouseMoveEvent(event);
     }
 
@@ -3093,7 +3094,7 @@ void Application::mousePressEvent(QMouseEvent* event) {
 
 
     if (hasFocus()) {
-        if (_keyboardMouseDevice->isActive()) {
+        if (_keyboardMouseDevice && _keyboardMouseDevice->isActive()) {
             _keyboardMouseDevice->mousePressEvent(event);
         }
 

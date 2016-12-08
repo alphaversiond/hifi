@@ -104,7 +104,9 @@ void Context::executeFrame(const FramePointer& frame) const {
 
         // Execute the frame rendering commands
         for (auto& batch : frame->batches) {
-            _backend->render(batch);
+            if (batch._debugBatch) {
+                _backend->render(batch);
+            }
         }
 
         Batch endBatch;

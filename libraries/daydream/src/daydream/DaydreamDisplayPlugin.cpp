@@ -40,18 +40,18 @@ void DaydreamDisplayPlugin::internalPresent() {
 
  // Composite together the scene, overlay and mouse cursor
     hmdPresent();
-
+/*
         GvrState *gvrState = GvrState::getInstance();
         gvr::Frame frame = gvrState->_swapchain->AcquireFrame();
         frame.BindBuffer(0);
-
+*/
     render([&](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.resetViewTransform();
-        //batch.setFramebuffer(gpu::FramebufferPointer());
-        ivec4 viewport(0,0, gvrState->_framebuf_size.width, gvrState->_framebuf_size.height);
+        batch.setFramebuffer(gpu::FramebufferPointer());
+        ivec4 viewport(300,0, 2560, 1440); // gvrState->_framebuf_size.width, gvrState->_framebuf_size.height);
         batch.setViewportTransform(viewport);
-        batch.setStateScissorRect(viewport);
+        //batch.setStateScissorRect(viewport);
         batch.setResourceTexture(0, _compositeFramebuffer->getRenderBuffer(0));
 //        if (!_presentPipeline) {
 //            qDebug() << "OpenGLDisplayPlugin setting null _presentPipeline ";
@@ -61,13 +61,13 @@ void DaydreamDisplayPlugin::internalPresent() {
         batch.draw(gpu::TRIANGLE_STRIP, 4);
     });
 
-    gvr::ClockTimePoint pred_time = gvr::GvrApi::GetTimePointNow();
+    /*gvr::ClockTimePoint pred_time = gvr::GvrApi::GetTimePointNow();
     pred_time.monotonic_system_time_nanos += 50000000; // 50ms
 
     gvr::Mat4f head_view = gvrState->_gvr_api->GetHeadSpaceFromStartSpaceRotation(pred_time);
     frame.Unbind();
     frame.Submit(gvrState->_viewport_list, head_view);
-
+*/
     swapBuffers();
 }
 

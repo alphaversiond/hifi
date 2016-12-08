@@ -84,6 +84,8 @@ public:
         }
     };
 
+    bool _debugBatch;
+
     using NamedBatchDataMap = std::map<std::string, NamedBatchData>;
 
     DrawCallInfoBuffer _drawCallInfos;
