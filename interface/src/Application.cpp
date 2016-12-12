@@ -2250,8 +2250,6 @@ void Application::paintGL() {
 
         for (int iCube=0; iCube < 10; iCube++) {
             gpu::Batch batch;
-            batch._debugBatch = true;
-
             batch.enableStereo(true);
             glm::mat4 projMat;
             _displayViewFrustum.evalProjectionMatrix(projMat);
@@ -2276,7 +2274,8 @@ void Application::paintGL() {
                 batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLORS | gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(0.16, 0.47, 0.73, 1.0), 1000.0f, 0, true);
             }
             batch.draw(gpu::TRIANGLES, 36); // 36
-            renderArgs._context->appendFrameBatch(batch);
+            batch._debugBatch = true;
+            renderArgs._context->appendFrameBatch(batch, true);
 
         }
 

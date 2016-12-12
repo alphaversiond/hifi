@@ -153,6 +153,7 @@ public:
 
     void beginFrame(const glm::mat4& renderPose = glm::mat4());
     void appendFrameBatch(Batch& batch);
+    void appendFrameBatch(Batch& batch, bool debug);
     FramePointer endFrame();
 
     // MUST only be called on the rendering thread

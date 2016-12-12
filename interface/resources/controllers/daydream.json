@@ -1,10 +1,8 @@
 {
     "name": "Daydream to Standard",
     "channels": [
-        { "from": "Daydream.DU", "to": "Standard.DU", "debug": true},
-        { "from": "Daydream.DD", "to": "Standard.DD", "debug": true },
-        { "from": "Daydream.DL", "to": "Standard.DL", "debug": true},
-        { "from": "Daydream.DR", "to": "Standard.DR", "debug": true },
+        { "from": "Daydream.RY", "filters": { "type": "deadZone", "min": 0.05 }, "debug": true, "to": "Actions.TranslateZ" },
+        { "from": "Daydream.RX", "filters": { "type": "deadZone", "min": 0.05 }, "debug": true, "to": "Actions.TranslateX" },
         { "from": "Daydream.RTClick", "to": "Standard.RTClick", "debug": true},
         { "from": "Daydream.RightHand", "to": "Standard.RightHand", "when": [ "Application.InHMD" ]  }    
     ]

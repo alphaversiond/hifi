@@ -32,7 +32,7 @@ const QString DaydreamControllerManager::NAME = "Daydream";
 static const char* MENU_PATH = "Avatar" ">" "Daydream Controllers";
 
 bool DaydreamControllerManager::isSupported() const {
-    return true; //openVrSupported();
+  return true;
 }
 
 bool DaydreamControllerManager::activate() {
@@ -240,8 +240,8 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleAxisEvent(float 
       glm::vec2 stick(2*(touchPos.x-0.5f), 2*(touchPos.y-0.5f));
       stick = _filteredLeftStick.process(deltaTime, stick);
       qDebug() << "[DAYDREAM-CONTROLLER]: Touching x:" << stick.x << " y:" << stick.y;
-      _buttonPressedMap.insert(stick.x > 0? DR : DL);
-      _buttonPressedMap.insert(stick.y > 0? DU : DD);
+        _axisStateMap[RX] = stick.x * 100.0f;
+        _axisStateMap[RY] = stick.y * 100.0f;
     } else {
       _axisStateMap.clear();
     }
@@ -256,11 +256,15 @@ void DaydreamControllerManager::DaydreamControllerDevice::focusOutEvent() {
 controller::Input::NamedVector DaydreamControllerManager::DaydreamControllerDevice::getAvailableInputs() const {
     using namespace controller;
     QVector<Input::NamedPair> availableInputs{
+
+        makePair(RX, "RX"),
+        makePair(RY, "RY"),
+
         // Trackpad analogs
-        makePair(DU, "DU"),
-        makePair(DD, "DD"),
-        makePair(DL, "DL"),
-        makePair(DR, "DR"),
+        //makePair(DU, "DU"),
+        //makePair(DD, "DD"),
+        //makePair(DL, "DL"),
+        //makePair(DR, "DR"),
 
         // touch pad press
 //        makePair(LS, "LS"),

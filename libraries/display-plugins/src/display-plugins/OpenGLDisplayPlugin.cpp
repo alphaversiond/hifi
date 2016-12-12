@@ -520,6 +520,7 @@ void OpenGLDisplayPlugin::updateFrameData() {
 
 void OpenGLDisplayPlugin::compositeOverlay() {
     render([&](gpu::Batch& batch){
+        batch._debugBatch = true;
         batch.enableStereo(false);
         batch.setFramebuffer(_compositeFramebuffer);
         batch.setPipeline(_overlayPipeline);
@@ -587,17 +588,17 @@ void OpenGLDisplayPlugin::compositeLayers() {
 
     {
         PROFILE_RANGE_EX("compositeOverlay", 0xff0077ff, (uint64_t)presentCount())
-        //compositeOverlay();
+        compositeOverlay();
     }
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
 //    if (compositorHelper->getReticleVisible()) {
         PROFILE_RANGE_EX("compositePointer", 0xff0077ff, (uint64_t)presentCount())
-        //compositePointer();
+        compositePointer();
 //    }
 
     {
         PROFILE_RANGE_EX("compositeExtra", 0xff0077ff, (uint64_t)presentCount())
-        //compositeExtra();
+        compositeExtra();
     }
 }
 
