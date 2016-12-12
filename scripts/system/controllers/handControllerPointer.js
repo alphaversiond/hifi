@@ -186,15 +186,21 @@ print("anddb-handControllerPointer.js isPointingAtOverlay defined");
 // This "var" is for documentation. Do not change the value!
 var PLANAR_PERPENDICULAR_HUD_DISTANCE = 1;
 function calculateRayUICollisionPoint(position, direction) {
+    print("anddb-handControllerPointer.js calculateRayUICollisionPoint start");
     // Answer the 3D intersection of the HUD by the given ray, or falsey if no intersection.
     if (HMD.active) {
-        return HMD.calculateRayUICollisionPoint(position, direction);
+        print("anddb-handControllerPointer.js calculateRayUICollisionPoint HMD active!");
+        var col = HMD.calculateRayUICollisionPoint(position, direction);
+        print("anddb-handControllerPointer.js calculateRayUICollisionPoint HMD active collision point: " + JSON.stringify(col));
+        return col;
     }
+    print("anddb-handControllerPointer.js calculateRayUICollisionPoint HMD NOT active!");
     // interect HUD plane, 1m in front of camera, using formula:
     //   scale = hudNormal dot (hudPoint - position) / hudNormal dot direction
     //   intersection = postion + scale*direction
     var hudNormal = Quat.getFront(Camera.getOrientation());
     var hudPoint = Vec3.sum(Camera.getPosition(), hudNormal); // must also scale if PLANAR_PERPENDICULAR_HUD_DISTANCE!=1
+    print("anddb-handControllerPointer.js calculateRayUICollisionPoint hudNormal " + JSON.stringify(hudNormal) + " hudPoint " + JSON.stringify(hudPoint));
     var denominator = Vec3.dot(hudNormal, direction);
     if (denominator === 0) {
         return null;
@@ -212,8 +218,12 @@ function overlayFromWorldPoint(point) {
     // ray that may or may not have been used to compute the point. E.g., the
     // overlay point is NOT the intersection of some non-camera ray with the HUD.
     if (HMD.active) {
-        return HMD.overlayFromWorldPoint(point);
+        print("anddb-handControllerPointer.js overlayFromWorldPoint HMD active");
+        var res = HMD.overlayFromWorldPoint(point);
+        print("anddb-handControllerPointer.js overlayFromWorldPoint res: " + JSON.stringify(res) );
+        return res;
     }
+    print("anddb-handControllerPointer.js overlayFromWorldPoint HMD not active");
     var cameraToPoint = Vec3.subtract(point, Camera.getPosition());
     var cameraX = Vec3.dot(cameraToPoint, Quat.getRight(Camera.getOrientation()));
     var cameraY = Vec3.dot(cameraToPoint, Quat.getUp(Camera.getOrientation()));
@@ -269,7 +279,8 @@ function activeHudPoint2d(activeHand) { // if controller is valid, update reticl
 
     if (shouldLog)
         print('anddb-handControllerPointer.js activeHudPoint2d calling calculateRayUICollisionPoint');
-
+    print('anddb-handControllerPointer.js activeHudPoint2d controllerPosition ' + JSON.stringify(controllerPosition));
+    print('anddb-handControllerPointer.js activeHudPoint2d controllerDirection ' + JSON.stringify(controllerDirection));
     var hudPoint3d = calculateRayUICollisionPoint(controllerPosition, controllerDirection);
     if (!hudPoint3d) {
         if (Menu.isOptionChecked("Overlays")) { // With our hud resetting strategy, hudPoint3d should be valid here
@@ -490,12 +501,12 @@ function isPointingAtOverlayStartedNonFullTrigger(trigger) {
 print("anddb-handControllerPointer.js isPointingAtOverlayStartedNonFullTrigger defined");
 //clickMapping.from(rightTrigger.full).when(isPointingAtOverlayStartedNonFullTrigger(rightTrigger)).to(Controller.Actions.ReticleClick);
 //clickMapping.from(leftTrigger.full).when(isPointingAtOverlayStartedNonFullTrigger(leftTrigger)).to(Controller.Actions.ReticleClick);
-//clickMapping.from(leftTrigger.full).debug().when(isPointingAtOverlayStartedNonFullTrigger(leftTrigger)).to(Controller.Actions.ReticleClick);
-clickMapping.from(leftTrigger.full).when(isPointingAtOverlayStartedNonFullTrigger(leftTrigger)).to(function (clicked) {
+clickMapping.from(leftTrigger.full).debug().when(isPointingAtOverlayStartedNonFullTrigger(leftTrigger)).to(Controller.Actions.ReticleClick);
+/*clickMapping.from(leftTrigger.full).when(isPointingAtOverlayStartedNonFullTrigger(leftTrigger)).to(function (clicked) {
     if (clicked || Math.random()>0.98) {
         print("anddb-handControllerPointer.js leftTrigger full? " + clicked );
     }
-});
+});*/
 
 // The following is essentially like Left and Right versions of
 // clickMapping.from(Controller.Standard.RightSecondaryThumb).peek().to(Controller.Actions.ContextMenu);

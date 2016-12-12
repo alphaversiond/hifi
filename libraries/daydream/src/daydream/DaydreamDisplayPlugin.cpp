@@ -126,60 +126,30 @@ bool DaydreamDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
 
 
     GvrState *gvrState = GvrState::getInstance();
-    gvr::ControllerQuat orientation = gvrState->_controller_state.GetOrientation();
-    //qDebug() << "[DAYDREAM-CONTROLLER]: DaydreamDisplayPlugin::beginFrameRender " << orientation.qx << "," << orientation.qy << "," << orientation.qz << "," << orientation.qw;
-
-    gvr::Mat4f controller_matrix = ControllerQuatToMatrix(orientation);
-    glm::mat4 poseMat = glm::make_mat4(&(MatrixToGLArray(controller_matrix)[0]));
-
-    //const vec3 linearVelocity(0.5, 0.5, 0.5); //= _nextSimPoseData.linearVelocities[deviceIndex];
-    //const vec3 angularVelocity(0.3, 0.2, 0.4); // = _nextSimPoseData.angularVelocities[deviceIndex];
-    //auto pose = daydreamControllerPoseToHandPose(true, poseMat, linearVelocity, angularVelocity);
-    // transform into avatar frame
-    //glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
-    //_poseStateMap[controller::RIGHT_HAND] = pose.transform(poseMat);
-    //_poseStateMap[controller::LEFT_HAND] = pose.transform(poseMat);
-
-
-/*
-_currentRenderFrameInfo = FrameInfo();
-    _currentRenderFrameInfo.sensorSampleTime = ovr_GetTimeInSeconds();
-    _currentRenderFrameInfo.predictedDisplayTime = ovr_GetPredictedDisplayTime(_session, frameIndex);
-    auto trackingState = ovr_GetTrackingState(_session, _currentRenderFrameInfo.predictedDisplayTime, ovrTrue);
-    _currentRenderFrameInfo.renderPose = toGlm(trackingState.HeadPose.ThePose);
-    _currentRenderFrameInfo.presentPose = _currentRenderFrameInfo.renderPose;
-
+    glm::quat orientation = toGlm(gvrState->_controller_state.GetOrientation());
+    
+    
+    auto correctedLeftPose = daydreamControllerPoseToHandPose(true, orientation);
+    auto correctedRightPose = daydreamControllerPoseToHandPose(false, orientation);
+    
     std::array<glm::mat4, 2> handPoses;
-    // Make controller poses available to the presentation thread
-    ovr_for_each_hand([&](ovrHandType hand) {
-        static const auto REQUIRED_HAND_STATUS = ovrStatus_OrientationTracked & ovrStatus_PositionTracked;
-        if (REQUIRED_HAND_STATUS != (trackingState.HandStatusFlags[hand] & REQUIRED_HAND_STATUS)) {
-            return;
-        }
+    //static const glm::quat HAND_TO_LASER_ROTATION = glm::rotation(Vectors::UNIT_Z, Vectors::UNIT_NEG_Y); // the angle between (0,0,1) and (0, -1, 0)
 
-        auto correctedPose = ovrControllerPoseToHandPose(hand, trackingState.HandPoses[hand]);
-        static const glm::quat HAND_TO_LASER_ROTATION = glm::rotation(Vectors::UNIT_Z, Vectors::UNIT_NEG_Y);
-        handPoses[hand] = glm::translate(glm::mat4(), correctedPose.translation) * glm::mat4_cast(correctedPose.rotation * HAND_TO_LASER_ROTATION);
-    });
-
-    withNonPresentThreadLock([&] {
-        _uiModelTransform = DependencyManager::get<CompositorHelper>()->getModelTransform();
-        _handPoses = handPoses;
-        _frameInfos[frameIndex] = _currentRenderFrameInfo;
-    });*/
-
+    handPoses[0] = glm::translate(glm::mat4(), correctedLeftPose.translation) * glm::mat4_cast(correctedLeftPose.rotation /** HAND_TO_LASER_ROTATION*/);
+    handPoses[1] = glm::translate(glm::mat4(), correctedRightPose.translation) * glm::mat4_cast(correctedRightPose.rotation /** HAND_TO_LASER_ROTATION*/);
 
     withNonPresentThreadLock([&] {
         _uiModelTransform = DependencyManager::get<CompositorHelper>()->getModelTransform();
         _frameInfos[frameIndex] = _currentRenderFrameInfo;
         
-        _handPoses[0] = poseMat;
+        _handPoses[0] = handPoses[0];//glm::translate(mat4(), vec3(0.1f, 0.3f, 0.0f));
         _handLasers[0].color = vec4(1, 0, 0, 1);
         _handLasers[0].mode = HandLaserMode::Overlay;
 
-        _handPoses[1] = glm::translate(mat4(), vec3(0.1f, 0.3f, 0.0f));
+        _handPoses[1] = handPoses[1];
         _handLasers[1].color = vec4(0, 1, 1, 1);
         _handLasers[1].mode = HandLaserMode::Overlay;
+
     });
     return Parent::beginFrameRender(frameIndex);
 }

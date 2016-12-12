@@ -204,26 +204,16 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleController(GvrSt
     
 }
 
-void DaydreamControllerManager::DaydreamControllerDevice::handlePoseEvent(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, gvr::ControllerQuat orientation) {
-      //qDebug() << "[DAYDREAM-CONTROLLER]: Orientation: " << orientation.qx << "," << orientation.qy << "," << orientation.qz << "," << orientation.qw;
-      gvr::Mat4f controller_matrix = ControllerQuatToMatrix(orientation);
-      float scale = 5.0f;
-      gvr::Mat4f neutral_matrix = {
-        scale, 0.0f, 0.0f,   0.0f,
-        0.0f,  scale, 0.0f,  0.0f,
-        0.0f,  0.0f, scale,  -200.0f,
-        0.0f,  0.0f, 0.0f,  1.0f,
-      };
-      gvr::Mat4f model_matrix = MatrixMul(controller_matrix, neutral_matrix);
-      glm::mat4 poseMat = glm::make_mat4(&(MatrixToGLArray(model_matrix)[0]));
+void DaydreamControllerManager::DaydreamControllerDevice::handlePoseEvent(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, gvr::ControllerQuat gvrOrientation) {
+    glm::quat orientation = toGlm(gvrOrientation);
+    auto pose = daydreamControllerPoseToHandPose(false, orientation);
+    // transform into avatar frame
+    glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
+    
+    _poseStateMap[controller::RIGHT_HAND] = pose.transform(controllerToAvatar);
 
-      const vec3 linearVelocity(0.5, 0.5, 0.5); //= _nextSimPoseData.linearVelocities[deviceIndex];
-      const vec3 angularVelocity(0.3, 0.2, 0.4); // = _nextSimPoseData.angularVelocities[deviceIndex];
-      auto pose = daydreamControllerPoseToHandPose(true, poseMat, linearVelocity, angularVelocity);
-      // transform into avatar frame
-      //glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
-      //_poseStateMap[controller::RIGHT_HAND] = pose.transform(poseMat);
-      _poseStateMap[controller::LEFT_HAND] = pose.transform(poseMat);
+    pose = daydreamControllerPoseToHandPose(true, orientation);    
+    _poseStateMap[controller::LEFT_HAND] = pose.transform(controllerToAvatar);
 }
 
 // These functions do translation from the Steam IDs to the standard controller IDs
