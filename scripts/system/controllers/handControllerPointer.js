@@ -424,8 +424,8 @@ setupHandler(Controller.mouseDoublePressEvent, onMouseClick);
 
 var leftTrigger = new Trigger('left');
 var rightTrigger = new Trigger('right');
-var activeTrigger = leftTrigger;
-var activeHand = Controller.Standard.LeftHand;
+var activeTrigger = rightTrigger;
+var activeHand = Controller.Standard.RightHand;
 var LEFT_HUD_LASER = 1;
 var RIGHT_HUD_LASER = 2;
 var BOTH_HUD_LASERS = LEFT_HUD_LASER + RIGHT_HUD_LASER;
@@ -614,7 +614,7 @@ function update() {
     leftTrigger.update();
     rightTrigger.update();
 
-    getControllerWorldLocation(activeHand, true); // remove this line, it's just for debug
+    getControllerWorldLocation(activeHand, true); // anddb remove this line, it's just for debug
 
     if (!activeTrigger.state) {
         return off(); // No trigger
