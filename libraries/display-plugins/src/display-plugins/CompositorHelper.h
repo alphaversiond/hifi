@@ -106,7 +106,10 @@ public:
 
     /// if the reticle is pointing to a system overlay (a dialog box for example) then the function returns true otherwise false
     bool getReticleOverDesktop() const;
-    void setReticleOverDesktop(bool value) { _isOverDesktop = value; }
+    void setReticleOverDesktop(bool value) {
+        qDebug() << "setReticleOverDesktop (var _isOverDesktop) from " << _isOverDesktop << " to " << value;
+        _isOverDesktop = value;
+    }
 
     void setDisplayPlugin(const DisplayPluginPointer& displayPlugin) { _currentDisplayPlugin = displayPlugin; }
     void setFrameInfo(uint32_t frame, const glm::mat4& camera) { _currentCamera = camera; }

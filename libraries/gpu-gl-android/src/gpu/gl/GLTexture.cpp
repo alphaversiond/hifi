@@ -148,7 +148,7 @@ GLTexture::GLTexture(const std::weak_ptr<GLBackend>& backend, const Texture& tex
     _virtualSize(texture.evalTotalSize()),
     _transferrable(transferrable)
 {
-    qDebug() << "GLTexture::GLTexture building GLTexture with _internalFormat" << _internalFormat;
+    //qDebug() << "GLTexture::GLTexture building GLTexture with _internalFormat" << _internalFormat;
     auto strongBackend = _backend.lock();
     strongBackend->recycle();
     Backend::incrementTextureGPUCount();

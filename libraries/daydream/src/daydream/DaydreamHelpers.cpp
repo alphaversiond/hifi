@@ -114,7 +114,7 @@ controller::Pose daydreamControllerPoseToHandPose(bool isLeftHand, glm::quat rot
 
     controller::Pose pose;
     pose.translation = glm::vec3(0.0, 0.0, 0.0);
-    pose.translation += rotation * translationOffset;
+    //pose.translation += rotation * translationOffset;
     pose.rotation = rotation; // * rotationOffset;
     pose.angularVelocity = glm::vec3(0.0, 0.0, 0.0); // toGlm(handPose.AngularVelocity);
     pose.velocity = glm::vec3(0.0, 0.0, 0.0); // toGlm(handPose.LinearVelocity);

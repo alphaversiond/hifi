@@ -570,7 +570,7 @@ void OpenGLDisplayPlugin::compositeScene() {
         batch.resetViewTransform();
         batch.setProjectionTransform(mat4());
         if (!_simplePipeline) {
-            qDebug() << "OpenGLDisplayPlugin setting null _simplePipeline ";
+            //qDebug() << "OpenGLDisplayPlugin setting null _simplePipeline ";
         }
         batch.setPipeline(_simplePipeline);
         batch.setResourceTexture(0, _currentFrame->framebuffer->getRenderBuffer(0));

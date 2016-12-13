@@ -943,7 +943,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         this, &Application::checkSkeleton, Qt::QueuedConnection);
 
     // Setup the userInputMapper with the actions
-
+    
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     connect(userInputMapper.data(), &UserInputMapper::actionEvent, [this](int action, float state) {
         using namespace controller;
@@ -3063,6 +3063,7 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
 }
 
 void Application::mousePressEvent(QMouseEvent* event) {
+    qDebug() << "anddb-handControllerPointer.js Application::mousePressEvent";
     // Inhibit the menu if the user is using alt-mouse dragging
     _altPressed = false;
 
@@ -3081,9 +3082,10 @@ void Application::mousePressEvent(QMouseEvent* event) {
         event->buttons(), event->modifiers());
 
     if (!_aboutToQuit) {
+        qDebug() << "anddb-handControllerPointer.js before getEntities()->mousePressEvent";
         getEntities()->mousePressEvent(&mappedEvent);
     }
-
+    qDebug() << "anddb-handControllerPointer.js before emitMousePressEvent";
     _controllerScriptingInterface->emitMousePressEvent(&mappedEvent); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it

@@ -129,7 +129,7 @@ bool Procedural::parseShader(const QUrl& shaderPath) {
             return false;;
         }
     } else {
-        qDebug() << "Shader url: " << _shaderUrl;
+        //qDebug() << "Shader url: " << _shaderUrl;
         _networkShader = ShaderCache::instance().getShader(_shaderUrl);
     }
 

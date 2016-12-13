@@ -36,6 +36,7 @@ getControllerWorldLocation = function (handController, doOffset) {
     var pose = Controller.getPoseValue(handController);
     var valid = pose.valid;
     print('getControllerWorldLocation ' + JSON.stringify(pose));
+    print('getControllerWorldLocation MyAvatar.orientation ' + JSON.stringify(MyAvatar.orientation));
     if (pose.valid) {
         orientation = Quat.multiply(MyAvatar.orientation, pose.rotation);
         position = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, pose.translation), MyAvatar.position);

@@ -391,7 +391,7 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
     connect(_quickWindow, &QQuickWindow::focusObjectChanged, this, &OffscreenQmlSurface::onFocusObjectChanged);
 
 
-    qDebug() << "[DEBUGGING] Setting OffscreenQmlSurface._qmlEngine";
+    //qDebug() << "[DEBUGGING] Setting OffscreenQmlSurface._qmlEngine";
     // Create a QML engine.
     _qmlEngine = new QQmlEngine();
 
@@ -774,7 +774,7 @@ QSize OffscreenQmlSurface::size() const {
 }
 
 QQmlContext* OffscreenQmlSurface::getRootContext() {
-    qDebug() << "OffscreenQmlSurface::getRootContext " << _qmlEngine;
+    //qDebug() << "OffscreenQmlSurface::getRootContext " << _qmlEngine;
     return _qmlEngine->rootContext();
 }
 

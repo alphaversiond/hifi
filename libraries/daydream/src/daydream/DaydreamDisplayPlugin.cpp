@@ -179,7 +179,7 @@ bool DaydreamDisplayPlugin::internalActivate() {
     specs.push_back(gvrState->_gvr_api->CreateBufferSpec());
     gvrState->_framebuf_size = gvrState->_gvr_api->GetMaximumEffectiveRenderTargetSize();
 
-    qDebug() << "_framebuf_size " << gvrState->_framebuf_size.width << ", " << gvrState->_framebuf_size.height; //  3426 ,  1770
+    //qDebug() << "_framebuf_size " << gvrState->_framebuf_size.width << ", " << gvrState->_framebuf_size.height; //  3426 ,  1770
 
     auto window = _container->getPrimaryWidget();
     glm::vec2 windowSize = toGlm(window->size());

@@ -152,6 +152,7 @@ void DaydreamControllerManager::DaydreamControllerDevice::update(float deltaTime
 void DaydreamControllerManager::DaydreamControllerDevice::handleController(GvrState *gvrState, float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
 
       gvr::ControllerQuat orientation = gvrState->_controller_state.GetOrientation();
+      qDebug() << "[DAYDREAM-CONTROLLER]: gvr::ControllerQuat orientation: " << orientation.qx << "," << orientation.qy << "," << orientation.qz << "," << orientation.qw;
       handlePoseEvent(deltaTime, inputCalibrationData, orientation);
 
       if (gvrState->_last_controller_api_status == gvr_controller_api_status::GVR_CONTROLLER_API_OK && 
@@ -187,11 +188,22 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleController(GvrSt
 
 void DaydreamControllerManager::DaydreamControllerDevice::handlePoseEvent(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, gvr::ControllerQuat gvrOrientation) {
     glm::quat orientation = toGlm(gvrOrientation);
+    qDebug() << "[DAYDREAM-CONTROLLER]: gvr::ControllerQuat GLM orientation: " << orientation.x << "," << orientation.y << "," << orientation.z << "," << orientation.w;
     auto pose = daydreamControllerPoseToHandPose(false, orientation);
+    vec3 tranz = pose.getTranslation();
+    quat rotz = pose.getRotation();
+    qDebug() << "[DAYDREAM-CONTROLLER]: gvr::ControllerQuat handPose tranz : " << tranz.x << "," << tranz.y << "," << tranz.z;
+    qDebug() << "[DAYDREAM-CONTROLLER]: gvr::ControllerQuat handPose rotz : " << rotz.x << "," << rotz.y << "," << rotz.z << "," << rotz.w;
+    //qDebug() << "[DAYDREAM-CONTROLLER]: gvr::ControllerQuat pose : " << orientation.x << "," << orientation.y "," << orientation.z "," << orientation.w;
     // transform into avatar frame
     glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
-    
-    _poseStateMap[controller::RIGHT_HAND] = pose.transform(controllerToAvatar);
+    auto pose2 = pose.transform(controllerToAvatar);
+    vec3 tranz2 = pose2.getTranslation();
+    quat rotz2 = pose2.getRotation();
+    //_poseStateMap[controller::RIGHT_HAND] = pose.transform(controllerToAvatar);
+    _poseStateMap[controller::RIGHT_HAND] = pose2;
+    qDebug() << "[DAYDREAM-CONTROLLER]: gvr::ControllerQuat handPose tranz2: " << tranz2.x << "," << tranz2.y << "," << tranz2.z;
+    qDebug() << "[DAYDREAM-CONTROLLER]: gvr::ControllerQuat handPose rotz2: " << rotz.x << "," << rotz2.y << "," << rotz2.z << "," << rotz2.w;
 
     pose = daydreamControllerPoseToHandPose(true, orientation);    
     _poseStateMap[controller::LEFT_HAND] = pose.transform(controllerToAvatar);
