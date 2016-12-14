@@ -362,6 +362,7 @@ bool CompositorHelper::calculateRayUICollisionPoint(const glm::vec3& position, c
     auto relativeDirection = glm::inverse(glm::quat_cast(UITransform)) * direction;
 
     float uiRadius = _hmdUIRadius; // * myAvatar->getUniformScale(); // FIXME - how do we want to handle avatar scale
+    qDebug() << "CompositorHelper::calculateRayUICollisionPoint [controller] direction " << direction.x << ", " << direction.y << ", " << direction.z;
     qDebug() << "CompositorHelper::calculateRayUICollisionPoint [controller] relativeDirection " << relativeDirection.x << ", " << relativeDirection.y << ", " << relativeDirection.z;
     qDebug() << "CompositorHelper::calculateRayUICollisionPoint [controller] relativePosition " << relativePosition.x << ", " << relativePosition.y << ", " << relativePosition.z;
     qDebug() << "CompositorHelper::calculateRayUICollisionPoint [controller] uiRadius " << uiRadius;

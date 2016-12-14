@@ -106,16 +106,21 @@ gvr::Mat4f ControllerQuatToMatrix(const gvr::ControllerQuat& quat) {
 }
 
 controller::Pose daydreamControllerPoseToHandPose(bool isLeftHand, glm::quat rotation) {
+    static const glm::quat LASER_TO_HAND_ROTATION = glm::rotation(Vectors::UNIT_Z, Vectors::UNIT_Y); // the angle between (0,0,1) and (0, 1, 0)
+
+    static const glm::quat leftRotationOffset = LASER_TO_HAND_ROTATION;
+    static const glm::quat rightRotationOffset = LASER_TO_HAND_ROTATION;
+
     static const glm::vec3 leftTranslationOffset = glm::vec3(-0.1, 0.0, 0.0);
     static const glm::vec3 rightTranslationOffset = glm::vec3(0.1, 0.0, 0.0);
 
     auto translationOffset = (isLeftHand ? leftTranslationOffset : rightTranslationOffset);
-//    auto rotationOffset = (isLeftHand ? leftRotationOffset : rightRotationOffset);
+    auto rotationOffset = (isLeftHand ? leftRotationOffset : rightRotationOffset);
 
     controller::Pose pose;
     pose.translation = glm::vec3(0.0, 0.0, 0.0);
-    //pose.translation += rotation * translationOffset;
-    pose.rotation = rotation; // * rotationOffset;
+    pose.translation += rotation * translationOffset;
+    pose.rotation = rotation * rotationOffset;
     pose.angularVelocity = glm::vec3(0.0, 0.0, 0.0); // toGlm(handPose.AngularVelocity);
     pose.velocity = glm::vec3(0.0, 0.0, 0.0); // toGlm(handPose.LinearVelocity);
     pose.valid = true;

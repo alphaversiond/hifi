@@ -680,7 +680,7 @@ bool OffscreenQmlSurface::eventFilter(QObject* originalDestination, QEvent* even
     switch (event->type()) {
         case QEvent::Resize: {
             QResizeEvent* resizeEvent = static_cast<QResizeEvent*>(event);
-            QWidget* widget = dynamic_cast<QWidget*>(originalDestination);
+            QWidget* widget = static_cast<QWidget*>(originalDestination);
             if (widget) {
                 this->resize(resizeEvent->size());
             }

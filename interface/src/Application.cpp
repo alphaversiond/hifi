@@ -1883,7 +1883,9 @@ void Application::initializeUi() {
         QPointF result = pt;
         auto displayPlugin = getActiveDisplayPlugin();
         if (displayPlugin->isHmd()) {
+#ifndef ANDROID
             getApplicationCompositor().handleRealMouseMoveEvent(false);
+#endif
             auto resultVec = getApplicationCompositor().getReticlePosition();
             result = QPointF(resultVec.x, resultVec.y);
         }

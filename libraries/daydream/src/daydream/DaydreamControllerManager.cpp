@@ -221,8 +221,7 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleButtonEvent(floa
 
     if (pressed) {
         if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_CLICK) {
-          qDebug() << "[DAYDREAM-CONTROLLER]: inserting into _buttonPressedMap LT_CLICK";
-          _buttonPressedMap.insert(LT_CLICK);
+          _buttonPressedMap.insert(RT_CLICK);
         } else if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_APP) {
           //_buttonPressedMap.insert(LS);
         } else if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_HOME) {
