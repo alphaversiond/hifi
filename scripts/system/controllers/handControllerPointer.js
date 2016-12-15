@@ -173,9 +173,10 @@ function findRayIntersection(pickRay) {
 }
 function isPointingAtOverlay(optionalHudPosition2d) {
     var isPointing = Reticle.pointingAtSystemOverlay || Overlays.getOverlayAtPoint(optionalHudPosition2d || Reticle.position);
-    if (isPointing || Math.random()>0.98) {
-        print("anddb-handControllerPointer.js isPointingAtOverlay " + isPointing + " Reticle.pointingAtSystemOverlay " + Reticle.pointingAtSystemOverlay + 
-            ' optionalHudPosition2d ' + optionalHudPosition2d + ' Reticle.position ' + JSON.stringify(Reticle.position) + 
+    print("[CONTROLLER-2] isPointingAtOverlay isPointing " + isPointing + " Reticle.position= " + JSON.stringify(Reticle.position));
+    if (isPointing) {
+            print("[CONTROLLER-2] isPointingAtOverlay " + isPointing + " Reticle.pointingAtSystemOverlay " + Reticle.pointingAtSystemOverlay + 
+            ' optionalHudPosition2d ' + JSON.stringify(optionalHudPosition2d) + ' Reticle.position ' + JSON.stringify(Reticle.position) + 
             ' Overlays.getOverlayAtPoint(optionalHudPosition2d || Reticle.position) ' + Overlays.getOverlayAtPoint(optionalHudPosition2d || Reticle.position) );
     }
     return isPointing;
@@ -431,6 +432,7 @@ var RIGHT_HUD_LASER = 2;
 var BOTH_HUD_LASERS = LEFT_HUD_LASER + RIGHT_HUD_LASER;
 var activeHudLaser = LEFT_HUD_LASER;
 function toggleHand() { // unequivocally switch which hand controls mouse position
+    print("[CONTROLLER-3] toggleHand()");
     if (activeHand === Controller.Standard.RightHand) {
         activeHand = Controller.Standard.LeftHand;
         activeTrigger = leftTrigger;
@@ -473,28 +475,29 @@ function isPointingAtOverlayStartedNonFullTrigger(trigger) {
     return function () {
         if (trigger !== activeTrigger) {
 //            if (lockedIn || Math.random()>0.98) {
-                print('anddb-handControllerPointer.js isPointingAtOverlayStartedNonFullTrigger (!== case) lockedIn ' + lockedIn + ' returning (trigger not active)'
+                print('[CONTROLLER-2] isPointingAtOverlayStartedNonFullTrigger (!== case) lockedIn ' + lockedIn + ' returning (trigger not active)'
                     + ' trigger: ' + trigger.label + '(' + trigger.full() + ') activeTrigger: ' + activeTrigger.label + '(' + activeTrigger.full() + ')');
 //            }
             return lockedIn = false;
         }
         if (!isPointingAtOverlay()) {
-            if (lockedIn || Math.random()>0.98) {
+            if (lockedIn) {
                 print('anddb-handControllerPointer.js isPointingAtOverlayStartedNonFullTrigger lockedIn ' + lockedIn + ' returning (NOT POINTING AT OVERLAY)' + ' trigger: ' + trigger.label );
             }
             return lockedIn = false;
         }
         if (lockedIn) {
-            if (lockedIn || Math.random()>0.98) {
-                print('anddb-handControllerPointer.js isPointingAtOverlayStartedNonFullTrigger returning TRUE lockedIn ' + lockedIn + ' returning' + ' trigger: ' + trigger.label );
+            if (lockedIn) {
+                print('[CONTROLLER-2] isPointingAtOverlayStartedNonFullTrigger returning TRUE lockedIn ' + lockedIn + ' returning' + ' trigger: ' + trigger.label );
             }
             return true;
         }
         lockedIn = /*!*/trigger.full();
-        if (lockedIn || Math.random()>0.98) {
+        if (lockedIn) {
             print('anddb-handControllerPointer.js isPointingAtOverlayStartedNonFullTrigger lockedIn (POINTING, LOCKED IN prev, is ActiveTrigger) ' + lockedIn + ' trigger: ' + trigger.label + '(' + trigger.full() + ')');    
         }
-        print('anddb-handControllerPointer.js isPointingAtOverlayStartedNonFullTrigger lockedIn TRUE');    
+
+        print('[CONTROLLER-2] isPointingAtOverlayStartedNonFullTrigger lockedIn ' + lockedIn);    
         return lockedIn;
     }
 }
@@ -559,6 +562,7 @@ var LASER_TRIGGER_COLOR_XYZW = {x: 250 / 255, y: 10 / 255, z: 10 / 255, w: LASER
 var SYSTEM_LASER_DIRECTION = {x: 0, y: 0, z: -1};
 var systemLaserOn = false;
 function clearSystemLaser() {
+    print("[CONTROLLER-3] clearSystemLaser systemLaserOn " + systemLaserOn);
     if (!systemLaserOn) {
         return;
     }
@@ -589,16 +593,19 @@ function update() {
         print("anddb-handControllerPointer.js update()");
     var now = Date.now();
     function off() {
+        print("[CONTROLLER-3] off: expireMouseCursor and clearSystemLaser");
         expireMouseCursor();
         clearSystemLaser();
     }
 
     updateSeeking(true);
     if (!handControllerLockOut.expired(now)) {
+        print("[CONTROLLER-3] calling off // Let them use mouse in peace.");
         return off(); // Let them use mouse in peace.
     }
 
     if (!Menu.isOptionChecked("First Person")) {
+        print("[CONTROLLER-3] calling off // What to do? menus can be behind hand!");
         return off(); // What to do? menus can be behind hand!
     }
 
@@ -608,6 +615,7 @@ function update() {
         // using the mouse on another app. (Fogbugz case 546.)
         // However, in HMD, you might not realize you're not on top, and you wouldn't be able to operate
         // other apps anyway. So in that case, we DO keep going even though we're not on top. (Fogbugz 1831.)
+        print("[CONTROLLER-3] // Don't mess with other apps or paused mouse activity");
         return off(); // Don't mess with other apps or paused mouse activity
     }
 
@@ -617,19 +625,21 @@ function update() {
     getControllerWorldLocation(activeHand, true); // anddb remove this line, it's just for debug
 
     if (!activeTrigger.state) {
+        print("[CONTROLLER-3] // No trigger");
         return off(); // No trigger
     }
 
     if (getGrabCommunications()) {
+        print("[CONTROLLER-3] // getGrabCommunications");
         return off();
     }
 
 
     var hudPoint2d = activeHudPoint2d(activeHand);
     if (!hudPoint2d) {
+        print("[CONTROLLER-3] // !hudPoint2d");        
         return off();
     }
-
 
     if (shouldLog)
         print("anddb-handControllerPointer.js hudPoint2d is at: " + JSON.stringify(hudPoint2d));
@@ -652,12 +662,14 @@ function update() {
             systemLaserOn = setColoredLaser();
             Reticle.visible = !systemLaserOn;
         } else if ((systemLaserOn || Reticle.visible) && !activeTrigger.state) {
+            print("[CONTREOLLER-3] isPointingAtOverlay " + JSON.stringify(hudPoint2d) + " (systemLaserOn " + systemLaserOn + " || Reticle.visible " + Reticle.visible + ") && (!) activeTrigger.state " + activeTrigger.state);
             clearSystemLaser();
             Reticle.visible = false;
         }
         return;
     }
     // We are not pointing at a HUD element (but it could be a 3d overlay).
+    print("[CONTROLLER-3] We are not pointing at a HUD element (but it could be a 3d overlay).");
     clearSystemLaser();
     Reticle.visible = false;
 }

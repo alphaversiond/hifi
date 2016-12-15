@@ -272,41 +272,6 @@ void DaydreamDisplayPlugin::resetEyeProjections(GvrState *gvrState) {
     _cullingProjection = _eyeProjections[0];
 }
 
-void DaydreamDisplayPlugin::compositePointer() {
-    auto& cursorManager = Cursor::Manager::instance();
-    const auto& cursorData = _cursorsData[cursorManager.getCursor()->getIcon()];
-    auto compositorHelper = DependencyManager::get<CompositorHelper>();
-
-    // Reconstruct the headpose from the eye poses
-    //auto headPosition = vec3(glm::inverse(_currentPresentFrameInfo.presentPose)[3]);
-    GvrState *gvrState = GvrState::getInstance();
-
-    gvr::Mat4f controller_matrix = ControllerQuatToMatrix(gvrState->_controller_state.GetOrientation());
-    float scale = 5.0f;
-    gvr::Mat4f neutral_matrix = {
-      scale, 0.0f, 0.0f,   0.0f,
-      0.0f,  scale, 0.0f,  0.0f,
-      0.0f,  0.0f, scale,  -200.0f,
-      0.0f,  0.0f, 0.0f,  1.0f,
-    };
-    gvr::Mat4f model_matrix = MatrixMul(controller_matrix, neutral_matrix);
-    //auto controllerOrientation = vec3(orientation.qx, orientation.qy, orientation.qz);
-    render([&](gpu::Batch& batch) {
-        // FIXME use standard gpu stereo rendering for this.
-        batch.enableStereo(false);
-        batch.setFramebuffer(_compositeFramebuffer);
-        batch.setPipeline(_cursorPipeline);
-        batch.setResourceTexture(0, cursorData.texture);
-        batch.resetViewTransform();
-        for_each_eye([&](Eye eye) {
-            batch.setViewportTransform(eyeViewport(eye));
-            batch.setProjectionTransform(_eyeProjections[eye]);
-            mat4 cursor_matrix = glm::inverse(_currentPresentFrameInfo.presentPose * getEyeToHeadTransform(eye)) * glm::make_mat4(&(MatrixToGLArray(model_matrix)[0]));
-            batch.setModelTransform(cursor_matrix);
-            batch.draw(gpu::TRIANGLE_STRIP, 4);
-        });
-    });
-}
 
 
 

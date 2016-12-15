@@ -28,7 +28,6 @@ public:
     float getTargetFrameRate() const override { return 90; }
     glm::uvec2 getRecommendedUiSize() const override final;
     void internalPresent() override;
-    void compositePointer() override;
 
 protected:
     void updatePresentPose() override;

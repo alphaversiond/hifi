@@ -221,7 +221,7 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleButtonEvent(floa
 
     if (pressed) {
         if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_CLICK) {
-          _buttonPressedMap.insert(RT_CLICK);
+          //_buttonPressedMap.insert(RT_CLICK);
         } else if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_APP) {
           //_buttonPressedMap.insert(LS);
         } else if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_HOME) {
@@ -251,8 +251,9 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleAxisEvent(float 
       glm::vec2 stick(2*(touchPos.x-0.5f), 2*(touchPos.y-0.5f));
       stick = _filteredLeftStick.process(deltaTime, stick);
       qDebug() << "[DAYDREAM-CONTROLLER]: Touching x:" << stick.x << " y:" << stick.y;
-        _axisStateMap[RX] = stick.x * 100.0f;
-        _axisStateMap[RY] = stick.y * 100.0f;
+        _buttonPressedMap.insert(RT_CLICK);
+        //_axisStateMap[RX] = stick.x * 100.0f;
+        //_axisStateMap[RY] = stick.y * 100.0f;
     } else {
       _axisStateMap.clear();
     }

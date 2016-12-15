@@ -1017,16 +1017,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
 
         if (action == controller::toInt(controller::Action::RETICLE_CLICK)) {
-            qDebug() << "anddb-handControllerPointer.js Application::Application action was controller::Action::RETICLE_CLICK";
             auto reticlePos = getApplicationCompositor().getReticlePosition();
+            qDebug() << "[CONTROLLER-2] Application action was controller::Action::RETICLE_CLICK " << reticlePos.x << "," << reticlePos.y;
             QPoint localPos(reticlePos.x, reticlePos.y); // both hmd and desktop already handle this in our coordinates.
             if (state) {
-                qDebug() << "anddb-handControllerPointer.js Application::Application sending event reticleClickPressed true";
+                qDebug() << "[CONTROLLER-2] Application::Application RETICLE_CLICK sending event mousePress to " << _glWidget;
                 QMouseEvent mousePress(QEvent::MouseButtonPress, localPos, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
                 sendEvent(_glWidget, &mousePress);
                 _reticleClickPressed = true;
             } else {
-                qDebug() << "anddb-handControllerPointer.js Application::Application sending event reticleClickPressed false";
+                qDebug() << "[CONTROLLER-2] Application::Application RETICLE_CLICK sending event mouseRelease";
                 QMouseEvent mouseRelease(QEvent::MouseButtonRelease, localPos, Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
                 sendEvent(_glWidget, &mouseRelease);
                 _reticleClickPressed = false;
@@ -2425,7 +2425,9 @@ bool Application::importSVOFromURL(const QString& urlString) {
 }
 
 bool Application::event(QEvent* event) {
-
+    if (QEvent::MouseButtonPress == event->type()) {
+        qDebug() << "[CONTROLLER-2] event->type() " << event->type();
+    }
     if (!Menu::getInstance()) {
         return false;
     }
@@ -2988,6 +2990,7 @@ void Application::focusOutEvent(QFocusEvent* event) {
 }
 
 void Application::maybeToggleMenuVisible(QMouseEvent* event) const {
+#ifndef ANDROID
 #ifndef Q_OS_MAC
     // If in full screen, and our main windows menu bar is hidden, and we're close to the top of the QMainWindow
     // then show the menubar.
@@ -3006,6 +3009,7 @@ void Application::maybeToggleMenuVisible(QMouseEvent* event) const {
             }
         }
     }
+#endif
 #endif
 }
 
@@ -3029,13 +3033,12 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     auto eventPosition = compositor.getMouseEventPosition(event);
     QPointF transformedPos = offscreenUi->mapToVirtualScreen(eventPosition, _glWidget);
+    qDebug() << "[CONTROLLER-2] Mousemove to " << eventPosition << " mapped to vs: " << transformedPos;
     auto button = event->button();
     auto buttons = event->buttons();
     // Determine if the ReticleClick Action is 1 and if so, fake include the LeftMouseButton
     if (_reticleClickPressed) {
-        qDebug() << "Controller _reticleClickPressed";
         if (button == Qt::NoButton) {
-            qDebug() << "Controller _reticleClickPressed assinging leftButton";
             button = Qt::LeftButton;
         }
         buttons |= Qt::LeftButton;
@@ -3055,6 +3058,7 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
     qDebug() << "Controller mouseMoveEvent isMouseCaptured?";
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface->isMouseCaptured()) {
+        qDebug() << "[CONTROLLER-2] Mousemove XXXXX to " << eventPosition << " mapped to vs: " << transformedPos;
         return;
     }
 
@@ -3065,7 +3069,7 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
 }
 
 void Application::mousePressEvent(QMouseEvent* event) {
-    qDebug() << "anddb-handControllerPointer.js Application::mousePressEvent";
+    qDebug() << "[CONTROLLER-2] anddb-handControllerPointer.js Application::mousePressEvent";
     // Inhibit the menu if the user is using alt-mouse dragging
     _altPressed = false;
 
@@ -3142,7 +3146,7 @@ void Application::mouseReleaseEvent(QMouseEvent* event) {
     }
 
     if (hasFocus()) {
-        if (_keyboardMouseDevice->isActive()) {
+        if (_keyboardMouseDevice && _keyboardMouseDevice->isActive()) {
             _keyboardMouseDevice->mouseReleaseEvent(event);
         }
 

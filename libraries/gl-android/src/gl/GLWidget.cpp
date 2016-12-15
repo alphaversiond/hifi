@@ -25,6 +25,7 @@
 
 #include "Context.h"
 #include "GLHelpers.h"
+#include <QDebug>
 
 class GLPaintEngine : public QPaintEngine {
     bool begin(QPaintDevice *pdev) override { return true; }
@@ -88,6 +89,7 @@ void GLWidget::doneCurrent() {
 }
 
 bool GLWidget::event(QEvent* event) {
+    qDebug() << "[CONTROLLER-2] Passing through GLWidget::event " << event->type();
     switch (event->type()) {
         case QEvent::MouseMove:
         case QEvent::MouseButtonPress:
@@ -125,6 +127,7 @@ bool GLWidget::event(QEvent* event) {
 // http://www.archivum.info/qt-interest@trolltech.com/2006-09/00053/Re-(Qt4)-Alt-key-focus-QMenuBar-(solved).html
 
 bool GLWidget::eventFilter(QObject*, QEvent* event) {
+    qDebug() << "GLWidget::eventFilter event " << event->type();
     switch (event->type()) {
         case QEvent::KeyPress:
         case QEvent::KeyRelease:
@@ -139,12 +142,15 @@ bool GLWidget::eventFilter(QObject*, QEvent* event) {
                 } else {
                     QWidget::event(event);
                 }
+
+                qDebug() << "[CONTROLLER-2] GLWidget::eventFilter event " << event->type() << " returning true";
                 return true;
             }
         }
         default:
             break;
     }
+    qDebug() << "[CONTROLLER-2] GLWidget::eventFilter event " << event->type() << " returning false";
     return false;
 }
 
