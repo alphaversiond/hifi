@@ -173,35 +173,35 @@ function findRayIntersection(pickRay) {
 }
 function isPointingAtOverlay(optionalHudPosition2d) {
     var isPointing = Reticle.pointingAtSystemOverlay || Overlays.getOverlayAtPoint(optionalHudPosition2d || Reticle.position);
-    print("[CONTROLLER-2] isPointingAtOverlay isPointing " + isPointing + " Reticle.position= " + JSON.stringify(Reticle.position));
+    //print("[CONTROLLER-2] isPointingAtOverlay isPointing " + isPointing + " Reticle.position= " + JSON.stringify(Reticle.position));
     if (isPointing) {
-            print("[CONTROLLER-2] isPointingAtOverlay " + isPointing + " Reticle.pointingAtSystemOverlay " + Reticle.pointingAtSystemOverlay + 
-            ' optionalHudPosition2d ' + JSON.stringify(optionalHudPosition2d) + ' Reticle.position ' + JSON.stringify(Reticle.position) + 
-            ' Overlays.getOverlayAtPoint(optionalHudPosition2d || Reticle.position) ' + Overlays.getOverlayAtPoint(optionalHudPosition2d || Reticle.position) );
+            print("[CONTROLLER-4] isPointingAtOverlay " + JSON.stringify(optionalHudPosition2d || Reticle.position));// + isPointing + " Reticle.pointingAtSystemOverlay " + Reticle.pointingAtSystemOverlay + 
+            //' optionalHudPosition2d ' + JSON.stringify(optionalHudPosition2d) + ' Reticle.position ' + JSON.stringify(Reticle.position) + 
+            //' Overlays.getOverlayAtPoint(optionalHudPosition2d || Reticle.position) ' + Overlays.getOverlayAtPoint(optionalHudPosition2d || Reticle.position) );
     }
     return isPointing;
 }
 
-print("anddb-handControllerPointer.js isPointingAtOverlay defined");
+//print("anddb-handControllerPointer.js isPointingAtOverlay defined");
 // Generalized HUD utilities, with or without HMD:
 // This "var" is for documentation. Do not change the value!
 var PLANAR_PERPENDICULAR_HUD_DISTANCE = 1;
 function calculateRayUICollisionPoint(position, direction) {
-    print("anddb-handControllerPointer.js calculateRayUICollisionPoint start");
+    //print("anddb-handControllerPointer.js calculateRayUICollisionPoint start");
     // Answer the 3D intersection of the HUD by the given ray, or falsey if no intersection.
     if (HMD.active) {
-        print("anddb-handControllerPointer.js calculateRayUICollisionPoint HMD active!");
+        //print("anddb-handControllerPointer.js calculateRayUICollisionPoint HMD active!");
         var col = HMD.calculateRayUICollisionPoint(position, direction);
-        print("anddb-handControllerPointer.js calculateRayUICollisionPoint HMD active collision point: " + JSON.stringify(col));
+        //print("anddb-handControllerPointer.js calculateRayUICollisionPoint HMD active collision point: " + JSON.stringify(col));
         return col;
     }
-    print("anddb-handControllerPointer.js calculateRayUICollisionPoint HMD NOT active!");
+    //print("anddb-handControllerPointer.js calculateRayUICollisionPoint HMD NOT active!");
     // interect HUD plane, 1m in front of camera, using formula:
     //   scale = hudNormal dot (hudPoint - position) / hudNormal dot direction
     //   intersection = postion + scale*direction
     var hudNormal = Quat.getFront(Camera.getOrientation());
     var hudPoint = Vec3.sum(Camera.getPosition(), hudNormal); // must also scale if PLANAR_PERPENDICULAR_HUD_DISTANCE!=1
-    print("anddb-handControllerPointer.js calculateRayUICollisionPoint hudNormal " + JSON.stringify(hudNormal) + " hudPoint " + JSON.stringify(hudPoint));
+    //print("anddb-handControllerPointer.js calculateRayUICollisionPoint hudNormal " + JSON.stringify(hudNormal) + " hudPoint " + JSON.stringify(hudPoint));
     var denominator = Vec3.dot(hudNormal, direction);
     if (denominator === 0) {
         return null;
@@ -210,7 +210,7 @@ function calculateRayUICollisionPoint(position, direction) {
     var scale = numerator / denominator;
     return Vec3.sum(position, Vec3.multiply(scale, direction));
 }
-print("anddb-handControllerPointer.js calculateRayUICollisionPoint defined");
+//print("anddb-handControllerPointer.js calculateRayUICollisionPoint defined");
 var DEGREES_TO_HALF_RADIANS = Math.PI / 360;
 function overlayFromWorldPoint(point) {
     // Answer the 2d pixel-space location in the HUD that covers the given 3D point.
@@ -219,12 +219,12 @@ function overlayFromWorldPoint(point) {
     // ray that may or may not have been used to compute the point. E.g., the
     // overlay point is NOT the intersection of some non-camera ray with the HUD.
     if (HMD.active) {
-        print("anddb-handControllerPointer.js overlayFromWorldPoint HMD active");
+        //print("anddb-handControllerPointer.js overlayFromWorldPoint HMD active");
         var res = HMD.overlayFromWorldPoint(point);
-        print("anddb-handControllerPointer.js overlayFromWorldPoint res: " + JSON.stringify(res) );
+        //print("anddb-handControllerPointer.js overlayFromWorldPoint res: " + JSON.stringify(res) );
         return res;
     }
-    print("anddb-handControllerPointer.js overlayFromWorldPoint HMD not active");
+    //print("anddb-handControllerPointer.js overlayFromWorldPoint HMD not active");
     var cameraToPoint = Vec3.subtract(point, Camera.getPosition());
     var cameraX = Vec3.dot(cameraToPoint, Quat.getRight(Camera.getOrientation()));
     var cameraY = Vec3.dot(cameraToPoint, Quat.getUp(Camera.getOrientation()));
@@ -238,7 +238,7 @@ function overlayFromWorldPoint(point) {
     return { x: horizontalPixels, y: verticalPixels };
 }
 
-print("anddb-handControllerPointer.js overlayFromWorldPoint defined");
+//print("anddb-handControllerPointer.js overlayFromWorldPoint defined");
 var gamePad = Controller.findDevice("GamePad");
 function activeHudPoint2dGamePad() {
     if (!HMD.active) {
@@ -264,11 +264,11 @@ function activeHudPoint2dGamePad() {
     return hudPoint2d;
 }
 
-print("anddb-handControllerPointer.js activeHudPoint2dGamePad defined");
+//print("anddb-handControllerPointer.js activeHudPoint2dGamePad defined");
 
 function activeHudPoint2d(activeHand) { // if controller is valid, update reticle position and answer 2d point. Otherwise falsey.
     var shouldLog = activeTrigger.full() || Math.random()>0.5;
-    print("anddb-handControllerPointer.js activeHudPoint2d start activeHand " + activeHand);
+    //print("anddb-handControllerPointer.js activeHudPoint2d start activeHand " + activeHand);
     var controllerPose = getControllerWorldLocation(activeHand, true); // note: this will return head pose if hand pose is invalid (third eye)
     if (!controllerPose.valid) {
         if (shouldLog)
@@ -278,10 +278,11 @@ function activeHudPoint2d(activeHand) { // if controller is valid, update reticl
     var controllerPosition = controllerPose.position;
     var controllerDirection = Quat.getUp(controllerPose.rotation);
 
-    if (shouldLog)
+    /*if (shouldLog)
         print('anddb-handControllerPointer.js activeHudPoint2d calling calculateRayUICollisionPoint');
     print('anddb-handControllerPointer.js activeHudPoint2d controllerPosition ' + JSON.stringify(controllerPosition));
     print('anddb-handControllerPointer.js activeHudPoint2d controllerDirection ' + JSON.stringify(controllerDirection));
+    */
     var hudPoint3d = calculateRayUICollisionPoint(controllerPosition, controllerDirection);
     if (!hudPoint3d) {
         if (Menu.isOptionChecked("Overlays")) { // With our hud resetting strategy, hudPoint3d should be valid here
@@ -291,16 +292,16 @@ function activeHudPoint2d(activeHand) { // if controller is valid, update reticl
             print('anddb-handControllerPointer.js activeHudPoint2d BAD hudPoint3d');
         return;
     }
-    print('anddb-handControllerPointer.js activeHudPoint2d GOOD? hudPoint3d ' + JSON.stringify(hudPoint3d));
+    //print('anddb-handControllerPointer.js activeHudPoint2d GOOD? hudPoint3d ' + JSON.stringify(hudPoint3d));
     var hudPoint2d = overlayFromWorldPoint(hudPoint3d);
-    print('anddb-handControllerPointer.js activeHudPoint2d ' + JSON.stringify(hudPoint2d) );
+    //print('anddb-handControllerPointer.js activeHudPoint2d ' + JSON.stringify(hudPoint2d) );
     // We don't know yet if we'll want to make the cursor or laser visble, but we need to move it to see if
     // it's pointing at a QML tool (aka system overlay).
     setReticlePosition(hudPoint2d);
     return hudPoint2d;
 }
 
-print("anddb-handControllerPointer.js activeHudPoint2d defined");
+//print("anddb-handControllerPointer.js activeHudPoint2d defined");
 // MOUSE ACTIVITY --------
 //
 var isSeeking = false;
@@ -355,11 +356,12 @@ function updateSeeking(doNotStartSeeking) {
         print('Finished seeking mouse');
         isSeeking = false;
     } else {
+
         Reticle.setPosition(copy); // Not setReticlePosition
     }
 }
 
-print("anddb-handControllerPointer.js updateSeeking defined");
+//print("anddb-handControllerPointer.js updateSeeking defined");
 var mouseCursorActivity = new TimeLock(5000);
 var APPARENT_MAXIMUM_DEPTH = 100.0; // this is a depth at which things all seem sufficiently distant
 function updateMouseActivity(isClick) {
@@ -376,7 +378,7 @@ function updateMouseActivity(isClick) {
 }
 function expireMouseCursor(now) {
     if (!isPointingAtOverlay() && mouseCursorActivity.expired(now)) {
-        Reticle.visible = false;
+        Reticle.visible = true; //false;
     }
 }
 function hudReticleDistance() { // 3d distance from camera to the reticle position on hud
@@ -415,7 +417,7 @@ function onMouseMove() {
 function onMouseClick() {
     updateMouseActivity(true);
 }
-print("anddb-handControllerPointer.js onMouseClick defined");
+//print("anddb-handControllerPointer.js onMouseClick defined");
 setupHandler(Controller.mouseMoveEvent, onMouseMove);
 setupHandler(Controller.mousePressEvent, onMouseClick);
 setupHandler(Controller.mouseDoublePressEvent, onMouseClick);
@@ -452,7 +454,7 @@ function makeToggleAction(hand) { // return a function(0|1) that makes the speci
     };
 }
 
-print("anddb-handControllerPointer.js makeToggleAction defined");
+//print("anddb-handControllerPointer.js makeToggleAction defined");
 var clickMapping = Controller.newMapping('handControllerPointer-click');
 Script.scriptEnding.connect(clickMapping.disable);
 
@@ -570,9 +572,10 @@ function clearSystemLaser() {
     HMD.disableExtraLaser();
     systemLaserOn = false;
     weMovedReticle = true;
-    Reticle.position = { x: -1, y: -1 };
+    //Reticle.position = { x: -1, y: -1};
 }
 function setColoredLaser() { // answer trigger state if lasers supported, else falsey.
+    print("[CONTROLLER-4] setColoredLaser trigger " + activeTrigger.state + " isHandControllerAvailable " + HMD.isHandControllerAvailable());
     var color = (activeTrigger.state === 'full') ? LASER_TRIGGER_COLOR_XYZW : LASER_SEARCH_COLOR_XYZW;
 
     if (!HMD.isHandControllerAvailable()) {
@@ -589,8 +592,6 @@ print("anddb-handControllerPointer.js setColoredLaser defined");
 //
 function update() {
     var shouldLog = Math.random()>0.98;
-    if (shouldLog)
-        print("anddb-handControllerPointer.js update()");
     var now = Date.now();
     function off() {
         print("[CONTROLLER-3] off: expireMouseCursor and clearSystemLaser");
@@ -622,7 +623,12 @@ function update() {
     leftTrigger.update();
     rightTrigger.update();
 
-    getControllerWorldLocation(activeHand, true); // anddb remove this line, it's just for debug
+    //getControllerWorldLocation(activeHand, true); // anddb remove this line, it's just for debug
+
+    var hudPoint2d;
+    if (activeHand) {
+        hudPoint2d = activeHudPoint2d(activeHand);
+    }
 
     if (!activeTrigger.state) {
         print("[CONTROLLER-3] // No trigger");
@@ -630,19 +636,17 @@ function update() {
     }
 
     if (getGrabCommunications()) {
-        print("[CONTROLLER-3] // getGrabCommunications");
+        print("[CONTROLLER-4] // getGrabCommunications");
         return off();
     }
 
-
-    var hudPoint2d = activeHudPoint2d(activeHand);
     if (!hudPoint2d) {
-        print("[CONTROLLER-3] // !hudPoint2d");        
+        print("[CONTROLLER-4] // !hudPoint2d");        
         return off();
     }
 
     if (shouldLog)
-        print("anddb-handControllerPointer.js hudPoint2d is at: " + JSON.stringify(hudPoint2d));
+        print("[CONTROLLER-4]-handControllerPointer.js hudPoint2d is at: " + JSON.stringify(hudPoint2d));
 
     // If there's a HUD element at the (newly moved) reticle, just make it visible and bail.
     if (isPointingAtOverlay(hudPoint2d)) {
@@ -650,6 +654,7 @@ function update() {
             Reticle.depth = hudReticleDistance();
 
             if (!HMD.isHandControllerAvailable()) {
+
                 var color = (activeTrigger.state === 'full') ? LASER_TRIGGER_COLOR_XYZW : LASER_SEARCH_COLOR_XYZW;
                 var position = MyAvatar.getHeadPosition();
                 var direction = Quat.getUp(Quat.multiply(MyAvatar.headOrientation, Quat.angleAxis(-90, { x: 1, y: 0, z: 0 })));
@@ -660,18 +665,18 @@ function update() {
         if (activeTrigger.state && (!systemLaserOn || (systemLaserOn !== activeTrigger.state))) { // last=>wrong color
             // If the active plugin doesn't implement hand lasers, show the mouse reticle instead.
             systemLaserOn = setColoredLaser();
-            Reticle.visible = !systemLaserOn;
+            Reticle.visible = true; // !systemLaserOn;
         } else if ((systemLaserOn || Reticle.visible) && !activeTrigger.state) {
             print("[CONTREOLLER-3] isPointingAtOverlay " + JSON.stringify(hudPoint2d) + " (systemLaserOn " + systemLaserOn + " || Reticle.visible " + Reticle.visible + ") && (!) activeTrigger.state " + activeTrigger.state);
-            clearSystemLaser();
-            Reticle.visible = false;
+            //clearSystemLaser();
+            //Reticle.visible = true;
         }
         return;
     }
     // We are not pointing at a HUD element (but it could be a 3d overlay).
     print("[CONTROLLER-3] We are not pointing at a HUD element (but it could be a 3d overlay).");
     clearSystemLaser();
-    Reticle.visible = false;
+    Reticle.visible = true;
 }
 
 print("anddb-handControllerPointer.js update defined");

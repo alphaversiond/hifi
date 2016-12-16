@@ -717,7 +717,7 @@ bool OffscreenQmlSurface::eventFilter(QObject* originalDestination, QEvent* even
         case QEvent::MouseButtonPress:
         case QEvent::MouseButtonRelease:
         case QEvent::MouseMove: {
-            qDebug() << "[CONTROLLER-2] OffscreenQmlSurface::eventFilter MouseButtonPress";
+            qDebug() << "[CONTROLLER-4] OffscreenQmlSurface::eventFilter MouseButtonPress";
             QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
             QPointF transformedPos = mapToVirtualScreen(mouseEvent->localPos(), originalDestination);
             QMouseEvent mappedEvent(mouseEvent->type(),

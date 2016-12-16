@@ -142,13 +142,16 @@ bool DaydreamDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
         _frameInfos[frameIndex] = _currentRenderFrameInfo;
         
         _handPoses[0] = handPoses[0];//glm::translate(mat4(), vec3(0.1f, 0.3f, 0.0f));
-        _handLasers[0].color = vec4(1, 0, 0, 1);
+/*      _handLasers[0].color = vec4(0, 0, 0, 0);
         _handLasers[0].mode = HandLaserMode::Overlay;
+        _handLasers[0].direction = vec3(0,0,0);
+*/
 
         _handPoses[1] = handPoses[1];
-        _handLasers[1].color = vec4(0, 1, 1, 1);
-        _handLasers[1].mode = HandLaserMode::Overlay;
-
+/*        _handLasers[1].color = vec4(0, 0, 0, 0);
+        _handLasers[1].mode = HandLaserMode::None;
+        _handLasers[1].direction = vec3(0,0,0);
+*/
     });
     return Parent::beginFrameRender(frameIndex);
 }
