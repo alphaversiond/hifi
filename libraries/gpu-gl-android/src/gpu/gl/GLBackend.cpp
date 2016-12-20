@@ -174,7 +174,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
 
     _inRenderTransferPass = true;
     { // Sync all the buffers
-        PROFILE_RANGE("syncGPUBuffer");
+        PROFILE_RANGE(render_gpu_gl, "syncGPUBuffer");
 
         for (auto& cached : batch._buffers._items) {
             if (cached._data) {
@@ -184,7 +184,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
     }
 
     { // Sync all the buffers
-        PROFILE_RANGE("syncCPUTransform");
+        PROFILE_RANGE(render_gpu_gl, "syncCPUTransform");
         _transform._cameras.clear();
         _transform._cameraOffsets.clear();
 
@@ -216,7 +216,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
     }
 
     { // Sync the transform buffers
-        PROFILE_RANGE("syncGPUTransform");
+        PROFILE_RANGE(render_gpu_gl, "syncGPUTransform");
         transferTransformState(batch);
     }
 
@@ -278,12 +278,12 @@ void GLBackend::render(const Batch& batch) {
     }
     
     {
-        PROFILE_RANGE("Transfer");
+        PROFILE_RANGE(render_gpu_gl, "Transfer");
         renderPassTransfer(batch);
     }
 
     {
-        PROFILE_RANGE(_stereo._enable ? "Render Stereo" : "Render");
+        PROFILE_RANGE(render_gpu_gl, _stereo._enable ? "Render Stereo" : "Render");
         renderPassDraw(batch);
     }
 
@@ -321,7 +321,6 @@ void GLBackend::do_runLambda(const Batch& batch, size_t paramOffset) {
 
 void GLBackend::do_startNamedCall(const Batch& batch, size_t paramOffset) {
     batch._currentNamedCall = batch._names.get(batch._params[paramOffset]._uint);
-    qDebug() << "GLBackend::do_startNamedCall " << batch._currentNamedCall.c_str();
     _currentDraw = -1;
 }
 
@@ -641,10 +640,19 @@ void GLBackend::recycle() const {
             Lock lock(_trashMutex);
             std::swap(_externalTexturesTrash, externalTexturesTrash);
         }
-        for (auto pair : externalTexturesTrash) {
-            auto fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-            pair.second(pair.first, fence);
-            decrementTextureGPUCount();
+        if (!externalTexturesTrash.empty()) {
+            std::vector<GLsync> fences;  
+            fences.resize(externalTexturesTrash.size());
+            for (size_t i = 0; i < externalTexturesTrash.size(); ++i) {
+                fences[i] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+            }
+            // External texture fences will be read in another thread/context, so we need a flush
+            glFlush();
+            size_t index = 0;
+            for (auto pair : externalTexturesTrash) {
+                auto fence = fences[index++];
+                pair.second(pair.first, fence);
+            }
         }
     }
 

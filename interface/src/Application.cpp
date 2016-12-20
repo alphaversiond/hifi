@@ -47,6 +47,9 @@
 
 #include <gl/QOpenGLContextWrapper.h>
 
+#include <shared/GlobalAppProperties.h>
+#include <StatTracker.h>
+#include <Trace.h>
 #include <ResourceScriptingInterface.h>
 #include <AccountManager.h>
 #include <AddressManager.h>
@@ -63,6 +66,7 @@
 #include <ErrorDialog.h>
 #include <FileScriptingInterface.h>
 #include <Finally.h>
+#include <FingerprintUtils.h>
 #include <FramebufferCache.h>
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
@@ -90,13 +94,15 @@
 #include <PerfStat.h>
 #include <PhysicsEngine.h>
 #include <PhysicsHelpers.h>
+#include <plugins/CodecPlugin.h>
 #include <plugins/PluginManager.h>
 #include <plugins/PluginUtils.h>
-#include <plugins/CodecPlugin.h>
+#include <plugins/SteamClientPlugin.h>
 #include <RecordingScriptingInterface.h>
 #include <RenderableWebEntityItem.h>
 #include <RenderShadowTask.h>
 #include <RenderDeferredTask.h>
+#include <RenderForwardTask.h>
 #include <ResourceCache.h>
 #include <SandboxUtils.h>
 #include <SceneScriptingInterface.h>
@@ -133,6 +139,7 @@
 #include "LODManager.h"
 #include "ModelPackager.h"
 #include "networking/HFWebEngineProfile.h"
+#include "scripting/TestScriptingInterface.h"
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AssetMappingsScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
@@ -174,10 +181,14 @@
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
 #if defined(Q_OS_WIN)
+#include <VersionHelpers.h>
+
 extern "C" {
  _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
 }
 #endif
+
+Q_LOGGING_CATEGORY(trace_app_input_mouse, "trace.app.input.mouse")
 
 using namespace std;
 
@@ -419,11 +430,26 @@ bool setupEssentials(int& argc, char** argv) {
     const char* portStr = getCmdOption(argc, constArgv, "--listenPort");
     const int listenPort = portStr ? atoi(portStr) : INVALID_PORT;
 
-    // Set build version
-    QCoreApplication::setApplicationVersion(BuildInfo::VERSION);
+    Setting::init();
+#ifndef ANDROID
+    if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
+        steamClient->init();
+    }
+#endif
 
-    Setting::preInit();
-
+    qDebug() << "setupEssentials";
+    DependencyManager::set<tracing::Tracer>();
+    qDebug() << "setupEssentials " << DependencyManager::get<tracing::Tracer>();
+#if defined(Q_OS_WIN)
+    // Select appropriate audio DLL
+    QString audioDLLPath = QCoreApplication::applicationDirPath();
+    if (IsWindows8OrGreater()) {
+        audioDLLPath += "/audioWin8";
+    } else {
+        audioDLLPath += "/audioWin7";
+    }
+    QCoreApplication::addLibraryPath(audioDLLPath);
+#endif
 
     static const auto SUPPRESS_SETTINGS_RESET = "--suppress-settings-reset";
     bool suppressPrompt = cmdOptionExists(argc, const_cast<const char**>(argv), SUPPRESS_SETTINGS_RESET);
@@ -433,11 +459,9 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::registerInheritance<AvatarHashMap, AvatarManager>();
     DependencyManager::registerInheritance<EntityActionFactoryInterface, InterfaceActionFactory>();
     DependencyManager::registerInheritance<SpatialParentFinder, InterfaceParentFinder>();
-
-    Setting::init();
-
     // Set dependencies
     DependencyManager::set<AccountManager>(std::bind(&Application::getUserAgent, qApp));
+    DependencyManager::set<StatTracker>();
     DependencyManager::set<ScriptEngines>();
     DependencyManager::set<Preferences>();
     DependencyManager::set<recording::Deck>();
@@ -455,6 +479,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<AudioScope>();
     DependencyManager::set<DeferredLightingEffect>();
     DependencyManager::set<TextureCache>();
+    qDebug() << "[CRASH] DependencyManager::set<FramebufferCache>()";
     DependencyManager::set<FramebufferCache>();
     DependencyManager::set<AnimationCache>();
     DependencyManager::set<ModelBlender>();
@@ -544,23 +569,45 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _maxOctreePPS(maxOctreePacketsPerSecond.get()),
     _lastFaceTrackerUpdate(0)
 {
-
 #ifdef ANDROID
-    QFile scriptsDest(defaultScriptsLocation().toString());
-    if (!scriptsDest.exists()) {
-        qDebug() << "Copying scripts dir";
-        copyDirDeep("assets:/scripts", defaultScriptsLocation().toLocalFile());
-    }
+    	QFile scriptsDest(defaultScriptsLocation().toString());
+    	if (!scriptsDest.exists()) {
+	        qDebug() << "Copying scripts dir";
+	        copyDirDeep("assets:/scripts", defaultScriptsLocation().toLocalFile());
+	}
 
-    qDebug() << "Resources path " << PathUtils::resourcesPath();
-    QFile resourcesDest(PathUtils::resourcesPath());
-    if (!resourcesDest.exists()) {
-        qDebug() << "Copying resources dir";
-        copyDirDeep("assets:/resources", PathUtils::resourcesPath());
-    }
+    	qDebug() << "Resources path " << PathUtils::resourcesPath();
+    	QFile resourcesDest(PathUtils::resourcesPath());
+    	if (!resourcesDest.exists()) {
+        	qDebug() << "Copying resources dir";
+        	copyDirDeep("assets:/resources", PathUtils::resourcesPath());
+    	}
 #else
-    setProperty("com.highfidelity.launchedFromSteam", SteamClient::isRunning());
+    auto steamClient = PluginManager::getInstance()->getSteamClientPlugin();
+    setProperty(hifi::properties::STEAM, (steamClient && steamClient->isRunning()));
+    setProperty(hifi::properties::CRASHED, _previousSessionCrashed);
+
+    {
+        const QString TEST_SCRIPT = "--testScript";
+        const QString TRACE_FILE = "--traceFile";
+        const QStringList args = arguments();
+        for (int i = 0; i < args.size() - 1; ++i) {
+            if (args.at(i) == TEST_SCRIPT) {
+                QString testScriptPath = args.at(i + 1);
+                if (QFileInfo(testScriptPath).exists()) {
+                    setProperty(hifi::properties::TEST, QUrl::fromLocalFile(testScriptPath));
+                }
+            } else if (args.at(i) == TRACE_FILE) {
+                QString traceFilePath = args.at(i + 1);
+                setProperty(hifi::properties::TRACING, traceFilePath);
+                DependencyManager::get<tracing::Tracer>()->startTracing();
+            }
+        }
+    }
 #endif
+
+
+
 
     _runningMarker.startRunningMarker();
 
@@ -589,7 +636,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _window->setWindowTitle("Interface");
 
     Model::setAbstractViewStateInterface(this); // The model class will sometimes need to know view state details from us
-
+ #ifndef ANDROID
+    // TODO: This is temporary, while developing
+    FingerprintUtils::getMachineFingerprint();
+    // End TODO
+#endif
     auto nodeList = DependencyManager::get<NodeList>();
 
     // Set up a watchdog thread to intentionally crash the application on deadlocks
@@ -597,8 +648,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _deadlockWatchdogThread->start();
 
 #ifndef ANDROID
-    qCDebug(interfaceapp) << "[VERSION] SteamVR buildID:" << SteamClient::getSteamVRBuildID();
-#endif    
+    if (steamClient) {
+        qCDebug(interfaceapp) << "[VERSION] SteamVR buildID:" << steamClient->getSteamVRBuildID();
+    }
+#endif
     qCDebug(interfaceapp) << "[VERSION] Build sequence:" << qPrintable(applicationVersion());
     qCDebug(interfaceapp) << "[VERSION] MODIFIED_ORGANIZATION:" << BuildInfo::MODIFIED_ORGANIZATION;
     qCDebug(interfaceapp) << "[VERSION] VERSION:" << BuildInfo::VERSION;
@@ -610,8 +663,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     qCDebug(interfaceapp) << "[VERSION] We will use DEVELOPMENT global services.";
 #endif
 
-    
-    bool wantsSandboxRunning = shouldRunServer();
+
+    static const QString NO_UPDATER_ARG = "--no-updater";
+    static const bool noUpdater = arguments().indexOf(NO_UPDATER_ARG) != -1;
+    static const bool wantsSandboxRunning = shouldRunServer();
     static bool determinedSandboxState = false;
     static bool sandboxIsRunning = false;
     SandboxUtils sandboxUtils;
@@ -621,12 +676,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         qCDebug(interfaceapp) << "Home sandbox appears to be running.....";
         determinedSandboxState = true;
         sandboxIsRunning = true;
-    }, [&, wantsSandboxRunning]() {
+    }, [&]() {
         qCDebug(interfaceapp) << "Home sandbox does not appear to be running....";
         if (wantsSandboxRunning) {
             QString contentPath = getRunServerPath();
+
 #ifndef ANDROID
-            bool noUpdater = SteamClient::isRunning();
             SandboxUtils::runLocalSandbox(contentPath, true, RUNNING_MARKER_FILENAME, noUpdater);
 #endif
             sandboxIsRunning = true;
@@ -685,7 +740,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     recording::Frame::registerFrameHandler(AudioConstants::getAudioFrameName(), [=](recording::Frame::ConstPointer frame) {
         audioIO->handleRecordedAudioInput(frame->data);
     });
-
+qDebug() << "connect Application::742";
     connect(audioIO.data(), &AudioClient::inputReceived, [](const QByteArray& audio){
         static auto recorder = DependencyManager::get<recording::Recorder>();
         if (recorder->isRecording()) {
@@ -725,6 +780,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     QThread* messagesThread = new QThread;
     messagesThread->setObjectName("Messages Client Thread");
     messagesClient->moveToThread(messagesThread);
+    qDebug() << "connect Application::782";
     connect(messagesThread, &QThread::started, messagesClient.data(), &MessagesClient::init);
     messagesThread->start();
 
@@ -758,7 +814,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     discoverabilityManager->updateLocation();
 
     auto myAvatar = getMyAvatar();
-
+qDebug() << "connect Application::816";
     connect(nodeList.data(), &NodeList::nodeAdded, this, &Application::nodeAdded);
     connect(nodeList.data(), &NodeList::nodeKilled, this, &Application::nodeKilled);
     connect(nodeList.data(), &NodeList::nodeActivated, this, &Application::nodeActivated);
@@ -785,7 +841,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // use our MyAvatar position and quat for address manager path
     addressManager->setPositionGetter([this]{ return getMyAvatar()->getPosition(); });
     addressManager->setOrientationGetter([this]{ return getMyAvatar()->getOrientation(); });
-
+qDebug() << "connect Application::843";
     connect(addressManager.data(), &AddressManager::hostChanged, this, &Application::updateWindowTitle);
     connect(this, &QCoreApplication::aboutToQuit, addressManager.data(), &AddressManager::storeCurrentAddress);
 
@@ -1018,15 +1074,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
         if (action == controller::toInt(controller::Action::RETICLE_CLICK)) {
             auto reticlePos = getApplicationCompositor().getReticlePosition();
-            qDebug() << "[CONTROLLER-2] Application action was controller::Action::RETICLE_CLICK " << reticlePos.x << "," << reticlePos.y;
+            //qDebug() << "[CONTROLLER-2] Application action was controller::Action::RETICLE_CLICK " << reticlePos.x << "," << reticlePos.y;
             QPoint localPos(reticlePos.x, reticlePos.y); // both hmd and desktop already handle this in our coordinates.
             if (state) {
-                qDebug() << "[CONTROLLER-2] Application::Application RETICLE_CLICK sending event mousePress to " << _glWidget;
+                //qDebug() << "[CONTROLLER-2] Application::Application RETICLE_CLICK sending event mousePress to " << _glWidget;
                 QMouseEvent mousePress(QEvent::MouseButtonPress, localPos, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
                 sendEvent(_glWidget, &mousePress);
                 _reticleClickPressed = true;
             } else {
-                qDebug() << "[CONTROLLER-2] Application::Application RETICLE_CLICK sending event mouseRelease";
+                //qDebug() << "[CONTROLLER-2] Application::Application RETICLE_CLICK sending event mouseRelease";
                 QMouseEvent mouseRelease(QEvent::MouseButtonRelease, localPos, Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
                 sendEvent(_glWidget, &mouseRelease);
                 _reticleClickPressed = false;
@@ -1157,7 +1213,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
 #ifndef ANDROID
     // If launched from Steam, let it handle updates
-    if (!SteamClient::isRunning()) {
+    if (!noUpdater) {
         auto applicationUpdater = DependencyManager::get<AutoUpdater>();
         connect(applicationUpdater.data(), &AutoUpdater::newVersionIsAvailable, dialogsManager.data(), &DialogsManager::showUpdateDialog);
         applicationUpdater->checkForUpdate();
@@ -1357,70 +1413,90 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return entityServerNode && !isPhysicsEnabled();
     });
 
+    QVariant testProperty = property(hifi::properties::TEST);
+    qDebug() << testProperty;
+    if (testProperty.isValid()) {
+        auto scriptEngines = DependencyManager::get<ScriptEngines>();
+        const auto testScript = property(hifi::properties::TEST).toUrl();
+        scriptEngines->loadScript(testScript, false);
+    } else {
+        // Get sandbox content set version, if available
+        auto acDirPath = PathUtils::getRootDataDirectory() + BuildInfo::MODIFIED_ORGANIZATION + "/assignment-client/";
+        auto contentVersionPath = acDirPath + "content-version.txt";
+        qCDebug(interfaceapp) << "Checking " << contentVersionPath << " for content version";
+        auto contentVersion = 0;
+        QFile contentVersionFile(contentVersionPath);
+        if (contentVersionFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            QString line = contentVersionFile.readAll();
+            // toInt() returns 0 if the conversion fails, so we don't need to specifically check for failure
+            contentVersion = line.toInt();
+        }
+        qCDebug(interfaceapp) << "Server content version: " << contentVersion;
 
+        static const int MIN_VIVE_CONTENT_VERSION = 1;
+        static const int MIN_OCULUS_TOUCH_CONTENT_VERSION = 27;
 
-    // Get sandbox content set version, if available
-    auto acDirPath = PathUtils::getRootDataDirectory() + BuildInfo::MODIFIED_ORGANIZATION + "/assignment-client/";
-    auto contentVersionPath = acDirPath + "content-version.txt";
-    qCDebug(interfaceapp) << "Checking " << contentVersionPath << " for content version";
-    auto contentVersion = 0;
-    QFile contentVersionFile(contentVersionPath);
-    if (contentVersionFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QString line = contentVersionFile.readAll();
-        // toInt() returns 0 if the conversion fails, so we don't need to specifically check for failure
-        contentVersion = line.toInt();
-    }
-    qCDebug(interfaceapp) << "Server content version: " << contentVersion;
+        bool hasSufficientTutorialContent = false;
+        bool hasHandControllers = false;
 
-    bool hasTutorialContent = contentVersion >= 1;
+        // Only specific hand controllers are currently supported, so only send users to the tutorial
+        // if they have one of those hand controllers.
+        if (PluginUtils::isViveControllerAvailable()) {
+            hasHandControllers = true;
+            hasSufficientTutorialContent = contentVersion >= MIN_VIVE_CONTENT_VERSION;
+        } else if (PluginUtils::isOculusTouchControllerAvailable()) {
+            hasHandControllers = true;
+            hasSufficientTutorialContent = contentVersion >= MIN_OCULUS_TOUCH_CONTENT_VERSION;
+        }
 
-    Setting::Handle<bool> firstRun { Settings::firstRun, true };
-    bool hasHMDAndHandControllers = PluginUtils::isHMDAvailable("OpenVR (Vive)") && PluginUtils::isHandControllerAvailable();
-    Setting::Handle<bool> tutorialComplete { "tutorialComplete", false };
+        Setting::Handle<bool> firstRun { Settings::firstRun, true };
 
-    bool shouldGoToTutorial = hasHMDAndHandControllers && hasTutorialContent && !tutorialComplete.get();
+        bool hasHMDAndHandControllers = PluginUtils::isHMDAvailable() && hasHandControllers;
+        Setting::Handle<bool> tutorialComplete { "tutorialComplete", false };
 
-    qCDebug(interfaceapp) << "Has HMD + Hand Controllers: " << hasHMDAndHandControllers << ", current plugin: " << _displayPlugin->getName();
-    qCDebug(interfaceapp) << "Has tutorial content: " << hasTutorialContent;
-    qCDebug(interfaceapp) << "Tutorial complete: " << tutorialComplete.get();
-    qCDebug(interfaceapp) << "Should go to tutorial: " << shouldGoToTutorial;
+        bool shouldGoToTutorial = hasHMDAndHandControllers && hasSufficientTutorialContent && !tutorialComplete.get();
 
-    // when --url in command line, teleport to location
-    const QString HIFI_URL_COMMAND_LINE_KEY = "--url";
-    int urlIndex = arguments().indexOf(HIFI_URL_COMMAND_LINE_KEY);
-    QString addressLookupString;
-    if (urlIndex != -1) {
-        addressLookupString = arguments().value(urlIndex + 1);
-    }
+        qCDebug(interfaceapp) << "Has HMD + Hand Controllers: " << hasHMDAndHandControllers << ", current plugin: " << _displayPlugin->getName();
+        qCDebug(interfaceapp) << "Has sufficient tutorial content (" << contentVersion << ") : " << hasSufficientTutorialContent;
+        qCDebug(interfaceapp) << "Tutorial complete: " << tutorialComplete.get();
+        qCDebug(interfaceapp) << "Should go to tutorial: " << shouldGoToTutorial;
 
-    const QString TUTORIAL_PATH = "/tutorial_begin";
+        // when --url in command line, teleport to location
+        const QString HIFI_URL_COMMAND_LINE_KEY = "--url";
+        int urlIndex = arguments().indexOf(HIFI_URL_COMMAND_LINE_KEY);
+        QString addressLookupString;
+        if (urlIndex != -1) {
+            addressLookupString = arguments().value(urlIndex + 1);
+        }
+
+        const QString TUTORIAL_PATH = "/tutorial_begin";
 
 #ifdef ANDROID
     //DependencyManager::get<AddressManager>()->handleLookupString("hifi://android/0.0,0.0,-200");
     DependencyManager::get<AddressManager>()->handleLookupString("dev-mobile.highfidelity.io/0.0,0.0,-200");
 #else
-    if (shouldGoToTutorial) {
-        if(sandboxIsRunning) {
-            qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
-            DependencyManager::get<AddressManager>()->goToLocalSandbox(TUTORIAL_PATH);
+        if (shouldGoToTutorial) {
+            if (sandboxIsRunning) {
+                qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
+                DependencyManager::get<AddressManager>()->goToLocalSandbox(TUTORIAL_PATH);
+            } else {
+                qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
+                if (firstRun.get()) {
+                    showHelp();
+                }
+                if (addressLookupString.isEmpty()) {
+                    DependencyManager::get<AddressManager>()->goToEntry();
+                } else {
+                    DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
+                }
+            }
         } else {
-            qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
-            if (firstRun.get()) {
+
+            bool isFirstRun = firstRun.get();
+
+            if (isFirstRun) {
                 showHelp();
             }
-            if (addressLookupString.isEmpty()) {
-                DependencyManager::get<AddressManager>()->goToEntry();
-            } else {
-                DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
-            }
-        }
-    } else {
-
-        bool isFirstRun = firstRun.get();
-
-        if (isFirstRun) {
-            showHelp();
-        }
 
         // If this is a first run we short-circuit the address passed in
         if (isFirstRun) {
@@ -1443,8 +1519,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 #endif
     _connectionMonitor.init();
 
-    // After all of the constructor is completed, then set firstRun to false.
-    firstRun.set(false);
+        // After all of the constructor is completed, then set firstRun to false.
+        firstRun.set(false);
+    }
 }
 
 void Application::domainConnectionRefused(const QString& reasonMessage, int reasonCodeInt, const QString& extraInfo) {
@@ -1568,6 +1645,14 @@ void Application::cleanupBeforeQuit() {
     QString webengineRemoteDebugging = QProcessEnvironment::systemEnvironment().value("QTWEBENGINE_REMOTE_DEBUGGING", "false");
     qCDebug(interfaceapp) << "QTWEBENGINE_REMOTE_DEBUGGING =" << webengineRemoteDebugging;
 
+    if (tracing::enabled()) {
+        auto tracer = DependencyManager::get<tracing::Tracer>();
+        qDebug() << "Tracer " << tracer;
+        tracer->stopTracing();
+        auto outputFile = property(hifi::properties::TRACING).toString();
+        tracer->serialize(outputFile);
+    }
+
     // Stop third party processes so that they're not left running in the event of a subsequent shutdown crash.
 #ifdef HAVE_DDE
     DependencyManager::get<DdeFaceTracker>()->setEnabled(false);
@@ -1653,6 +1738,7 @@ void Application::cleanupBeforeQuit() {
 }
 
 Application::~Application() {
+    qDebug() << "[CRASH] DependencyManager::destroy<Preferences>()";
     DependencyManager::destroy<Preferences>();
 
     _entityClipboard->eraseAllOctreeElements();
@@ -1694,6 +1780,10 @@ Application::~Application() {
 
     Leapmotion::destroy();
 
+    if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
+        steamClient->shutdown();
+    }
+
 #if 0
     ConnexionClient::getInstance().destroy();
 #endif
@@ -1725,6 +1815,8 @@ void Application::initializeGL() {
 
     _glWidget->makeCurrent();
     gpu::Context::init<gpu::gl::GLBackend>();
+    qApp->setProperty(hifi::properties::gl::MAKE_PROGRAM_CALLBACK, 
+        QVariant::fromValue((void*)(&gpu::gl::GLBackend::makeProgram)));
     _gpuContext = std::make_shared<gpu::Context>();
     // The gpu context can make child contexts for transfers, so 
     // we need to restore primary rendering context
@@ -1736,10 +1828,18 @@ void Application::initializeGL() {
     // Set up the render engine
     render::CullFunctor cullFunctor = LODManager::shouldRender;
     _renderEngine->addJob<RenderShadowTask>("RenderShadowTask", cullFunctor);
-    _renderEngine->addJob<RenderDeferredTask>("RenderDeferredTask", cullFunctor);
+    static const QString RENDER_FORWARD = "HIFI_RENDER_FORWARD";
+#ifndef ANDROID    
+    if (QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD)) {
+        _renderEngine->addJob<RenderForwardTask>("RenderForwardTask", cullFunctor);
+    } else {
+        _renderEngine->addJob<RenderDeferredTask>("RenderDeferredTask", cullFunctor);
+    }
+#else
+    _renderEngine->addJob<RenderForwardTask>("RenderForwardTask", cullFunctor);    
+#endif
     _renderEngine->load();
     _renderEngine->registerScene(_main3DScene);
-    // TODO: Load a cached config file
 
     // The UI can't be created until the primary OpenGL
     // context is created, because it needs to share
@@ -1839,6 +1939,7 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Assets", new AssetMappingsScriptingInterface());
 
     rootContext->setContextProperty("AvatarList", DependencyManager::get<AvatarManager>().data());
+    rootContext->setContextProperty("Users", DependencyManager::get<UsersScriptingInterface>().data());
 
     rootContext->setContextProperty("Camera", &_myCamera);
 
@@ -1875,8 +1976,11 @@ void Application::initializeUi() {
 
     rootContext->setContextProperty("ApplicationCompositor", &getApplicationCompositor());
 #ifndef ANDROID
-    rootContext->setContextProperty("Steam", new SteamScriptingInterface(engine));
+    if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
+        rootContext->setContextProperty("Steam", new SteamScriptingInterface(engine, steamClient.get()));
+    }
 #endif
+
 
     _glWidget->installEventFilter(offscreenUi.data());
     offscreenUi->setMouseTranslator([=](const QPointF& pt) {
@@ -1930,7 +2034,7 @@ void Application::paintGL() {
     _frameCount++;
 
     auto lastPaintBegin = usecTimestampNow();
-    PROFILE_RANGE_EX(__FUNCTION__, 0xff0000ff, (uint64_t)_frameCount);
+    PROFILE_RANGE_EX(render, __FUNCTION__, 0xff0000ff, (uint64_t)_frameCount);
     PerformanceTimer perfTimer("paintGL");
 
     if (nullptr == _displayPlugin) {
@@ -2107,7 +2211,7 @@ void Application::paintGL() {
     auto finalFramebuffer = framebufferCache->getFramebuffer();
 
     {
-        PROFILE_RANGE(__FUNCTION__ "/mainRender");
+        PROFILE_RANGE(render, "/mainRender");
         PerformanceTimer perfTimer("mainRender");
         renderArgs._boomOffset = boomOffset;
         // Viewport is assigned to the size of the framebuffer
@@ -2296,7 +2400,7 @@ void Application::paintGL() {
     frame->overlay = _applicationOverlay.getOverlayTexture();
     // deliver final scene rendering commands to the display plugin
     {
-        PROFILE_RANGE(__FUNCTION__ "/pluginOutput");
+        PROFILE_RANGE(render, "/pluginOutput");
         PerformanceTimer perfTimer("pluginOutput");
         _frameCounter.increment();
         displayPlugin->submitFrame(frame);
@@ -2352,17 +2456,31 @@ void Application::aboutApp() {
 }
 
 void Application::showHelp() {
-    static const QString QUERY_STRING_XBOX = "xbox";
-    static const QString QUERY_STRING_VIVE = "vive";
+    static const QString HAND_CONTROLLER_NAME_VIVE = "vive";
+    static const QString HAND_CONTROLLER_NAME_OCULUS_TOUCH = "oculus";
 
-    QString queryString = "";
+    static const QString TAB_KEYBOARD_MOUSE = "kbm";
+    static const QString TAB_GAMEPAD = "gamepad";
+    static const QString TAB_HAND_CONTROLLERS = "handControllers";
+
+    QString handControllerName = HAND_CONTROLLER_NAME_VIVE;
+    QString defaultTab = TAB_KEYBOARD_MOUSE;
+
     if (PluginUtils::isViveControllerAvailable()) {
-        queryString = QUERY_STRING_VIVE;
+        defaultTab = TAB_HAND_CONTROLLERS;
+        handControllerName = HAND_CONTROLLER_NAME_VIVE;
+    } else if (PluginUtils::isOculusTouchControllerAvailable()) {
+        defaultTab = TAB_HAND_CONTROLLERS;
+        handControllerName = HAND_CONTROLLER_NAME_OCULUS_TOUCH;
     } else if (PluginUtils::isXboxControllerAvailable()) {
-        queryString = QUERY_STRING_XBOX;
+        defaultTab = TAB_GAMEPAD;
     }
 
-    InfoView::show(INFO_HELP_PATH, false, queryString);
+    QUrlQuery queryString;
+    queryString.addQueryItem("handControllerName", handControllerName);
+    queryString.addQueryItem("defaultTab", defaultTab);
+
+    InfoView::show(INFO_HELP_PATH, false, queryString.toString());
 }
 
 void Application::resizeEvent(QResizeEvent* event) {
@@ -2370,7 +2488,7 @@ void Application::resizeEvent(QResizeEvent* event) {
 }
 
 void Application::resizeGL() {
-    PROFILE_RANGE(__FUNCTION__);
+    PROFILE_RANGE(render, __FUNCTION__);
     if (nullptr == _displayPlugin) {
         return;
     }
@@ -2425,9 +2543,7 @@ bool Application::importSVOFromURL(const QString& urlString) {
 }
 
 bool Application::event(QEvent* event) {
-    if (QEvent::MouseButtonPress == event->type()) {
-        qDebug() << "[CONTROLLER-2] event->type() " << event->type();
-    }
+
     if (!Menu::getInstance()) {
         return false;
     }
@@ -2687,6 +2803,12 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_Asterisk:
                 Menu::getInstance()->triggerOption(MenuOption::DefaultSkybox);
+                break;
+
+            case Qt::Key_N:
+                if (!isOption && !isShifted && isMeta) {
+                    DependencyManager::get<NodeList>()->toggleIgnoreRadius();
+                }
                 break;
 
             case Qt::Key_S:
@@ -3014,7 +3136,7 @@ void Application::maybeToggleMenuVisible(QMouseEvent* event) const {
 }
 
 void Application::mouseMoveEvent(QMouseEvent* event) {
-    PROFILE_RANGE(__FUNCTION__);
+    PROFILE_RANGE(app_input_mouse, __FUNCTION__);
 
     if (_aboutToQuit) {
         return;
@@ -3316,6 +3438,7 @@ bool Application::shouldPaint(float nsecsElapsed) {
 }
 
 void Application::idle(float nsecsElapsed) {
+    PerformanceTimer perfTimer("idle");
 
     // Update the deadlock watchdog
     updateHeartbeat();
@@ -3330,11 +3453,24 @@ void Application::idle(float nsecsElapsed) {
         connect(offscreenUi.data(), &OffscreenUi::showDesktop, this, &Application::showDesktop);
     }
 
-    PROFILE_RANGE(__FUNCTION__);
+    PROFILE_COUNTER(app, "fps", { { "fps", _frameCounter.rate() } });
+    PROFILE_COUNTER(app, "downloads", {
+        { "current", ResourceCache::getLoadingRequests().length() },
+        { "pending", ResourceCache::getPendingRequestCount() }
+    });
+    PROFILE_COUNTER(app, "processing", {
+        { "current", DependencyManager::get<StatTracker>()->getStat("Processing") },
+        { "pending", DependencyManager::get<StatTracker>()->getStat("PendingProcessing") }
+    });
+
+    PROFILE_RANGE(app, __FUNCTION__);
 
 #ifndef ANDROID
-    SteamClient::runCallbacks();
+    if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
+        steamClient->runCallbacks();
+    }
 #endif
+
     float secondsSinceLastUpdate = nsecsElapsed / NSECS_PER_MSEC / MSECS_PER_SECOND;
 
 /*
@@ -3352,8 +3488,6 @@ void Application::idle(float nsecsElapsed) {
     Stats::getInstance()->updateStats();
 
     _simCounter.increment();
-
-    PerformanceTimer perfTimer("idle");
 
     // Normally we check PipelineWarnings, but since idle will often take more than 10ms we only show these idle timing
     // details if we're in ExtraDebugging mode. However, the ::update() and its subcomponents will show their timing
@@ -3656,9 +3790,11 @@ void Application::initDisplay() {
 
 void Application::init() {
     // Make sure Login state is up to date
+    qDebug() << "Application::init";
     DependencyManager::get<DialogsManager>()->toggleLoginDialog();
-
+    qDebug() << "DeferredLightingEffect::init";
     DependencyManager::get<DeferredLightingEffect>()->init();
+    qDebug() << "DeferredLightingEffect::init ok?";
 
     DependencyManager::get<AvatarManager>()->init();
     _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
@@ -3667,13 +3803,16 @@ void Application::init() {
 
     _timerStart.start();
     _lastTimeUpdated.start();
-#ifndef ANDROID    
-    // when +connect_lobby in command line, join steam lobby
-    const QString STEAM_LOBBY_COMMAND_LINE_KEY = "+connect_lobby";
-    int lobbyIndex = arguments().indexOf(STEAM_LOBBY_COMMAND_LINE_KEY);
-    if (lobbyIndex != -1) {
-        QString lobbyId = arguments().value(lobbyIndex + 1);
-        SteamClient::joinLobby(lobbyId);
+
+#ifndef ANDROID 
+    if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
+        // when +connect_lobby in command line, join steam lobby
+        const QString STEAM_LOBBY_COMMAND_LINE_KEY = "+connect_lobby";
+        int lobbyIndex = arguments().indexOf(STEAM_LOBBY_COMMAND_LINE_KEY);
+        if (lobbyIndex != -1) {
+            QString lobbyId = arguments().value(lobbyIndex + 1);
+            steamClient->joinLobby(lobbyId);
+        }
     }
 #endif
 
@@ -4045,16 +4184,25 @@ void Application::updateDialogs(float deltaTime) const {
     }
 }
 
+static bool domainLoadingInProgress = false;
+
 void Application::update(float deltaTime) {
-
-    PROFILE_RANGE_EX(__FUNCTION__, 0xffff0000, (uint64_t)_frameCount + 1);
-
+    qDebug() << "CRASH 1 " << DependencyManager::get<tracing::Tracer>();
+    PROFILE_RANGE_EX(app, __FUNCTION__, 0xffff0000, (uint64_t)_frameCount + 1);
+    qDebug() << "CRASH 2";
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::update()");
 
     updateLOD();
 
     if (!_physicsEnabled) {
+        if (!domainLoadingInProgress) {
+            qDebug() << "CRASH 2";
+            PROFILE_ASYNC_BEGIN(app, "Scene Loading", "");
+            qDebug() << "CRASH 3";
+            domainLoadingInProgress = true;
+        }
+
         // we haven't yet enabled physics.  we wait until we think we have all the collision information
         // for nearby entities before starting bullet up.
         quint64 now = usecTimestampNow();
@@ -4084,11 +4232,18 @@ void Application::update(float deltaTime) {
                 }
             }
         }
+    } else if (domainLoadingInProgress) {
+        domainLoadingInProgress = false;
+        qDebug() << "CRASH 5";
+        PROFILE_ASYNC_END(app, "Scene Loading", "");
+        qDebug() << "CRASH 6";
     }
 
     {
         PerformanceTimer perfTimer("devices");
+        qDebug() << "CRASH 7";
         DeviceTracker::updateAll();
+        qDebug() << "CRASH 8";
 
         FaceTracker* tracker = getSelectedFaceTracker();
         if (tracker && Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking) != tracker->isMuted()) {
@@ -4096,6 +4251,7 @@ void Application::update(float deltaTime) {
         }
 
         tracker = getActiveFaceTracker();
+        qDebug() << "CRASH 9";
         if (tracker && !tracker->isMuted()) {
             tracker->update(deltaTime);
 
@@ -4120,6 +4276,7 @@ void Application::update(float deltaTime) {
         }
 
     }
+    qDebug() << "CRASH 10";
 
     auto myAvatar = getMyAvatar();
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
@@ -4140,6 +4297,7 @@ void Application::update(float deltaTime) {
     }
 
     userInputMapper->update(deltaTime);
+    qDebug() << "CRASH 11";
 
     if (keyboardMousePlugin && keyboardMousePlugin->isActive()) {
         keyboardMousePlugin->pluginUpdate(deltaTime, calibrationData);
@@ -4177,12 +4335,16 @@ void Application::update(float deltaTime) {
     QSharedPointer<AvatarManager> avatarManager = DependencyManager::get<AvatarManager>();
 
     if (_physicsEnabled) {
-        PROFILE_RANGE_EX("Physics", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
+        qDebug() << "CRASH 12";
+        PROFILE_RANGE_EX(simulation_physics, "Physics", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
+        qDebug() << "CRASH 13";
 
         PerformanceTimer perfTimer("physics");
 
         {
-            PROFILE_RANGE_EX("UpdateStats", 0xffffff00, (uint64_t)getActiveDisplayPlugin()->presentCount());
+        qDebug() << "CRASH 14";
+            PROFILE_RANGE_EX(simulation_physics, "UpdateStats", 0xffffff00, (uint64_t)getActiveDisplayPlugin()->presentCount());
+        qDebug() << "CRASH 15";
 
             PerformanceTimer perfTimer("updateStates)");
             static VectorOfMotionStates motionStates;
@@ -4216,14 +4378,16 @@ void Application::update(float deltaTime) {
             });
         }
         {
-            PROFILE_RANGE_EX("StepSimulation", 0xffff8000, (uint64_t)getActiveDisplayPlugin()->presentCount());
+        qDebug() << "CRASH 16";
+            PROFILE_RANGE_EX(simulation_physics, "StepSimulation", 0xffff8000, (uint64_t)getActiveDisplayPlugin()->presentCount());
+        qDebug() << "CRASH 17";
             PerformanceTimer perfTimer("stepSimulation");
             getEntities()->getTree()->withWriteLock([&] {
                 _physicsEngine->stepSimulation();
             });
         }
         {
-            PROFILE_RANGE_EX("HarvestChanges", 0xffffff00, (uint64_t)getActiveDisplayPlugin()->presentCount());
+            PROFILE_RANGE_EX(simulation_physics, "HarvestChanges", 0xffffff00, (uint64_t)getActiveDisplayPlugin()->presentCount());
             PerformanceTimer perfTimer("harvestChanges");
             if (_physicsEngine->hasOutgoingChanges()) {
                 getEntities()->getTree()->withWriteLock([&] {
@@ -4265,20 +4429,20 @@ void Application::update(float deltaTime) {
         _avatarSimCounter.increment();
 
         {
-            PROFILE_RANGE_EX("OtherAvatars", 0xffff00ff, (uint64_t)getActiveDisplayPlugin()->presentCount());
+            PROFILE_RANGE_EX(simulation, "OtherAvatars", 0xffff00ff, (uint64_t)getActiveDisplayPlugin()->presentCount());
             avatarManager->updateOtherAvatars(deltaTime);
         }
 
         qApp->updateMyAvatarLookAtPosition();
 
         {
-            PROFILE_RANGE_EX("MyAvatar", 0xffff00ff, (uint64_t)getActiveDisplayPlugin()->presentCount());
+            PROFILE_RANGE_EX(simulation, "MyAvatar", 0xffff00ff, (uint64_t)getActiveDisplayPlugin()->presentCount());
             avatarManager->updateMyAvatar(deltaTime);
         }
     }
 
     {
-        PROFILE_RANGE_EX("Overlays", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
+        PROFILE_RANGE_EX(app, "Overlays", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
         PerformanceTimer perfTimer("overlays");
         _overlays.update(deltaTime);
     }
@@ -4298,7 +4462,7 @@ void Application::update(float deltaTime) {
 
     // Update my voxel servers with my current voxel query...
     {
-        PROFILE_RANGE_EX("QueryOctree", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
+        PROFILE_RANGE_EX(app, "QueryOctree", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
         QMutexLocker viewLocker(&_viewMutex);
         PerformanceTimer perfTimer("queryOctree");
         quint64 sinceLastQuery = now - _lastQueriedTime;
@@ -4338,7 +4502,7 @@ void Application::update(float deltaTime) {
     avatarManager->postUpdate(deltaTime);
 
     {
-        PROFILE_RANGE_EX("PreRenderLambdas", 0xffff0000, (uint64_t)0);
+        PROFILE_RANGE_EX(app, "PreRenderLambdas", 0xffff0000, (uint64_t)0);
 
         std::unique_lock<std::mutex> guard(_postUpdateLambdasLock);
         for (auto& iter : _postUpdateLambdas) {
@@ -4615,8 +4779,6 @@ QRect Application::getDesirableApplicationGeometry() const {
 //                 or the "myCamera".
 //
 void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
-    PerformanceTimer perfTimer("loadViewFrustum");
-    PROFILE_RANGE(__FUNCTION__);
     // We will use these below, from either the camera or head vectors calculated above
     viewFrustum.setProjection(camera.getProjection());
 
@@ -4792,7 +4954,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     myAvatar->preDisplaySide(renderArgs);
 
     activeRenderingThread = QThread::currentThread();
-    PROFILE_RANGE(__FUNCTION__);
+    PROFILE_RANGE(render, __FUNCTION__);
     PerformanceTimer perfTimer("display");
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displaySide()");
 
@@ -4939,7 +5101,7 @@ void Application::resetSensors(bool andReload) {
     DependencyManager::get<EyeTracker>()->reset();
     getActiveDisplayPlugin()->resetSensors();
     _overlayConductor.centerUI();
-    getMyAvatar()->reset(andReload);
+    getMyAvatar()->reset(true, andReload);
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "reset", Qt::QueuedConnection);
 }
 
@@ -5244,6 +5406,11 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     // AvatarManager has some custom types
     AvatarManager::registerMetaTypes(scriptEngine);
 
+    if (property(hifi::properties::TEST).isValid()) {
+        scriptEngine->registerGlobalObject("Test", TestScriptingInterface::getInstance());
+    }
+
+    scriptEngine->registerGlobalObject("Overlays", &_overlays);
     scriptEngine->registerGlobalObject("Rates", new RatesScriptingInterface(this));
 
     // hook our avatar and avatar hash map object into this script engine
@@ -5324,7 +5491,9 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Users", DependencyManager::get<UsersScriptingInterface>().data());
 
 #ifndef ANDROID
-    scriptEngine->registerGlobalObject("Steam", new SteamScriptingInterface(scriptEngine));
+    if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
+        scriptEngine->registerGlobalObject("Steam", new SteamScriptingInterface(scriptEngine, steamClient.get()));
+    }
 #endif
     auto scriptingInterface = DependencyManager::get<controller::ScriptingInterface>();
     scriptEngine->registerGlobalObject("Controller", scriptingInterface.data());
@@ -5648,10 +5817,10 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
         }
     });
 }
-void Application::shareSnapshot(const QString& path) {
-    postLambdaEvent([path] {
+void Application::shareSnapshot(const QString& path, const QUrl& href) {
+    postLambdaEvent([path, href] {
         // not much to do here, everything is done in snapshot code...
-        Snapshot::uploadSnapshot(path);
+        Snapshot::uploadSnapshot(path, href);
     });
 }
 
@@ -5925,6 +6094,7 @@ void Application::updateDisplayMode() {
             QObject::connect(displayPlugin.get(), &DisplayPlugin::recommendedFramebufferSizeChanged, [this](const QSize & size) {
                 resizeGL();
             });
+            QObject::connect(displayPlugin.get(), &DisplayPlugin::resetSensorsRequested, this, &Application::requestReset);
             first = false;
         }
 

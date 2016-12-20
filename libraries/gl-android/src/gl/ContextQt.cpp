@@ -67,7 +67,6 @@ const QSurfaceFormat& getDefaultOpenGLSurfaceFormat();
 
 
 void Context::create() {
-    qDebug() << "Context::create";
     _context = new QOpenGLContext();
     qDebug() << "Context::create _context " << _context;
     if (PRIMARY) {

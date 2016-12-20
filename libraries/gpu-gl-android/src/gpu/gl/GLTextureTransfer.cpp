@@ -51,6 +51,7 @@ GLTextureTransferHelper::~GLTextureTransferHelper() {
 
 void GLTextureTransferHelper::transferTexture(const gpu::TexturePointer& texturePointer) {
     GLTexture* object = Backend::getGPUObject<GLTexture>(*texturePointer);
+
     Backend::incrementTextureGPUTransferCount();
     object->setSyncState(GLSyncState::Pending);
     Lock lock(_mutex);
@@ -154,6 +155,7 @@ bool GLTextureTransferHelper::process() {
     auto lastReportInterval = now - lastReport;
     if (lastReportInterval > USECS_PER_SECOND * 4) {
         lastReport = now;
+        qDebug() << "Texture list " << _transferringTextures.size();
     }
 
     size_t transferCount = 0;

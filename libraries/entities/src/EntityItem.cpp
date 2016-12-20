@@ -148,7 +148,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
 }
 
 OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-                                            EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData) const {
+                                            EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData) const {
 
     // ALL this fits...
     //    object ID [16 bytes]
@@ -1165,6 +1165,7 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
     properties._id = getID();
     properties._idSet = true;
     properties._created = _created;
+    properties._lastEdited = _lastEdited;
     properties.setClientOnly(_clientOnly);
     properties.setOwningAvatarID(_owningAvatarID);
 
@@ -1322,6 +1323,10 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
         somethingChanged = true;
     }
 
+    // Now check the sub classes 
+    somethingChanged |= setSubClassProperties(properties);
+
+    // Finally notify if change detected
     if (somethingChanged) {
         uint64_t now = usecTimestampNow();
         #ifdef WANT_DEBUG

@@ -57,7 +57,6 @@
 
 using namespace std;
 
-const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
 const float DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES = 30.0f;
 
 const float MAX_WALKING_SPEED = 2.6f; // human walking speed
@@ -230,6 +229,10 @@ void MyAvatar::simulateAttachments(float deltaTime) {
 QByteArray MyAvatar::toByteArray(bool cullSmallChanges, bool sendAll) {
     CameraMode mode = qApp->getCamera()->getMode();
     _globalPosition = getPosition();
+    _globalBoundingBoxCorner.x = _characterController.getCapsuleRadius();
+    _globalBoundingBoxCorner.y = _characterController.getCapsuleHalfHeight();
+    _globalBoundingBoxCorner.z = _characterController.getCapsuleRadius();
+    _globalBoundingBoxCorner += _characterController.getCapsuleLocalOffset();
     if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_INDEPENDENT) {
         // fake the avatar position that is sent up to the AvatarMixer
         glm::vec3 oldPosition = getPosition();
@@ -360,9 +363,17 @@ void MyAvatar::update(float deltaTime) {
     updateFromTrackers(deltaTime);
 
     //  Get audio loudness data from audio input device
+    // Also get the AudioClient so we can update the avatar bounding box data
+    // on the AudioClient side.
     auto audio = DependencyManager::get<AudioClient>();
     head->setAudioLoudness(audio->getLastInputLoudness());
     head->setAudioAverageLoudness(audio->getAudioAverageInputLoudness());
+
+    glm::vec3 halfBoundingBoxDimensions(_characterController.getCapsuleRadius(), _characterController.getCapsuleHalfHeight(), _characterController.getCapsuleRadius());
+    halfBoundingBoxDimensions += _characterController.getCapsuleLocalOffset();
+    QMetaObject::invokeMethod(audio.data(), "setAvatarBoundingBoxParameters",
+        Q_ARG(glm::vec3, (getPosition() - halfBoundingBoxDimensions)),
+        Q_ARG(glm::vec3, (halfBoundingBoxDimensions*2.0f)));
 
     if (_avatarEntityDataLocallyEdited) {
         sendIdentityPacket();
@@ -2333,13 +2344,48 @@ bool MyAvatar::hasDriveInput() const {
     return fabsf(_driveKeys[TRANSLATE_X]) > 0.0f || fabsf(_driveKeys[TRANSLATE_Y]) > 0.0f || fabsf(_driveKeys[TRANSLATE_Z]) > 0.0f;
 }
 
+// The resulting matrix is used to render the hand controllers, even if the camera is decoupled from the avatar.
+// Specificly, if we are rendering using a third person camera.  We would like to render the hand controllers in front of the camera,
+// not in front of the avatar.
+glm::mat4 MyAvatar::computeCameraRelativeHandControllerMatrix(const glm::mat4& controllerSensorMatrix) const {
+
+    // Fetch the current camera transform.
+    glm::mat4 cameraWorldMatrix = qApp->getCamera()->getTransform();
+    if (qApp->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
+        cameraWorldMatrix *= createMatFromScaleQuatAndPos(vec3(-1.0f, 1.0f, 1.0f), glm::quat(), glm::vec3());
+    }
+
+    // compute a NEW sensorToWorldMatrix for the camera.  The equation is cameraWorldMatrix = cameraSensorToWorldMatrix * _hmdSensorMatrix.
+    // here we solve for the unknown cameraSensorToWorldMatrix.
+    glm::mat4 cameraSensorToWorldMatrix = cameraWorldMatrix * glm::inverse(_hmdSensorMatrix);
+
+    // Using the new cameraSensorToWorldMatrix, compute where the controller is in world space.
+    glm::mat4 controllerWorldMatrix = cameraSensorToWorldMatrix * controllerSensorMatrix;
+
+    // move it into avatar space
+    glm::mat4 avatarMatrix = createMatFromQuatAndPos(getOrientation(), getPosition());
+    return glm::inverse(avatarMatrix) * controllerWorldMatrix;
+}
+
 glm::quat MyAvatar::getAbsoluteJointRotationInObjectFrame(int index) const {
-    switch(index) {
+    switch (index) {
         case CONTROLLER_LEFTHAND_INDEX: {
             return getLeftHandControllerPoseInAvatarFrame().getRotation();
         }
         case CONTROLLER_RIGHTHAND_INDEX: {
             return getRightHandControllerPoseInAvatarFrame().getRotation();
+        }
+        case CAMERA_RELATIVE_CONTROLLER_LEFTHAND_INDEX: {
+            auto pose = _leftHandControllerPoseInSensorFrameCache.get();
+            glm::mat4 controllerSensorMatrix = createMatFromQuatAndPos(pose.rotation, pose.translation);
+            glm::mat4 result = computeCameraRelativeHandControllerMatrix(controllerSensorMatrix);
+            return glmExtractRotation(result);
+        }
+        case CAMERA_RELATIVE_CONTROLLER_RIGHTHAND_INDEX: {
+            auto pose = _rightHandControllerPoseInSensorFrameCache.get();
+            glm::mat4 controllerSensorMatrix = createMatFromQuatAndPos(pose.rotation, pose.translation);
+            glm::mat4 result = computeCameraRelativeHandControllerMatrix(controllerSensorMatrix);
+            return glmExtractRotation(result);
         }
         default: {
             return Avatar::getAbsoluteJointRotationInObjectFrame(index);
@@ -2348,12 +2394,24 @@ glm::quat MyAvatar::getAbsoluteJointRotationInObjectFrame(int index) const {
 }
 
 glm::vec3 MyAvatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
-    switch(index) {
+    switch (index) {
         case CONTROLLER_LEFTHAND_INDEX: {
             return getLeftHandControllerPoseInAvatarFrame().getTranslation();
         }
         case CONTROLLER_RIGHTHAND_INDEX: {
             return getRightHandControllerPoseInAvatarFrame().getTranslation();
+        }
+        case CAMERA_RELATIVE_CONTROLLER_LEFTHAND_INDEX: {
+            auto pose = _leftHandControllerPoseInSensorFrameCache.get();
+            glm::mat4 controllerSensorMatrix = createMatFromQuatAndPos(pose.rotation, pose.translation);
+            glm::mat4 result = computeCameraRelativeHandControllerMatrix(controllerSensorMatrix);
+            return extractTranslation(result);
+        }
+        case CAMERA_RELATIVE_CONTROLLER_RIGHTHAND_INDEX: {
+            auto pose = _rightHandControllerPoseInSensorFrameCache.get();
+            glm::mat4 controllerSensorMatrix = createMatFromQuatAndPos(pose.rotation, pose.translation);
+            glm::mat4 result = computeCameraRelativeHandControllerMatrix(controllerSensorMatrix);
+            return extractTranslation(result);
         }
         default: {
             return Avatar::getAbsoluteJointTranslationInObjectFrame(index);

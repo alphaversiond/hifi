@@ -71,6 +71,9 @@ void GLBackend::syncTransformStateCache() {
     Mat4 modelView;
     auto modelViewInv = glm::inverse(modelView);
     _transform._view.evalFromRawMatrix(modelViewInv);
+
+    glDisableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO);
+    _transform._enabledDrawcallInfoBuffer = false;
 }
 
 void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const StereoState& stereo) {
@@ -101,13 +104,21 @@ void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const Stereo
     if (_invalidView || _invalidProj || _invalidViewport) {
         size_t offset = _cameraUboSize * _cameras.size();
         _cameraOffsets.push_back(TransformStageState::Pair(commandIndex, offset));
-        if (stereo._enable) {
-            _cameras.push_back((_camera.getEyeCamera(0, stereo, _view)));
-            _cameras.push_back((_camera.getEyeCamera(1, stereo, _view)));
-        } else {
-            _cameras.push_back((_camera.recomputeDerived(_view)));
-        }
 
+        if (stereo._enable) {
+#ifdef GPU_STEREO_CAMERA_BUFFER
+        _cameras.push_back(CameraBufferElement(_camera.getEyeCamera(0, stereo, _view), _camera.getEyeCamera(1, stereo, _view)));
+#else
+        _cameras.push_back((_camera.getEyeCamera(0, stereo, _view)));
+        _cameras.push_back((_camera.getEyeCamera(1, stereo, _view)));
+#endif
+        } else {
+#ifdef GPU_STEREO_CAMERA_BUFFER
+            _cameras.push_back(CameraBufferElement(_camera.recomputeDerived(_view)));
+#else
+            _cameras.push_back((_camera.recomputeDerived(_view)));
+#endif
+        }
     }
 
     // Flags are clean
@@ -123,9 +134,13 @@ void GLBackend::TransformStageState::update(size_t commandIndex, const StereoSta
     }
 
     if (offset != INVALID_OFFSET) {
+#ifdef GPU_STEREO_CAMERA_BUFFER
+        bindCurrentCamera(0);
+#else 
         if (!stereo._enable) {
             bindCurrentCamera(0);
         }
+#endif
     }
     (void)CHECK_GL_ERROR();
 }

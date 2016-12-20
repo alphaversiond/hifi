@@ -16,6 +16,7 @@
 #include <fstream>
 
 Q_LOGGING_CATEGORY(gpugllogging, "hifi.gpu.gl")
+Q_LOGGING_CATEGORY(trace_render_gpu_gl, "trace.render.gpu.gl")
 
 namespace gpu { namespace gl {
 
@@ -519,7 +520,6 @@ int makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,
         GLint size = 0;
         GLenum type = 0;
         glGetActiveUniform(glprogram, i, NAME_LENGTH, &length, &size, &type, name);
-
         GLint location = glGetUniformLocation(glprogram, name);
         const GLint INVALID_UNIFORM_LOCATION = -1;
 
@@ -583,7 +583,6 @@ int makeUniformBlockSlots(GLuint glprogram, const Shader::BindingSet& slotBindin
 
     GLint maxNumUniformBufferSlots = 0;
     glGetIntegerv(GL_MAX_UNIFORM_BUFFER_BINDINGS, &maxNumUniformBufferSlots);
-
     std::vector<GLint> uniformBufferSlotMap(maxNumUniformBufferSlots, -1);
 
     struct UniformBlockInfo {
@@ -752,7 +751,7 @@ void makeProgramBindings(ShaderObject& shaderObject) {
     GLint linked = 0;
     glGetProgramiv(glprogram, GL_LINK_STATUS, &linked);
     if (!linked) {
-        qCDebug(gpugllogging) << "GLShader::makeBindings - failed to link after assigning slotBindings?";
+        qCWarning(gpugllogging) << "GLShader::makeBindings - failed to link after assigning slotBindings?";
     }
 
     // now assign the ubo binding, then DON't relink!

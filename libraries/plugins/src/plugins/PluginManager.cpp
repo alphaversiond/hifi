@@ -188,6 +188,23 @@ InputPluginList getInputPlugins() {
 void saveInputPluginSettings(const InputPluginList& plugins) {
 }
 #endif
+
+const SteamClientPluginPointer PluginManager::getSteamClientPlugin() {
+    static SteamClientPluginPointer steamClientPlugin;
+    static std::once_flag once;
+    std::call_once(once, [&] {
+        // Now grab the dynamic plugins
+        for (auto loader : getLoadedPlugins()) {
+            SteamClientProvider* steamClientProvider = qobject_cast<SteamClientProvider*>(loader->instance());
+            if (steamClientProvider) {
+                steamClientPlugin = steamClientProvider->getSteamClientPlugin();
+                break;
+            }
+        }
+    });
+    return steamClientPlugin;
+}
+
 static DisplayPluginList displayPlugins;
 
 const DisplayPluginList& PluginManager::getDisplayPlugins() {
@@ -216,7 +233,6 @@ const DisplayPluginList& PluginManager::getDisplayPlugins() {
             }
         }
         for (auto plugin : displayPlugins) {
-            qDebug() << "getDisplayPlugins plugin.get()" << plugin.get();
             connect(plugin.get(), &Plugin::deviceConnected, this, deviceAddedCallback, Qt::QueuedConnection);
             connect(plugin.get(), &Plugin::subdeviceConnected, this, subdeviceAddedCallback, Qt::QueuedConnection);
             plugin->setContainer(_container);

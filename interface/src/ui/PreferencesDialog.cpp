@@ -68,18 +68,6 @@ void setupPreferences() {
         auto setter = [=](bool value) { myAvatar->setClearOverlayWhenMoving(value); };
         preferences->addPreference(new CheckPreference(AVATAR_BASICS, "Clear overlays when moving", getter, setter));
     }
-    {
-        auto getter = [=]()->float { return nodeList->getIgnoreRadius(); };
-        auto setter = [=](float value) {
-            nodeList->ignoreNodesInRadius(value, nodeList->getIgnoreRadiusEnabled());
-        };
-        auto preference = new SpinnerPreference(AVATAR_BASICS, "Personal space bubble radius (default is 1m)", getter, setter);
-        preference->setMin(0.01f);
-        preference->setMax(99.9f);
-        preference->setDecimals(2);
-        preference->setStep(0.25);
-        preferences->addPreference(preference);
-    }
 
     // UI
     {
@@ -105,8 +93,8 @@ void setupPreferences() {
         auto getter = []()->float { return SnapshotAnimated::snapshotAnimatedDuration.get(); };
         auto setter = [](float value) { SnapshotAnimated::snapshotAnimatedDuration.set(value); };
         auto preference = new SpinnerPreference(SNAPSHOTS, "Animated Snapshot Duration", getter, setter);
-        preference->setMin(3);
-        preference->setMax(10);
+        preference->setMin(1);
+        preference->setMax(5);
         preference->setStep(1);
         preferences->addPreference(preference);
     }
@@ -304,23 +292,24 @@ void setupPreferences() {
     {
         static const QString RENDER("Graphics");
         auto renderConfig = qApp->getRenderEngine()->getConfiguration();
+        if (renderConfig) {
+            auto ambientOcclusionConfig = renderConfig->getConfig<AmbientOcclusionEffect>();
+            if (ambientOcclusionConfig) {
+                auto getter = [ambientOcclusionConfig]()->QString { return ambientOcclusionConfig->getPreset(); };
+                auto setter = [ambientOcclusionConfig](QString preset) { ambientOcclusionConfig->setPreset(preset); };
+                auto preference = new ComboBoxPreference(RENDER, "Ambient occlusion", getter, setter);
+                preference->setItems(ambientOcclusionConfig->getPresetList());
+                preferences->addPreference(preference);
+            }
 
-        auto ambientOcclusionConfig = renderConfig->getConfig<AmbientOcclusionEffect>();
-        {
-            auto getter = [ambientOcclusionConfig]()->QString { return ambientOcclusionConfig->getPreset(); };
-            auto setter = [ambientOcclusionConfig](QString preset) { ambientOcclusionConfig->setPreset(preset); };
-            auto preference = new ComboBoxPreference(RENDER, "Ambient occlusion", getter, setter);
-            preference->setItems(ambientOcclusionConfig->getPresetList());
-            preferences->addPreference(preference);
-        }
-
-        auto shadowConfig = renderConfig->getConfig<RenderShadowTask>();
-        {
-            auto getter = [shadowConfig]()->QString { return shadowConfig->getPreset(); };
-            auto setter = [shadowConfig](QString preset) { shadowConfig->setPreset(preset); };
-            auto preference = new ComboBoxPreference(RENDER, "Shadows", getter, setter);
-            preference->setItems(shadowConfig->getPresetList());
-            preferences->addPreference(preference);
+            auto shadowConfig = renderConfig->getConfig<RenderShadowTask>();
+            if (shadowConfig) {
+                auto getter = [shadowConfig]()->QString { return shadowConfig->getPreset(); };
+                auto setter = [shadowConfig](QString preset) { shadowConfig->setPreset(preset); };
+                auto preference = new ComboBoxPreference(RENDER, "Shadows", getter, setter);
+                preference->setItems(shadowConfig->getPresetList());
+                preferences->addPreference(preference);
+            }
         }
     }
     {

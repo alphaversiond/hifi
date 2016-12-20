@@ -14,6 +14,8 @@
 #include <QPainter>
 #include <QDebug>
 
+#include <Profile.h>
+
 #include "ModelLogging.h"
 
 using namespace model;
@@ -146,7 +148,7 @@ const QImage TextureUsage::process2DImageColor(const QImage& srcImage, bool& val
 
 void TextureUsage::defineColorTexelFormats(gpu::Element& formatGPU, gpu::Element& formatMip, 
 const QImage& image, bool isLinear, bool doCompress) {
-qDebug() << "TextureUsage::defineColorTexelFormats formatGPU semantic " << formatGPU.getSemantic() << " dimension " << formatGPU.getDimension() << "  " << formatGPU.getType();
+
 #ifdef COMPRESS_TEXTURES
 #else
     doCompress = false;
@@ -157,57 +159,39 @@ qDebug() << "TextureUsage::defineColorTexelFormats formatGPU semantic " << forma
         gpu::Semantic mipSemantic;
         if (isLinear) {
             mipSemantic = gpu::BGRA;
-            qDebug() << "TextureUsage::defineColorTexelFormats mipSemantic <- BGRA";
             if (doCompress) {
-                qDebug() << "TextureUsage::defineColorTexelFormats gpuSemantic <- COMPRESSED_RGBA";
                 gpuSemantic = gpu::COMPRESSED_RGBA;
             } else {
-                qDebug() << "TextureUsage::defineColorTexelFormats gpuSemantic <- RGBA";
                 gpuSemantic = gpu::RGBA;
             }
         } else {
             mipSemantic = gpu::SBGRA;
-            qDebug() << "TextureUsage::defineColorTexelFormats mipSemantic <- SBGRA";
             if (doCompress) {
                 gpuSemantic = gpu::COMPRESSED_SRGBA;
-                qDebug() << "TextureUsage::defineColorTexelFormats gpuSemantic <- COMPRESSED_SRGBA";
             } else {
                 gpuSemantic = gpu::SRGBA;
-                qDebug() << "TextureUsage::defineColorTexelFormats gpuSemantic <- SRGBA";
             }
         }
-        qDebug() << "TextureUsage::defineColorTexelFormats formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, semantic=" << gpuSemantic << ");";
-        qDebug() << "TextureUsage::defineColorTexelFormats formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, semantic=" << mipSemantic << ");";
-
         formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, gpuSemantic);
         formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, mipSemantic);
-
     } else {
         gpu::Semantic gpuSemantic;
         gpu::Semantic mipSemantic;
         if (isLinear) {
-            qDebug() << "TextureUsage::defineColorTexelFormats mipSemantic = gpu::RGB;";
             mipSemantic = gpu::RGB;
             if (doCompress) {
-                qDebug() << "TextureUsage::defineColorTexelFormats gpuSemantic = gpu::COMPRESSED_RGB;";
                 gpuSemantic = gpu::COMPRESSED_RGB;
             } else {
-                qDebug() << "TextureUsage::defineColorTexelFormats gpuSemantic = gpu::RGB;";
                 gpuSemantic = gpu::RGB;
             }
         } else {
             mipSemantic = gpu::SRGB;
-            qDebug() << "TextureUsage::defineColorTexelFormats mipSemantic = gpu::SRGB;";
             if (doCompress) {
                 gpuSemantic = gpu::COMPRESSED_SRGB;
-                qDebug() << "TextureUsage::defineColorTexelFormats gpuSemantic = gpu::COMPRESSED_SRGB;";
             } else {
                 gpuSemantic = gpu::SRGB;
-                qDebug() << "TextureUsage::defineColorTexelFormats gpuSemantic = gpu::gpu::SRGB;";
             }
         }
-        qDebug() << "TextureUsage::defineColorTexelFormats formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, gpuSemantic);";
-        qDebug() << "TextureUsage::defineColorTexelFormats formatMip = gpu::Element(gpu::VEC3, gpu::NUINT8, mipSemantic);";
         formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, gpuSemantic);
         formatMip = gpu::Element(gpu::VEC3, gpu::NUINT8, mipSemantic);
     }
@@ -249,12 +233,10 @@ gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImag
     gpu::Texture* theTexture = nullptr;
 
     if ((image.width() > 0) && (image.height() > 0)) {
-        qDebug() << "process2DTextureColorFromImage " << srcImageName.c_str() << "(" << image.width() << "," << image.height() << ")";
         gpu::Element formatGPU;
         gpu::Element formatMip;
         defineColorTexelFormats(formatGPU, formatMip, image, isLinear, doCompress);
-        qDebug() << "process2DTextureColorFromImage  gpu::Texture::create2D semantic:" << formatGPU.getSemantic() << " dimension:" << 
-        formatGPU.getDimension() << " type: " << formatGPU.getType();
+
         theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
         theTexture->setSource(srcImageName);
         auto usage = gpu::Texture::Usage::Builder().withColor();
@@ -277,7 +259,6 @@ gpu::Texture* TextureUsage::process2DTextureColorFromImage(const QImage& srcImag
 }
 
 gpu::Texture* TextureUsage::create2DTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
-    qDebug() << "create2DTextureFromImage" << srcImageName.c_str();
     return process2DTextureColorFromImage(srcImage, srcImageName, false, false, true);
 }
 
@@ -765,7 +746,8 @@ const CubeLayout CubeLayout::CUBEMAP_LAYOUTS[] = {
 const int CubeLayout::NUM_CUBEMAP_LAYOUTS = sizeof(CubeLayout::CUBEMAP_LAYOUTS) / sizeof(CubeLayout);
 
 gpu::Texture* TextureUsage::processCubeTextureColorFromImage(const QImage& srcImage, const std::string& srcImageName, bool isLinear, bool doCompress, bool generateMips, bool generateIrradiance) {
-    qDebug() << "TextureUsage::processCubeTextureColorFromImage start " << srcImage.width() << "x" << srcImage.height();
+    PROFILE_RANGE(resource_parse, "processCubeTextureColorFromImage");
+
     gpu::Texture* theTexture = nullptr;
     if ((srcImage.width() > 0) && (srcImage.height() > 0)) {
         QImage image = processSourceImage(srcImage, true);
@@ -823,11 +805,13 @@ gpu::Texture* TextureUsage::processCubeTextureColorFromImage(const QImage& srcIm
             }
 
             if (generateMips) {
+                PROFILE_RANGE(resource_parse, "generateMips");
                 theTexture->autoGenerateMips(-1);
             }
 
             // Generate irradiance while we are at it
             if (generateIrradiance) {
+                PROFILE_RANGE(resource_parse, "generateIrradiance");
                 theTexture->generateIrradiance();
             }
         }

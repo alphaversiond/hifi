@@ -10,16 +10,26 @@
 //
 #include "GLBackend.h"
 #include "GLShared.h"
+#include "GLInputFormat.h"
 
 using namespace gpu;
 using namespace gpu::gl;
 
 void GLBackend::do_setInputFormat(const Batch& batch, size_t paramOffset) {
     Stream::FormatPointer format = batch._streamFormats.get(batch._params[paramOffset]._uint);
-
     if (format != _input._format) {
         _input._format = format;
-        _input._invalidFormat = true;
+        if (format) {
+            auto inputFormat = GLInputFormat::sync((*format));
+            assert(inputFormat);
+            if (_input._formatKey != inputFormat->key) {
+                _input._formatKey = inputFormat->key;
+                _input._invalidFormat = true;
+            }
+        } else {
+            _input._formatKey.clear();
+            _input._invalidFormat = true;
+        }
     }
 }
 
@@ -97,16 +107,9 @@ void GLBackend::resetInputStage() {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     (void) CHECK_GL_ERROR();
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-
-    for (uint32_t i = 0; i < _input._attributeActivation.size(); i++) {
-        glDisableVertexAttribArray(i);
-        glVertexAttribPointer(i, 4, GL_FLOAT, GL_FALSE, 0, 0);
-    }
-
     // Reset vertex buffer and format
     _input._format.reset();
+    _input._formatKey.clear();
     _input._invalidFormat = false;
     _input._attributeActivation.reset();
 
@@ -118,6 +121,7 @@ void GLBackend::resetInputStage() {
     }
     _input._invalidBuffers.reset();
 
+    // THe vertex array binding MUST be reset in the specific Backend versions as they use different techniques
 }
 
 void GLBackend::do_setIndexBuffer(const Batch& batch, size_t paramOffset) {

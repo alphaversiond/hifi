@@ -49,7 +49,13 @@ void GLBackend::do_setPipeline(const Batch& batch, size_t paramOffset) {
 
         // check the program cache
         // pick the program version 
+        // check the program cache
+        // pick the program version 
+#ifdef GPU_STEREO_CAMERA_BUFFER
+        GLuint glprogram = pipelineObject->_program->getProgram((GLShader::Version) isStereo());
+#else
         GLuint glprogram = pipelineObject->_program->getProgram();
+#endif
 
         if (_pipeline._program != glprogram) {
             _pipeline._program = glprogram;
@@ -193,6 +199,11 @@ void GLBackend::resetResourceStage() {
 
 void GLBackend::do_setResourceTexture(const Batch& batch, size_t paramOffset) {
     GLuint slot = batch._params[paramOffset + 1]._uint;
+    if (slot >= (GLuint) MAX_NUM_RESOURCE_TEXTURES) {
+        // "GLBackend::do_setResourceTexture: Trying to set a resource Texture at slot #" + slot + " which doesn't exist. MaxNumResourceTextures = " + getMaxNumResourceTextures());
+        return;
+    }
+
     TexturePointer resourceTexture = batch._textures.get(batch._params[paramOffset + 0]._uint);
 
     if (!resourceTexture) {
@@ -209,7 +220,6 @@ void GLBackend::do_setResourceTexture(const Batch& batch, size_t paramOffset) {
 
     // Always make sure the GLObject is in sync
     GLTexture* object = syncGPUObject(resourceTexture);
-
     if (object) {
         GLuint to = object->_texture;
         GLuint target = object->_target;

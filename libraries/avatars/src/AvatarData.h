@@ -133,6 +133,15 @@ enum KeyState {
     DELETE_KEY_DOWN
 };
 
+enum KillAvatarReason : uint8_t {
+    NoReason = 0,
+    AvatarDisconnected,
+    AvatarIgnored,
+    TheirAvatarEnteredYourBubble,
+    YourAvatarEnteredTheirBubble
+};
+Q_DECLARE_METATYPE(KillAvatarReason);
+
 class QDataStream;
 
 class AttachmentData;
@@ -353,6 +362,7 @@ public:
     void fromJson(const QJsonObject& json);
 
     glm::vec3 getClientGlobalPosition() { return _globalPosition; }
+    glm::vec3 getGlobalBoundingBoxCorner() { return _globalBoundingBoxCorner; }
 
     Q_INVOKABLE AvatarEntityMap getAvatarEntityData() const;
     Q_INVOKABLE void setAvatarEntityData(const AvatarEntityMap& avatarEntityData);
@@ -436,6 +446,7 @@ protected:
     // where Entities are located.  This is currently only used by the mixer to decide how often to send
     // updates about one avatar to another.
     glm::vec3 _globalPosition;
+    glm::vec3 _globalBoundingBoxCorner;
 
     mutable ReadWriteLockable _avatarEntitiesLock;
     AvatarEntityIDs _avatarEntityDetached; // recently detached from this avatar
@@ -539,6 +550,7 @@ void RayToAvatarIntersectionResultFromScriptValue(const QScriptValue& object, Ra
 const int SENSOR_TO_WORLD_MATRIX_INDEX = 65534; // -2
 const int CONTROLLER_RIGHTHAND_INDEX = 65533; // -3
 const int CONTROLLER_LEFTHAND_INDEX = 65532; // -4
-
+const int CAMERA_RELATIVE_CONTROLLER_RIGHTHAND_INDEX = 65531; // -5
+const int CAMERA_RELATIVE_CONTROLLER_LEFTHAND_INDEX = 65530; // -6
 
 #endif // hifi_AvatarData_h

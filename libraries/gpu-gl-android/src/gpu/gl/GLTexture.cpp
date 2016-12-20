@@ -96,42 +96,41 @@ const std::vector<GLenum>& GLTexture::getFaceTargets(GLenum target) {
     return faceTargets;
 }
 
+// Default texture memory = GPU total memory - 2GB
+#define GPU_MEMORY_RESERVE_BYTES MB_TO_BYTES(2048)
+// Minimum texture memory = 1GB
+#define TEXTURE_MEMORY_MIN_BYTES MB_TO_BYTES(1024)
+
 
 float GLTexture::getMemoryPressure() {
     // Check for an explicit memory limit
     auto availableTextureMemory = Texture::getAllowedGPUMemoryUsage();
+    
 
     // If no memory limit has been set, use a percentage of the total dedicated memory
     if (!availableTextureMemory) {
-        auto totalGpuMemory = getDedicatedMemory();
-
-        if (!totalGpuMemory) {
-            // If we can't query the dedicated memory just use a fallback fixed value of 256 MB
-            totalGpuMemory = MB_TO_BYTES(DEFAULT_MAX_MEMORY_MB);
+#if 0
+        auto totalMemory = getDedicatedMemory();
+        if ((GPU_MEMORY_RESERVE_BYTES + TEXTURE_MEMORY_MIN_BYTES) > totalMemory) {
+            availableTextureMemory = TEXTURE_MEMORY_MIN_BYTES;
         } else {
-            // Check the global free GPU memory
-            auto freeGpuMemory = getFreeDedicatedMemory();
-            if (freeGpuMemory) {
-                static gpu::Size lastFreeGpuMemory = 0;
-                auto freePercentage = (float)freeGpuMemory / (float)totalGpuMemory;
-                if (freeGpuMemory != lastFreeGpuMemory) {
-                    lastFreeGpuMemory = freeGpuMemory;
-                    if (freePercentage < MIN_FREE_GPU_MEMORY_PERCENTAGE) {
-                        qDebug() << "Exceeded max GPU memory";
-                        return OVER_MEMORY_PRESSURE;
-                    }
-                }
-            }
+            availableTextureMemory = totalMemory - GPU_MEMORY_RESERVE_BYTES;
         }
-
-        // Allow 50% of all available GPU memory to be consumed by textures
-        // FIXME overly conservative?
-        availableTextureMemory = (totalGpuMemory >> 1);
+#else 
+        // Hardcode texture limit for sparse textures at 1 GB for now
+        availableTextureMemory = TEXTURE_MEMORY_MIN_BYTES;
+#endif
     }
 
     // Return the consumed texture memory divided by the available texture memory.
-    auto consumedGpuMemory = Context::getTextureGPUMemoryUsage();
-    return (float)consumedGpuMemory / (float)availableTextureMemory;
+    auto consumedGpuMemory = Context::getTextureGPUMemoryUsage() - Context::getTextureGPUFramebufferMemoryUsage();
+    float memoryPressure = (float)consumedGpuMemory / (float)availableTextureMemory;
+    static Context::Size lastConsumedGpuMemory = 0;
+    if (memoryPressure > 1.0f && lastConsumedGpuMemory != consumedGpuMemory) {
+        lastConsumedGpuMemory = consumedGpuMemory;
+        qCDebug(gpugllogging) << "Exceeded max allowed texture memory: " << consumedGpuMemory << " / " << availableTextureMemory;
+    }
+    return memoryPressure;
 }
 
 
@@ -191,7 +190,13 @@ GLTexture::~GLTexture() {
                 qWarning() << "No recycler available for texture " << _id << " possible leak";
             }
         } else if (_id) {
+            // WARNING!  Sparse textures do not use this code path.  See GL45BackendTexture for 
+            // the GL45Texture destructor for doing any required work tracking GPU stats
             backend->releaseTexture(_id, _size);
+        }
+
+        if (!_external && !_transferrable) {
+            Backend::updateTextureGPUFramebufferMemoryUsage(_size, 0);
         }
     }
     Backend::updateTextureGPUVirtualMemoryUsage(_virtualSize, 0);
@@ -229,6 +234,9 @@ void GLTexture::withPreservedTexture(std::function<void()> f) const {
 }
 
 void GLTexture::setSize(GLuint size) const {
+    if (!_external && !_transferrable) {
+        Backend::updateTextureGPUFramebufferMemoryUsage(_size, size);
+    }
     Backend::updateTextureGPUMemoryUsage(_size, size);
     const_cast<GLuint&>(_size) = size;
 }

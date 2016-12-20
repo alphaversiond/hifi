@@ -36,6 +36,7 @@ class GLPaintEngine : public QPaintEngine {
 };
 
 GLWidget::GLWidget() {
+
 #ifdef Q_OS_LINUX
     // Cause GLWidget::eventFilter to be called.
     // It wouldn't hurt to do this on Mac and PC too; but apparently it's only needed on linux.
@@ -68,9 +69,7 @@ void GLWidget::createContext() {
     _context = new gl::Context();
     _context->setWindow(windowHandle());
     _context->create();
- #ifdef ANDROID   
     _context->makeCurrent();
-#endif
     _context->clear();
     _context->makeCurrent();
 }

@@ -38,7 +38,7 @@ bool DaydreamControllerManager::isSupported() const {
 bool DaydreamControllerManager::activate() {
     _container->addMenu(MENU_PATH);
     InputPlugin::activate();
-    qDebug() << "[DAYDREAM-CONTROLLER] DaydreamControllerManager::activate";
+    //qDebug() << "[DAYDREAM-CONTROLLER] DaydreamControllerManager::activate";
 
     // register with UserInputMapper
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
@@ -47,7 +47,7 @@ bool DaydreamControllerManager::activate() {
     GvrState *gvrState = GvrState::getInstance();
 
     if (gvrState->_gvr_api) {
-        qDebug() << "[DAYDREAM-CONTROLLER] Initializing daydream controller"; 
+        //qDebug() << "[DAYDREAM-CONTROLLER] Initializing daydream controller"; 
         gvrState->_controller_api.reset(new gvr::ControllerApi);
         gvrState->_controller_api->Init(gvr::ControllerApi::DefaultOptions(), gvrState->_gvr_context);
         gvrState->_controller_api->Resume();
@@ -64,7 +64,7 @@ bool DaydreamControllerManager::activate() {
 }
 
 void DaydreamControllerManager::deactivate() {
-    qDebug() << "[DAYDREAM-CONTROLLER] DaydreamControllerManager::deactivate";
+    //qDebug() << "[DAYDREAM-CONTROLLER] DaydreamControllerManager::deactivate";
 
     // unregister with UserInputMapper
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
@@ -125,9 +125,9 @@ void DaydreamControllerManager::DaydreamControllerDevice::update(float deltaTime
     // Print new API status and connection state, if they changed.
     if (currentApiStatus != gvrState->_last_controller_api_status ||
           currentConnectionState != gvrState->_last_controller_connection_state) {
-            qDebug() << "[DAYDREAM-CONTROLLER]: Controller API status: " <<
-            gvr_controller_api_status_to_string(currentApiStatus) << ", connection state: " <<
-            gvr_controller_connection_state_to_string(currentConnectionState);
+            //qDebug() << "[DAYDREAM-CONTROLLER]: Controller API status: " <<
+            //gvr_controller_api_status_to_string(currentApiStatus) << ", connection state: " <<
+            //gvr_controller_connection_state_to_string(currentConnectionState);
 
             gvrState->_last_controller_api_status = currentApiStatus;
             gvrState->_last_controller_connection_state = currentConnectionState;
@@ -152,7 +152,7 @@ void DaydreamControllerManager::DaydreamControllerDevice::update(float deltaTime
 void DaydreamControllerManager::DaydreamControllerDevice::handleController(GvrState *gvrState, float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
 
       gvr::ControllerQuat orientation = gvrState->_controller_state.GetOrientation();
-      qDebug() << "[DAYDREAM-CONTROLLER]: gvr::ControllerQuat orientation: " << orientation.qx << "," << orientation.qy << "," << orientation.qz << "," << orientation.qw;
+      //qDebug() << "[DAYDREAM-CONTROLLER]: gvr::ControllerQuat orientation: " << orientation.qx << "," << orientation.qy << "," << orientation.qz << "," << orientation.qw;
       handlePoseEvent(deltaTime, inputCalibrationData, orientation);
 
       if (gvrState->_last_controller_api_status == gvr_controller_api_status::GVR_CONTROLLER_API_OK && 
@@ -162,8 +162,8 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleController(GvrSt
           bool pressing = gvrState->_controller_state.GetButtonState(static_cast<gvr::ControllerButton>(k)); // Returns whether the given button is currently pressed.
           bool touched = gvrState->_controller_state.GetButtonUp(static_cast<gvr::ControllerButton>(k)); // Returns whether the given button was just released (transient).
           if ((pressed || touched || pressing) || rand() % 100 > 98)
-              qDebug() << "[DAYDREAM-CONTROLLER]: call handleButtonEvent(deltaTime: " << deltaTime << ", k: " << k <<
-                      ", pressed: " << pressed << ", touched: " << touched << ",  pressing: " <<  pressing;
+              //qDebug() << "[DAYDREAM-CONTROLLER]: call handleButtonEvent(deltaTime: " << deltaTime << ", k: " << k <<
+              //        ", pressed: " << pressed << ", touched: " << touched << ",  pressing: " <<  pressing;
           handleButtonEvent(deltaTime, k, pressed, touched, pressing);
 
           if (pressed) {
@@ -188,12 +188,12 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleController(GvrSt
 
 void DaydreamControllerManager::DaydreamControllerDevice::handlePoseEvent(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, gvr::ControllerQuat gvrOrientation) {
     glm::quat orientation = toGlm(gvrOrientation);
-    qDebug() << "[DAYDREAM-CONTROLLER]: gvr::ControllerQuat GLM orientation: " << orientation.x << "," << orientation.y << "," << orientation.z << "," << orientation.w;
+    //qDebug() << "[DAYDREAM-CONTROLLER]: gvr::ControllerQuat GLM orientation: " << orientation.x << "," << orientation.y << "," << orientation.z << "," << orientation.w;
     auto pose = daydreamControllerPoseToHandPose(false, orientation);
     vec3 tranz = pose.getTranslation();
     quat rotz = pose.getRotation();
-    qDebug() << "[DAYDREAM-CONTROLLER]: gvr::ControllerQuat handPose tranz : " << tranz.x << "," << tranz.y << "," << tranz.z;
-    qDebug() << "[DAYDREAM-CONTROLLER]: gvr::ControllerQuat handPose rotz : " << rotz.x << "," << rotz.y << "," << rotz.z << "," << rotz.w;
+    //qDebug() << "[DAYDREAM-CONTROLLER]: gvr::ControllerQuat handPose tranz : " << tranz.x << "," << tranz.y << "," << tranz.z;
+    //qDebug() << "[DAYDREAM-CONTROLLER]: gvr::ControllerQuat handPose rotz : " << rotz.x << "," << rotz.y << "," << rotz.z << "," << rotz.w;
     //qDebug() << "[DAYDREAM-CONTROLLER]: gvr::ControllerQuat pose : " << orientation.x << "," << orientation.y "," << orientation.z "," << orientation.w;
     // transform into avatar frame
     glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
@@ -202,8 +202,8 @@ void DaydreamControllerManager::DaydreamControllerDevice::handlePoseEvent(float 
     quat rotz2 = pose2.getRotation();
     //_poseStateMap[controller::RIGHT_HAND] = pose.transform(controllerToAvatar);
     _poseStateMap[controller::RIGHT_HAND] = pose2;
-    qDebug() << "[DAYDREAM-CONTROLLER]: gvr::ControllerQuat handPose tranz2: " << tranz2.x << "," << tranz2.y << "," << tranz2.z;
-    qDebug() << "[DAYDREAM-CONTROLLER]: gvr::ControllerQuat handPose rotz2: " << rotz.x << "," << rotz2.y << "," << rotz2.z << "," << rotz2.w;
+    //qDebug() << "[DAYDREAM-CONTROLLER]: gvr::ControllerQuat handPose tranz2: " << tranz2.x << "," << tranz2.y << "," << tranz2.z;
+    //qDebug() << "[DAYDREAM-CONTROLLER]: gvr::ControllerQuat handPose rotz2: " << rotz.x << "," << rotz2.y << "," << rotz2.z << "," << rotz2.w;
 
     pose = daydreamControllerPoseToHandPose(true, orientation);    
     _poseStateMap[controller::LEFT_HAND] = pose.transform(controllerToAvatar);
@@ -250,7 +250,7 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleAxisEvent(float 
     if (isTouching) {
       glm::vec2 stick(2*(touchPos.x-0.5f), 2*(touchPos.y-0.5f));
       stick = _filteredLeftStick.process(deltaTime, stick);
-      qDebug() << "[DAYDREAM-CONTROLLER]: Touching x:" << stick.x << " y:" << stick.y;
+      //qDebug() << "[DAYDREAM-CONTROLLER]: Touching x:" << stick.x << " y:" << stick.y;
         _buttonPressedMap.insert(RT_CLICK);
         //_axisStateMap[RX] = stick.x * 100.0f;
         //_axisStateMap[RY] = stick.y * 100.0f;
@@ -318,7 +318,7 @@ controller::Input::NamedVector DaydreamControllerManager::DaydreamControllerDevi
 
 QString DaydreamControllerManager::DaydreamControllerDevice::getDefaultMappingConfig() const {
     static const QString MAPPING_JSON = PathUtils::resourcesPath() + "/controllers/daydream.json";
-    qDebug() << "[DAYDREAM-CONTROLLER] DaydreamControllerManager daydream.json = " << MAPPING_JSON;
+    //qDebug() << "[DAYDREAM-CONTROLLER] DaydreamControllerManager daydream.json = " << MAPPING_JSON;
     return MAPPING_JSON;
 }
 

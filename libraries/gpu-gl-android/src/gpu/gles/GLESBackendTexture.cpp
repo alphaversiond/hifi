@@ -124,7 +124,7 @@ void GLESTexture::transferMip(uint16_t mipLevel, uint8_t face) const {
 }
 
 void GLESTexture::startTransfer() {
-    PROFILE_RANGE(__FUNCTION__);
+    PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
     Parent::startTransfer();
 
     glBindTexture(_target, _id);

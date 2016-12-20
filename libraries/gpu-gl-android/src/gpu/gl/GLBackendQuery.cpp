@@ -10,14 +10,17 @@
 //
 #include "GLBackend.h"
 #include "GLQuery.h"
+#include "GLShared.h"
 
 using namespace gpu;
 using namespace gpu::gl;
 
 // Eventually, we want to test with TIME_ELAPSED instead of TIMESTAMP
 #ifdef Q_OS_MAC
+const uint32_t MAX_RANGE_QUERY_DEPTH = 1;
 static bool timeElapsed = true;
 #else
+const uint32_t MAX_RANGE_QUERY_DEPTH = 10000;
 static bool timeElapsed = false;
 #endif
 
@@ -33,6 +36,7 @@ void GLBackend::do_beginQuery(const Batch& batch, size_t paramOffset) {
                 glQueryCounterEXT(glquery->_beginqo, GL_TIMESTAMP_EXT);
             }
         }
+        glquery->_rangeQueryDepth = _queryStage._rangeQueryDepth;
         (void)CHECK_GL_ERROR();
     }
 }
@@ -48,9 +52,13 @@ void GLBackend::do_endQuery(const Batch& batch, size_t paramOffset) {
                 glQueryCounterEXT(glquery->_endqo, GL_TIMESTAMP_EXT);
             }
         }
+
+        --_queryStage._rangeQueryDepth;
         GLint64 now;
         glGetInteger64v(GL_TIMESTAMP_EXT, &now);
         glquery->_batchElapsedTime = now - glquery->_batchElapsedTime;
+
+        PROFILE_RANGE_END(render_gpu_gl, glquery->_profileRangeId);
 
         (void)CHECK_GL_ERROR();
     }
