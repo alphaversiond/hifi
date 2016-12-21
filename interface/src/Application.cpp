@@ -1736,7 +1736,6 @@ void Application::cleanupBeforeQuit() {
 }
 
 Application::~Application() {
-    qDebug() << "[CRASH] DependencyManager::destroy<Preferences>()";
     DependencyManager::destroy<Preferences>();
 
     _entityClipboard->eraseAllOctreeElements();
@@ -2383,7 +2382,7 @@ void Application::paintGL() {
             }
             batch.draw(gpu::TRIANGLES, 36); // 36
             batch._debugBatch = true;
-            renderArgs._context->appendFrameBatch(batch, true);
+            renderArgs._context->appendFrameBatch(batch);
 
         }
 

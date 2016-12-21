@@ -124,12 +124,8 @@ void DeferredLightingEffect::init() {
     loadLightVolumeProgram(deferred_light_spot_vert, no_light_frag, false, _spotLightBack, _spotLightLocations);
     loadLightVolumeProgram(deferred_light_spot_vert, no_light_frag, true, _spotLightFront, _spotLightLocations);
 
-    qDebug() << "[CRASH] " << "Here _lightStage is initialized";
     // Light Stage and clusters
     _lightStage = std::make_shared<LightStage>();
-    if (!_lightStage) {
-        qDebug() << "[CRASH] " << "But something failed initializing _lightStage";
-    }
     // Allocate a global light representing the Global Directional light casting shadow (the sun) and the ambient light
     _allocatedLights.push_back(std::make_shared<model::Light>());
     model::LightPointer lp = _allocatedLights[0];

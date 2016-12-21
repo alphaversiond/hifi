@@ -40,7 +40,6 @@ namespace gpu {
         TexturePointer overlay;
         /// How to process the framebuffer when the frame dies.  MUST BE THREAD SAFE
         FramebufferRecycler framebufferRecycler;
-        bool debugFrame { false };
 
     protected:
         // Should be called once per frame, on the recording thred

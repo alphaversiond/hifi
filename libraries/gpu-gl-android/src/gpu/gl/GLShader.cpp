@@ -80,8 +80,6 @@ GLShader* compileBackendShader(GLBackend& backend, const Shader& shader) {
     GLenum shaderDomain = SHADER_DOMAINS[shader.getType()];
     GLShader::ShaderObjects shaderObjects;
     
-    qDebug() << "[CRASH] compileBackendShader 1";
-    
     for (int version = 0; version < GLShader::NumVersions; version++) {
         auto& shaderObject = shaderObjects[version];
         std::string shaderDefines = glslVersion + "\n" + DOMAIN_DEFINES[shader.getType()] + "\n" + VERSION_DEFINES[version] 
@@ -90,10 +88,8 @@ GLShader* compileBackendShader(GLBackend& backend, const Shader& shader) {
         + "\nprecision lowp samplerBuffer;";
         // TODO Delete bool result = compileShader(shaderDomain, shaderSource, shaderDefines, shaderObject.glshader, shaderObject.glprogram);
 #ifdef SEPARATE_PROGRAM
-    qDebug() << "[CRASH] compileBackendShader 2 "<< shaderDomain << " src " << shaderSource << " def " << shaderDefines;
         bool result = ::gl::compileShader(shaderDomain, shaderSource.c_str(), shaderDefines.c_str(), shaderObject.glshader, shaderObject.glprogram);
 #else
-    qDebug() << "[CRASH] compileBackendShader 3 "<< shaderDomain << " src def";
         bool result = ::gl::compileShader(shaderDomain, shaderSource, shaderDefines, shaderObject.glshader);
 #endif
         if (!result) {

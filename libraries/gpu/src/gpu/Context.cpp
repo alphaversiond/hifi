@@ -69,11 +69,6 @@ void Context::appendFrameBatch(Batch& batch) {
     _currentFrame->batches.push_back(batch);
 }
 
-void Context::appendFrameBatch(Batch& batch, bool debug) {
-    appendFrameBatch(batch);
-    _currentFrame->debugFrame=debug;
-}
-
 FramePointer Context::endFrame() {
     assert(_frameActive);
     auto result = _currentFrame;
@@ -113,9 +108,7 @@ void Context::executeFrame(const FramePointer& frame) const {
 
         // Execute the frame rendering commands
         for (auto& batch : frame->batches) {
-            //if (!frame->debugFrame || batch._debugBatch) {
-                _backend->render(batch);
-            //}
+            _backend->render(batch);
         }
 
         Batch endBatch;
