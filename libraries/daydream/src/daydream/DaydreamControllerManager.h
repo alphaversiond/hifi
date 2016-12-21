@@ -78,7 +78,7 @@ private:
             glm::vec2 _stick { 0.0f, 0.0f };
         };
 
-        FilteredStick _filteredLeftStick;
+        FilteredStick _filteredRightStick;
 
         DaydreamControllerManager& _parent;
         friend class DaydreamControllerManager;

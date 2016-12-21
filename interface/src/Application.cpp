@@ -1471,7 +1471,7 @@ qDebug() << "connect Application::843";
 
 #ifdef ANDROID
     //DependencyManager::get<AddressManager>()->handleLookupString("hifi://android/0.0,0.0,-200");
-    DependencyManager::get<AddressManager>()->handleLookupString("dev-mobile.highfidelity.io/0.0,0.0,-200");
+    DependencyManager::get<AddressManager>()->handleLookupString("dev-mobile.highfidelity.io/0.0,0.0,0.0");
 #else
         if (shouldGoToTutorial) {
             if (sandboxIsRunning) {
@@ -2359,7 +2359,11 @@ void Application::paintGL() {
             _displayViewFrustum.evalProjectionMatrix(projMat);
             Transform viewTransform;
             _displayViewFrustum.evalViewTransform(viewTransform);
-            viewTransform.setTranslation(vec3(0.0, 0.0, 0.0));
+            if (getMyAvatar() != nullptr) {
+                viewTransform.setTranslation(-getMyAvatar()->getPosition());
+            } else {
+                viewTransform.setTranslation(vec3(0.0, 0.0, 0.0));
+            }
 
             batch.setProjectionTransform(projMat);
             batch.setFramebuffer(finalFramebuffer);
