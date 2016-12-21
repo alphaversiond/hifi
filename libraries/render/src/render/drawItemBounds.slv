@@ -50,8 +50,8 @@ void main(void) {
         0, 4,
         1, 5
     );
-    vec4 cubeVec = UNIT_BOX[UNIT_BOX_LINE_INDICES[gl_VertexID]];
-
+    int idx = UNIT_BOX_LINE_INDICES[gl_VertexID];
+    vec4 cubeVec = UNIT_BOX[idx];
     vec4 pos = vec4(inBoundPos + inBoundDim * cubeVec.xyz, 1.0);
 
     // standard transform

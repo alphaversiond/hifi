@@ -337,6 +337,9 @@ ImageReader::ImageReader(const QWeakPointer<Resource>& resource, const QByteArra
         outFile.close();
     }
 #endif
+    if (!DependencyManager::isSet<StatTracker>()) {
+        DependencyManager::set<StatTracker>();
+    }
     DependencyManager::get<StatTracker>()->incrementStat("PendingProcessing");
 }
 

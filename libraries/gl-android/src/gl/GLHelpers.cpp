@@ -32,7 +32,7 @@ const QSurfaceFormat& getDefaultOpenGLSurfaceFormat() {
         format.setRenderableType(QSurfaceFormat::OpenGLES);
         format.setVersion(3,1);
         format.setRedBufferSize(8);
-        format.setGeenBufferSize(8);
+        format.setGreenBufferSize(8);
         format.setBlueBufferSize(8);
         format.setAlphaBufferSize(8);
         // Qt Quick may need a depth and stencil buffer. Always make sure these are available.

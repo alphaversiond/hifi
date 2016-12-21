@@ -21,7 +21,6 @@
 #include "GLHelpers.h"
 #include "GLLogging.h"
 
-
 OffscreenGLCanvas::OffscreenGLCanvas() :
     _context(new QOpenGLContext),
     _offscreenSurface(new QOffscreenSurface)
@@ -29,6 +28,7 @@ OffscreenGLCanvas::OffscreenGLCanvas() :
 }
 
 OffscreenGLCanvas::~OffscreenGLCanvas() {
+    qDebug() << "~OffscreenGLCanvas";
     // A context with logging enabled needs to be current when it's destroyed
     _context->makeCurrent(_offscreenSurface);
     delete _context;

@@ -31,7 +31,12 @@ namespace gl {
 
     glShaderSource(glshader, NUM_SOURCE_STRINGS, srcstr, NULL);
 
-    qDebug() << "[CRASH] compileShader ... glShaderSource ";
+    qDebug() << "[CRASH] compileShader ... glShaderSource " << NUM_SOURCE_STRINGS << " " << defines.length() << " src " << shaderSource.length();
+    static int shaderCnt = 0;
+    shaderCnt++;
+    if (123 == shaderCnt) {
+        qDebug() << "This must be the one that fails " << shaderSource.c_str();
+    }
     // Compile !
     glCompileShader(glshader);
 

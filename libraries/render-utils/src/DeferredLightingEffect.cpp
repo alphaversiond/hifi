@@ -556,6 +556,8 @@ void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderC
     auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
     if (deferredLightingEffect->getLightStage() != nullptr) {
         deferredLightingEffect->getLightStage()->_currentFrame.clear();
+    }else {
+        qDebug() << "DeferredLightningEffect deferredLightingEffect->getLightStage() is null";
     }
 }
 

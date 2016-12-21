@@ -430,6 +430,7 @@ bool setupEssentials(int& argc, char** argv) {
     const char* portStr = getCmdOption(argc, constArgv, "--listenPort");
     const int listenPort = portStr ? atoi(portStr) : INVALID_PORT;
 
+    DependencyManager::set<tracing::Tracer>();
     Setting::init();
 #ifndef ANDROID
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
@@ -437,8 +438,6 @@ bool setupEssentials(int& argc, char** argv) {
     }
 #endif
 
-    qDebug() << "setupEssentials";
-    DependencyManager::set<tracing::Tracer>();
     qDebug() << "setupEssentials " << DependencyManager::get<tracing::Tracer>();
 #if defined(Q_OS_WIN)
     // Select appropriate audio DLL
@@ -479,7 +478,6 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<AudioScope>();
     DependencyManager::set<DeferredLightingEffect>();
     DependencyManager::set<TextureCache>();
-    qDebug() << "[CRASH] DependencyManager::set<FramebufferCache>()";
     DependencyManager::set<FramebufferCache>();
     DependencyManager::set<AnimationCache>();
     DependencyManager::set<ModelBlender>();
@@ -4187,9 +4185,7 @@ void Application::updateDialogs(float deltaTime) const {
 static bool domainLoadingInProgress = false;
 
 void Application::update(float deltaTime) {
-    qDebug() << "CRASH 1 " << DependencyManager::get<tracing::Tracer>();
     PROFILE_RANGE_EX(app, __FUNCTION__, 0xffff0000, (uint64_t)_frameCount + 1);
-    qDebug() << "CRASH 2";
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::update()");
 
@@ -4197,9 +4193,7 @@ void Application::update(float deltaTime) {
 
     if (!_physicsEnabled) {
         if (!domainLoadingInProgress) {
-            qDebug() << "CRASH 2";
             PROFILE_ASYNC_BEGIN(app, "Scene Loading", "");
-            qDebug() << "CRASH 3";
             domainLoadingInProgress = true;
         }
 
@@ -4234,16 +4228,12 @@ void Application::update(float deltaTime) {
         }
     } else if (domainLoadingInProgress) {
         domainLoadingInProgress = false;
-        qDebug() << "CRASH 5";
         PROFILE_ASYNC_END(app, "Scene Loading", "");
-        qDebug() << "CRASH 6";
     }
 
     {
         PerformanceTimer perfTimer("devices");
-        qDebug() << "CRASH 7";
         DeviceTracker::updateAll();
-        qDebug() << "CRASH 8";
 
         FaceTracker* tracker = getSelectedFaceTracker();
         if (tracker && Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking) != tracker->isMuted()) {
@@ -4251,7 +4241,6 @@ void Application::update(float deltaTime) {
         }
 
         tracker = getActiveFaceTracker();
-        qDebug() << "CRASH 9";
         if (tracker && !tracker->isMuted()) {
             tracker->update(deltaTime);
 
@@ -4276,7 +4265,6 @@ void Application::update(float deltaTime) {
         }
 
     }
-    qDebug() << "CRASH 10";
 
     auto myAvatar = getMyAvatar();
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
@@ -4297,7 +4285,6 @@ void Application::update(float deltaTime) {
     }
 
     userInputMapper->update(deltaTime);
-    qDebug() << "CRASH 11";
 
     if (keyboardMousePlugin && keyboardMousePlugin->isActive()) {
         keyboardMousePlugin->pluginUpdate(deltaTime, calibrationData);
