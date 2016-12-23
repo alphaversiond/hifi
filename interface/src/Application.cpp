@@ -1072,7 +1072,7 @@ qDebug() << "connect Application::843";
 
         if (action == controller::toInt(controller::Action::RETICLE_CLICK)) {
             auto reticlePos = getApplicationCompositor().getReticlePosition();
-            //qDebug() << "[CONTROLLER-2] Application action was controller::Action::RETICLE_CLICK " << reticlePos.x << "," << reticlePos.y;
+            qDebug() << "[DAYDREAM-CONTROLLER] Application action was controller::Action::RETICLE_CLICK " << reticlePos.x << "," << reticlePos.y;
             QPoint localPos(reticlePos.x, reticlePos.y); // both hmd and desktop already handle this in our coordinates.
             if (state) {
                 //qDebug() << "[CONTROLLER-2] Application::Application RETICLE_CLICK sending event mousePress to " << _glWidget;
@@ -2260,7 +2260,7 @@ void Application::paintGL() {
         static gpu::BufferView indices(new gpu::Buffer(), gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::INDEX));
         static gpu::Stream::FormatPointer cubeBufferFormat;
 
-        std::call_once(once, [&] {
+        /*std::call_once(once, [&] {
             {
                 qDebug() << "Building Cube shader program";
                 auto cubeVS = gpu::Shader::createVertex(std::string(Cube_vert));
@@ -2385,7 +2385,7 @@ void Application::paintGL() {
             batch._debugBatch = true;
             renderArgs._context->appendFrameBatch(batch, true);
 
-        }
+        }*/
 
 
 

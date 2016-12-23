@@ -48,8 +48,9 @@ void DaydreamDisplayPlugin::internalPresent() {
     render([&](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.resetViewTransform();
-        //batch.setFramebuffer(gpu::FramebufferPointer());
-        ivec4 viewport(0,0, gvrState->_framebuf_size.width, gvrState->_framebuf_size.height);
+           //batch.setFramebuffer(gpu::FramebufferPointer()); // was commented to have no distortion
+        //ivec4 viewport(0,0, 1440, 2560 );//gvrState->_framebuf_size.width, gvrState->_framebuf_size.height);
+           ivec4 viewport(0,0,gvrState->_framebuf_size.width, gvrState->_framebuf_size.height);
         batch.setViewportTransform(viewport);
         batch.setStateScissorRect(viewport);
         batch.setResourceTexture(0, _compositeFramebuffer->getRenderBuffer(0));

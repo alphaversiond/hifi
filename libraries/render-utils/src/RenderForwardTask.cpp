@@ -115,6 +115,7 @@ void PrepareFramebuffer::run(const SceneContextPointer& sceneContext, const Rend
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     auto framebufferSize = framebufferCache->getFrameBufferSize();
     glm::uvec2 frameSize(framebufferSize.width(), framebufferSize.height());
+    //glm::uvec2 frameSize(2560, 1440);
 
     // Resizing framebuffers instead of re-building them seems to cause issues with threaded rendering
     if (_framebuffer && _framebuffer->getSize() != frameSize) {

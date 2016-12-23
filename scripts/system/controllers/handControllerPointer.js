@@ -61,20 +61,27 @@ function Trigger(label) {
     that.rawTriggerValue = 0;
     that.triggerValue = 0;           // rolling average of trigger value
     that.triggerClicked = false;
-    that.triggerClick = function (value) { that.triggerClicked = value; };
-    that.triggerPress = function (value) { that.rawTriggerValue = value; };
+    that.triggerClick = function (value) {
+        print('anddb-handControllerPointer.js [DAYDREAM-CONTROLLER] that.triggerClick ' + value + ' which ' + that.label);
+        that.triggerClicked = value;
+    };
+    that.triggerPress = function (value) {
+        print('anddb-handControllerPointer.js [DAYDREAM-CONTROLLER] that.triggerPress ' + value + ' which ' + that.label);
+        that.rawTriggerValue = value;
+    };
     that.updateSmoothedTrigger = function () { // e.g., call once/update for effect
         var triggerValue = that.rawTriggerValue;
         // smooth out trigger value
         that.triggerValue = (that.triggerValue * that.TRIGGER_SMOOTH_RATIO) +
             (triggerValue * (1.0 - that.TRIGGER_SMOOTH_RATIO));
         OffscreenFlags.navigationFocusDisabled = that.triggerValue != 0.0;
+        //print('anddb-handControllerPointer.js [DAYDREAM-CONTROLLER] updateSmoothedTrigger raw[' + that.rawTriggerValue + '] triggerValue[' + that.triggerValue + ']');
     };
     // Current smoothed state, without hysteresis. Answering booleans.
     that.triggerSmoothedClick = function () {
         var clicked = that.triggerClicked;
-        if (clicked || Math.random()>0.98) {
-            print('anddb-handControllerPointer.js Trigger.triggerSmoothedClick clicked? ' + clicked + ' trigger ' + that.label);
+        if (clicked || Math.random()>0.988) {
+            print('anddb-handControllerPointer.js [DAYDREAM-CONTROLLER] Trigger.triggerSmoothedClick clicked? ' + clicked + ' trigger ' + that.label);
         }
         return clicked;
     };
@@ -93,13 +100,18 @@ function Trigger(label) {
 
         // The first two are independent of previous state:
         if (that.triggerSmoothedClick()) {
+            print('anddb-handControllerPointer.js [DAYDREAM-CONTROLLER] that.triggerSmoothedClick state to full' +  ' which ' + that.label );
             state = 'full';
         } else if (that.triggerSmoothedReleased()) {
+            if (state!==null || Math.random()>0.988) {
+                print('anddb-handControllerPointer.js [DAYDREAM-CONTROLLER] that.triggerSmoothedReleased state to null' +  ' which ' + that.label);
+            }
             state = null;
         } else if (that.triggerSmoothedSqueezed()) {
             // Another way to do this would be to have hysteresis in this branch, but that seems to make things harder to use.
             // In particular, the vive has a nice detent as you release off of full, and we want that to be a transition from
             // full to partial.
+            print('anddb-handControllerPointer.js [DAYDREAM-CONTROLLER] that.triggerSmoothedSqueezed state to partial' +  ' which ' + that.label);
             state = 'partial';
         }
         that.state = state;
@@ -433,17 +445,29 @@ function makeToggleAction(hand) { // return a function(0|1) that makes the speci
 var clickMapping = Controller.newMapping('handControllerPointer-click');
 Script.scriptEnding.connect(clickMapping.disable);
 
+function monitorRTClick(trigger) {
+    return function() {
+        if (trigger.full()) {
+            print('[DAYDREAM-CONTROLLER] monitorRTClick trigger ' + trigger.label);
+        }
+        return true;
+    }
+}
+
 // Gather the trigger data for smoothing.
 clickMapping.from(Controller.Standard.RT).peek().to(rightTrigger.triggerPress);
 clickMapping.from(Controller.Standard.LT).peek().to(leftTrigger.triggerPress);
-clickMapping.from(Controller.Standard.RTClick).peek().to(rightTrigger.triggerClick);
+clickMapping.from(Controller.Standard.RTClick).peek().when(monitorRTClick(rightTrigger)).to(rightTrigger.triggerClick);
 clickMapping.from(Controller.Standard.LTClick).peek().to(leftTrigger.triggerClick);
 // Full smoothed trigger is a click.
 function isPointingAtOverlayStartedNonFullTrigger(trigger) {
     // true if isPointingAtOverlay AND we were NOT full triggered when we became so.
     // The idea is to not count clicks when we're full-triggering and reach the edge of a window.
     var lockedIn = false;
-    return function () {
+    return function (value) {
+        //if (trigger.full()) {
+            //print('[DAYDREAM-CONTROLLER] isPointingAtOverlayStartedNonFullTrigger analysis rightTrigger.full value {' + value + '} current trigger is full? ' + activeTrigger.full());
+        //}
         if (trigger !== activeTrigger) {
 //            if (lockedIn || Math.random()>0.98) {
                 print('[CONTROLLER-2] isPointingAtOverlayStartedNonFullTrigger (!== case) lockedIn ' + lockedIn + ' returning (trigger not active)'
@@ -459,16 +483,16 @@ function isPointingAtOverlayStartedNonFullTrigger(trigger) {
         }
         if (lockedIn) {
             if (lockedIn) {
-                print('[CONTROLLER-2] isPointingAtOverlayStartedNonFullTrigger returning TRUE lockedIn ' + lockedIn + ' returning' + ' trigger: ' + trigger.label );
+                //print('[DAYDREAM-CONTROLLER] isPointingAtOverlayStartedNonFullTrigger returning TRUE lockedIn ' + lockedIn + ' returning' + ' trigger: ' + trigger.label );
             }
             return true;
         }
-        lockedIn = /*!*/trigger.full();
+        lockedIn = !trigger.full();
         if (lockedIn) {
             print('anddb-handControllerPointer.js isPointingAtOverlayStartedNonFullTrigger lockedIn (POINTING, LOCKED IN prev, is ActiveTrigger) ' + lockedIn + ' trigger: ' + trigger.label + '(' + trigger.full() + ')');    
         }
 
-        print('[CONTROLLER-2] isPointingAtOverlayStartedNonFullTrigger lockedIn ' + lockedIn);    
+        print('[DAYDREAM-CONTROLLER] isPointingAtOverlayStartedNonFullTrigger RETURN lockedIn ' + lockedIn);    
         return lockedIn;
     }
 }

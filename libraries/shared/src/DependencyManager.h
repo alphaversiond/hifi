@@ -134,14 +134,14 @@ void DependencyManager::destroy() {
 
 template<typename Base, typename Derived>
 void DependencyManager::registerInheritance() {
-    size_t baseHashCode = typeid(Base).hash_code();
-    size_t derivedHashCode = typeid(Derived).hash_code();
+    size_t baseHashCode = std::hash<std::string>{}( typeid(Base).name() );//typeid(Base).hash_code();
+    size_t derivedHashCode = std::hash<std::string>{}( typeid(Derived).name() );//typeid(Derived).hash_code();
     manager()._inheritanceHash.insert(baseHashCode, derivedHashCode);
 }
 
 template<typename T>
 size_t DependencyManager::getHashCode() {
-    size_t hashCode = typeid(T).hash_code();
+    size_t hashCode = std::hash<std::string>{}( typeid(T).name() );//typeid(T).hash_code();
     auto derivedHashCode = _inheritanceHash.find(hashCode);
     
     while (derivedHashCode != _inheritanceHash.end()) {
