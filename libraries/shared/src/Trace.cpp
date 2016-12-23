@@ -35,11 +35,6 @@
 using namespace tracing;
 
 bool tracing::enabled() {
-#ifdef ANDROID
-    if (!DependencyManager::isSet<Tracer>()) {
-        DependencyManager::set<Tracer>();
-    }
-#endif
     return DependencyManager::get<Tracer>()->isEnabled();
 }
 

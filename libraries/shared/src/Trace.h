@@ -101,11 +101,6 @@ private:
 };
 
 inline void traceEvent(const QLoggingCategory& category, const QString& name, EventType type, const QString& id = "", const QVariantMap& args = {}, const QVariantMap& extra = {}) {
-#ifdef ANDROID
-    if (!DependencyManager::isSet<Tracer>()) {
-        DependencyManager::set<Tracer>();
-    }
-#endif
     DependencyManager::get<Tracer>()->traceEvent(category, name, type, id, args, extra);
 }
 

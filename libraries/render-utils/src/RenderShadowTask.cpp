@@ -130,9 +130,6 @@ RenderShadowTask::RenderShadowTask(CullFunctor cullFunctor) {
 }
 
 void RenderShadowTask::configure(const Config& configuration) {
-    if (!DependencyManager::isSet<DeferredLightingEffect>()) {
-        DependencyManager::set<DeferredLightingEffect>();
-    }
     DependencyManager::get<DeferredLightingEffect>()->setShadowMapEnabled(configuration.enabled);
     // This is a task, so must still propogate configure() to its Jobs
     Task::configure(configuration);

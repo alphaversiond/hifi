@@ -48,9 +48,6 @@ Animation::Animation(const QUrl& url) : Resource(url) {}
 AnimationReader::AnimationReader(const QUrl& url, const QByteArray& data) :
     _url(url),
     _data(data) {
-    if (!DependencyManager::isSet<StatTracker>()) {
-        DependencyManager::set<StatTracker>();
-    }
     DependencyManager::get<StatTracker>()->incrementStat("PendingProcessing");
 }
 

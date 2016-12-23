@@ -107,11 +107,6 @@ void RenderForwardTask::run(const SceneContextPointer& sceneContext, const Rende
 }
 
 void PrepareFramebuffer::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, gpu::FramebufferPointer& framebuffer) {
-#ifdef ANDROID
-    if (!DependencyManager::isSet<FramebufferCache>()) {
-        DependencyManager::set<FramebufferCache>();
-    }
-#endif
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     auto framebufferSize = framebufferCache->getFrameBufferSize();
     glm::uvec2 frameSize(framebufferSize.width(), framebufferSize.height());

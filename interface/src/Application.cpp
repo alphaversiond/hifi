@@ -2252,7 +2252,7 @@ void Application::paintGL() {
         }
         renderArgs._blitFramebuffer = finalFramebuffer;
 
-
+/*
         static gpu::PipelinePointer thePipeline;
         static std::once_flag once;
         static gpu::BufferView vertices(new gpu::Buffer(), gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
@@ -2351,7 +2351,7 @@ void Application::paintGL() {
         static auto iconMapPath = PathUtils::resourcesPath() +"images/container.jpg";
         static auto statusIconMap = DependencyManager::get<TextureCache>()->getImageTexture(iconMapPath);
 
-        for (int iCube=0; iCube < 10; iCube++) {
+        for (int iCube=0; iCube < 1; iCube++) {
             gpu::Batch batch;
             batch.enableStereo(true);
             glm::mat4 projMat;
@@ -2385,6 +2385,7 @@ void Application::paintGL() {
             renderArgs._context->appendFrameBatch(batch);
 
         }
+*/
 
 
 
