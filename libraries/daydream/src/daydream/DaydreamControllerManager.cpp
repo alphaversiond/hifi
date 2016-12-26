@@ -155,22 +155,28 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleController(GvrSt
       //qDebug() << "[DAYDREAM-CONTROLLER]: gvr::ControllerQuat orientation: " << orientation.qx << "," << orientation.qy << "," << orientation.qz << "," << orientation.qw;
       handlePoseEvent(deltaTime, inputCalibrationData, orientation);
 
+      bool trackpadClicked = false;
+
       if (gvrState->_last_controller_api_status == gvr_controller_api_status::GVR_CONTROLLER_API_OK && 
           gvrState->_last_controller_connection_state == gvr_controller_connection_state::GVR_CONTROLLER_CONNECTED) {
         for (int k = gvr_controller_button::GVR_CONTROLLER_BUTTON_NONE; k < gvr_controller_button::GVR_CONTROLLER_BUTTON_COUNT ;k++) {
           bool pressed = gvrState->_controller_state.GetButtonDown(static_cast<gvr::ControllerButton>(k)); // Returns whether the given button was just pressed (transient).
           bool pressing = gvrState->_controller_state.GetButtonState(static_cast<gvr::ControllerButton>(k)); // Returns whether the given button is currently pressed.
           bool touched = gvrState->_controller_state.GetButtonUp(static_cast<gvr::ControllerButton>(k)); // Returns whether the given button was just released (transient).
-          if ((pressed || touched || pressing) || rand() % 100 > 98)
+          //if ((pressed || touched || pressing) || rand() % 100 > 98)
               //qDebug() << "[DAYDREAM-CONTROLLER]: call handleButtonEvent(deltaTime: " << deltaTime << ", k: " << k <<
               //        ", pressed: " << pressed << ", touched: " << touched << ",  pressing: " <<  pressing;
+
+          trackpadClicked = trackpadClicked || ( gvr_controller_button::GVR_CONTROLLER_BUTTON_CLICK && (pressed || touched || pressing) );
           handleButtonEvent(deltaTime, k, pressed, touched, pressing);
 
           if (pressed) {
             qDebug() << "[DAYDREAM-CONTROLLER]: " << k << " button has just been pressed";
           }
           if (pressing) {
-            qDebug() << "[DAYDREAM-CONTROLLER]: " << k << " button is being pressed";
+            if (rand() % 100 > 98) {
+                qDebug() << "[DAYDREAM-CONTROLLER]: " << k << " button is being pressed";
+            }
           }
 
           if (touched) {
@@ -179,11 +185,11 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleController(GvrSt
         }
       }
 
-
-      bool isTouching = gvrState->_controller_state.IsTouching();
-      gvr_vec2f touchPos = gvrState->_controller_state.GetTouchPos();
-      handleAxisEvent(deltaTime, isTouching, touchPos);
-    
+    if (!trackpadClicked) {
+        bool isTouching = gvrState->_controller_state.IsTouching();
+        gvr_vec2f touchPos = gvrState->_controller_state.GetTouchPos();
+        handleAxisEvent(deltaTime, isTouching, touchPos);
+    }
 }
 
 void DaydreamControllerManager::DaydreamControllerDevice::handlePoseEvent(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, gvr::ControllerQuat gvrOrientation) {
@@ -221,7 +227,8 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleButtonEvent(floa
 
     if (pressed) {
         if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_CLICK) {
-          _buttonPressedMap.insert(RT_CLICK);
+            qDebug() << "[DAYDREAM-CONTROLLER]: RT_CLICK inserted";
+            _buttonPressedMap.insert(RT_CLICK);
         } else if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_APP) {
           //_buttonPressedMap.insert(LS);
         } else if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_HOME) {
@@ -234,14 +241,22 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleButtonEvent(floa
         }
     }
 
-/*    if (touched) {
+    if (pressing) {
+        if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_CLICK) {
+            qDebug() << "[DAYDREAM-CONTROLLER]: RT_CLICK inserted (continues)";
+            _buttonPressedMap.insert(RT_CLICK);
+        }
+    }
+
+    if (touched) {
           // TODO: this is also duplicated. Perhaps we discard some feature later
          if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_CLICK) {
           // TODO: this is also duplicated. Perhaps we discard some feature later
-             _buttonPressedMap.insert(LS_TOUCH);
+            //_buttonPressedMap.insert(LS_TOUCH);
+            //qDebug() << "[DAYDREAM-CONTROLLER]: RT_CLICK inserted";
+            //_buttonPressedMap.insert(RT_CLICK);
         }
     }
-    */
 }
 
 // These functions do translation from the Steam IDs to the standard controller IDs

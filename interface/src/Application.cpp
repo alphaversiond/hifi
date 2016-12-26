@@ -1824,7 +1824,7 @@ void Application::initializeGL() {
 
     // Set up the render engine
     render::CullFunctor cullFunctor = LODManager::shouldRender;
-    _renderEngine->addJob<RenderShadowTask>("RenderShadowTask", cullFunctor);
+    //_renderEngine->addJob<RenderShadowTask>("RenderShadowTask", cullFunctor);
     static const QString RENDER_FORWARD = "HIFI_RENDER_FORWARD";
 #ifndef ANDROID    
     if (QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD)) {

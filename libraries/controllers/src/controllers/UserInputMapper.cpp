@@ -727,7 +727,7 @@ float UserInputMapper::getValue(const Input& input) const {
 }
 
 Pose UserInputMapper::getPose(const Endpoint::Pointer& endpoint, bool peek) {
-    qCDebug(controllers) << "UserInputMapper::getPose 2 endpoint endpoint->isPose() " << endpoint->isPose() << " peek?" << peek;
+    //qCDebug(controllers) << "UserInputMapper::getPose 2 endpoint endpoint->isPose() " << endpoint->isPose() << " peek?" << peek;
     if (!endpoint->isPose()) {
         return Pose();
     }

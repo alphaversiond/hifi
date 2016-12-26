@@ -3,7 +3,7 @@
     "channels": [
         { "from": "Daydream.RY", "filters": { "type": "deadZone", "min": 0.05 }, "debug": true, "to": "Actions.TranslateZ" },
         { "from": "Daydream.RX", "filters": { "type": "deadZone", "min": 0.05 }, "debug": true, "to": "Actions.TranslateX" },
-        { "from": "Daydream.RTClick", "to": "Standard.RTClick", "debug": true},
+        { "from": "Daydream.RTClick", "to": "Standard.RTClick", "peek": true, "debug": true},
         { "from": "Daydream.RightHand", "to": "Standard.RightHand", "when": [ "Application.InHMD" ]  }    
     ]
 }
