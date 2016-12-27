@@ -276,6 +276,6 @@ void DaydreamDisplayPlugin::resetEyeProjections(GvrState *gvrState) {
     _cullingProjection = _eyeProjections[0];
 }
 
-
+void DaydreamDisplayPlugin::compositePointer() {}
 
 

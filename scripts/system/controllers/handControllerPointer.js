@@ -557,6 +557,10 @@ var LASER_TRIGGER_COLOR_XYZW = {x: 250 / 255, y: 10 / 255, z: 10 / 255, w: LASER
 var SYSTEM_LASER_DIRECTION = {x: 0, y: 0, z: -1};
 var systemLaserOn = false;
 function clearSystemLaser() {
+    // no more laser clearing?
+    //weMovedReticle = true;
+    //Reticle.position = { x: -1, y: -1};
+    return;
     print("[CONTROLLER-3] clearSystemLaser systemLaserOn " + systemLaserOn);
     if (!systemLaserOn) {
         return;
@@ -586,6 +590,11 @@ print("anddb-handControllerPointer.js setColoredLaser defined");
 // MAIN OPERATIONS -----------
 //
 function update() {
+    // laser always on (changes color if clicked)
+    if (!systemLaserOn || (systemLaserOn !== activeTrigger.state)) {
+        systemLaserOn = setColoredLaser();
+    }
+
     var shouldLog = Math.random()>0.98;
     var now = Date.now();
     function off() {
@@ -601,6 +610,7 @@ function update() {
     }
 
     if (!Menu.isOptionChecked("First Person")) {
+        print("[CONTROLLER-3] calling off // !Menu.isOptionChecked(First Person)");
         return off(); // What to do? menus can be behind hand!
     }
 
@@ -619,10 +629,10 @@ function update() {
 
     //getControllerWorldLocation(activeHand, true); // anddb remove this line, it's just for debug
 
-    var hudPoint2d;
+    /*var hudPoint2d;
     if (activeHand) {
         hudPoint2d = activeHudPoint2d(activeHand);
-    }
+    }*/
 
     if (!activeTrigger.state) {
         print("[CONTROLLER-3] // No trigger");
@@ -633,7 +643,10 @@ function update() {
         print("[CONTROLLER-4] // getGrabCommunications");
         return off();
     }
-
+    var hudPoint2d;
+    if (activeHand) {
+        hudPoint2d = activeHudPoint2d(activeHand);
+    }
     if (!hudPoint2d) {
         print("[CONTROLLER-4] // !hudPoint2d");        
         return off();
@@ -643,7 +656,7 @@ function update() {
         print("[CONTROLLER-4]-handControllerPointer.js hudPoint2d is at: " + JSON.stringify(hudPoint2d));
 
     // If there's a HUD element at the (newly moved) reticle, just make it visible and bail.
-    if (isPointingAtOverlay(hudPoint2d)) {
+    /*if (isPointingAtOverlay(hudPoint2d)) {
         if (HMD.active) {
             Reticle.depth = hudReticleDistance();
 
@@ -669,8 +682,8 @@ function update() {
     }
     // We are not pointing at a HUD element (but it could be a 3d overlay).
     print("[CONTROLLER-3] We are not pointing at a HUD element (but it could be a 3d overlay).");
-    clearSystemLaser();
-    Reticle.visible = true; // false;
+    //clearSystemLaser();
+    Reticle.visible = true; // false;*/
 }
 
 print("anddb-handControllerPointer.js update defined");

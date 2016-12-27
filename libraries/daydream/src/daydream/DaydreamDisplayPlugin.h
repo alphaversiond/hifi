@@ -35,6 +35,7 @@ protected:
     bool isHmdMounted() const override { return true; }
     void customizeContext() override;
     bool internalActivate() override;
+    void compositePointer() override;
 private:
     static const QString NAME;
     float getLeftCenterPixel() const;
