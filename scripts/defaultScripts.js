@@ -10,33 +10,68 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+var ANDROID = true;
+var DEFAULT_SCRIPTS = [];
 
-// anddb- Commented js to get a quick functionality of handControllerPointer, we must review it so handControllerGrab works too at least
-var DEFAULT_SCRIPTS = [
-    "system/progress.js",
-    "system/away.js",
-    "system/users.js",
-    "system/mute.js",
-    "system/goto.js",
-    "system/hmd.js",
-    "system/marketplaces/marketplace.js",
-    //"system/edit.js",
-    //"system/mod.js",
-    //"system/selectAudioDevice.js",
-    //"system/notifications.js",
-    "system/controllers/controllerDisplayManager.js",
-    //"system/controllers/handControllerGrab.js",
-    "system/controllers/handControllerPointer.js",
-    "system/controllers/squeezeHands.js",
-    "system/controllers/grab.js",
-    //"system/controllers/teleport.js",
-    "system/controllers/toggleAdvancedMovementForHandControllers.js",
-    "system/dialTone.js",
-    "system/firstPersonHMD.js",
-    "system/snapshot.js",
-    "system/help.js",
-    "system/bubble.js"
-];
+function pushAll(dest, orig) {
+    for (var k in orig) { 
+        dest.push(orig[k]);
+    }
+}
+
+if (!ANDROID) {
+    pushAll(DEFAULT_SCRIPTS, [
+        "system/progress.js",
+        "system/away.js",
+        "system/users.js",
+        "system/mute.js",
+        "system/goto.js",
+        "system/hmd.js",
+        "system/marketplaces/marketplace.js",
+        "system/edit.js",
+        "system/mod.js",
+        "system/selectAudioDevice.js",
+        "system/notifications.js",
+        "system/controllers/controllerDisplayManager.js",
+        "system/controllers/handControllerGrab.js",
+        "system/controllers/handControllerPointer.js",
+        "system/controllers/squeezeHands.js",
+        "system/controllers/grab.js",
+        "system/controllers/teleport.js",
+        "system/controllers/toggleAdvancedMovementForHandControllers.js",
+        "system/dialTone.js",
+        "system/firstPersonHMD.js",
+        "system/snapshot.js",
+        "system/help.js",
+        "system/bubble.js"
+    ]);
+} else {
+    pushAll(DEFAULT_SCRIPTS, [
+        "system/progress.js",
+        "system/away.js",
+        "system/users.js",
+        "system/mute.js",
+        "system/goto.js",
+        "system/hmd.js",
+        "system/marketplaces/marketplace.js",
+        //"system/edit.js",
+        //"system/mod.js",
+        //"system/selectAudioDevice.js",
+        //"system/notifications.js",
+        "system/controllers/controllerDisplayManager.js",
+        //"system/controllers/handControllerGrab.js",
+        "system/controllers/handControllerPointerAndroid.js",
+        "system/controllers/squeezeHands.js",
+        "system/controllers/grab.js",
+        //"system/controllers/teleport.js",
+        "system/controllers/toggleAdvancedMovementForHandControllers.js",
+        "system/dialTone.js",
+        "system/firstPersonHMD.js",
+        "system/snapshot.js",
+        "system/help.js",
+        "system/bubble.js"
+    ]);
+}
 
 // add a menu item for debugging
 var MENU_CATEGORY = "Developer";
@@ -68,14 +103,12 @@ if (Menu.menuExists(MENU_CATEGORY) && !Menu.menuItemExists(MENU_CATEGORY, MENU_I
 
 function runDefaultsTogether() {
     for (var j in DEFAULT_SCRIPTS) {
-        print("anddb-defaultScripts.js running " + DEFAULT_SCRIPTS[j]);
         Script.include(DEFAULT_SCRIPTS[j]);
     }
 }
 
 function runDefaultsSeparately() {
     for (var i in DEFAULT_SCRIPTS) {
-        print("anddb-defaultScripts.js running " + DEFAULT_SCRIPTS[i]);
         Script.load(DEFAULT_SCRIPTS[i]);
     }
 }
@@ -84,11 +117,9 @@ if (Menu.isOptionChecked(MENU_ITEM)) {
     // we're debugging individual default scripts
     // so we load each into its own ScriptEngine instance
     debuggingDefaultScripts = true;
-    print("anddb-defaultScripts.js running defaults separately");
     runDefaultsSeparately();
 } else {
     // include all default scripts into this ScriptEngine
-    print("anddb-defaultScripts.js running defaults together");
     runDefaultsTogether();
 }
 
