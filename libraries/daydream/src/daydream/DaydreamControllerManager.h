@@ -53,6 +53,7 @@ private:
         void handleButtonEvent(float deltaTime, uint32_t button, bool pressed, bool touched, bool pressing);
         void handleAxisEvent(float deltaTime, bool isTouching, gvr_vec2f touchPos);
         void focusOutEvent() override;
+        void partitionTouchpad(int sButton, int xAxis, int yAxis, int centerPsuedoButton, int xPseudoButton, int yPseudoButton);
         
         class FilteredStick {
         public:

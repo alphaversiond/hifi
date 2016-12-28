@@ -1471,7 +1471,7 @@ qDebug() << "connect Application::843";
 
 #ifdef ANDROID
     //DependencyManager::get<AddressManager>()->handleLookupString("hifi://android/0.0,0.0,-200");
-    DependencyManager::get<AddressManager>()->handleLookupString("dev-mobile.highfidelity.io/0.0,0.0,0.0");
+    DependencyManager::get<AddressManager>()->handleLookupString("dev-mobile.highfidelity.io/0.257461,0,-5.11505");
 #else
         if (shouldGoToTutorial) {
             if (sandboxIsRunning) {

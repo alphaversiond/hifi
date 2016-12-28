@@ -185,11 +185,14 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleController(GvrSt
         }
       }
 
-    if (!trackpadClicked) {
+//    if (!trackpadClicked) {
         bool isTouching = gvrState->_controller_state.IsTouching();
         gvr_vec2f touchPos = gvrState->_controller_state.GetTouchPos();
         handleAxisEvent(deltaTime, isTouching, touchPos);
-    }
+//    }
+
+    partitionTouchpad(controller::RS, controller::RX, controller::RY, controller::RS_CENTER, controller::RS_X, controller::RS_Y);
+
 }
 
 void DaydreamControllerManager::DaydreamControllerDevice::handlePoseEvent(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, gvr::ControllerQuat gvrOrientation) {
@@ -228,7 +231,9 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleButtonEvent(floa
     if (pressed) {
         if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_CLICK) {
             qDebug() << "[DAYDREAM-CONTROLLER]: RT_CLICK inserted";
-            _buttonPressedMap.insert(RT_CLICK);
+            //_buttonPressedMap.insert(RT_CLICK);
+            _buttonPressedMap.insert(RS);
+            _buttonPressedMap.insert(RS_TOUCH);
         } else if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_APP) {
           //_buttonPressedMap.insert(LS);
         } else if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_HOME) {
@@ -244,7 +249,9 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleButtonEvent(floa
     if (pressing) {
         if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_CLICK) {
             qDebug() << "[DAYDREAM-CONTROLLER]: RT_CLICK inserted (continues)";
-            _buttonPressedMap.insert(RT_CLICK);
+            //_buttonPressedMap.insert(RT_CLICK);
+            _buttonPressedMap.insert(RS);
+            _buttonPressedMap.insert(RS_TOUCH);
         }
     }
 
@@ -268,8 +275,26 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleAxisEvent(float 
         //qDebug() << "[DAYDREAM-CONTROLLER]: Touching x:" << stick.x << " y:" << stick.y;
         _axisStateMap[RX] = stick.x;// * 10000.0f;
         _axisStateMap[RY] = stick.y;// * 10000.0f;
-    } else {
-      _axisStateMap.clear();
+        qDebug() << "[DAYDREAM-CONTROLLER2] stick.x " << stick.x << " stick.y " << stick.y;
+
+    }// else {
+    //  _axisStateMap.clear();
+    //}
+}
+
+void DaydreamControllerManager::DaydreamControllerDevice::partitionTouchpad(int sButton, int xAxis, int yAxis, int centerPseudoButton, int xPseudoButton, int yPseudoButton) {
+    // Populate the L/RS_CENTER/OUTER pseudo buttons, corresponding to a partition of the L/RS space based on the X/Y values.
+    const float CENTER_DEADBAND = 0.6f;
+    const float DIAGONAL_DIVIDE_IN_RADIANS = PI / 4.0f;
+    if (_buttonPressedMap.find(sButton) != _buttonPressedMap.end()) {
+        float absX = fabs(_axisStateMap[controller::RX]);
+        float absY = fabs(_axisStateMap[controller::RY]);
+        glm::vec2 cartesianQuadrantI(absX, absY);
+        float angle = glm::atan(cartesianQuadrantI.y / cartesianQuadrantI.x);
+        float radius = glm::length(cartesianQuadrantI);
+        bool isCenter = radius < CENTER_DEADBAND;
+        qDebug() << "[DAYDREAM-CONTROLLER2] absX " << fabs(_axisStateMap[controller::RX]) << ", absY " << fabs(_axisStateMap[controller::RY]) <<  " radius " << radius << " angle " << angle << " button found " << (isCenter ? "CENTER" : ((angle < DIAGONAL_DIVIDE_IN_RADIANS) ? " X " : " Y "));
+        _buttonPressedMap.insert(isCenter ? centerPseudoButton : ((angle < DIAGONAL_DIVIDE_IN_RADIANS) ? xPseudoButton :yPseudoButton));
     }
 }
 
@@ -285,44 +310,19 @@ controller::Input::NamedVector DaydreamControllerManager::DaydreamControllerDevi
 
         makePair(RX, "RX"),
         makePair(RY, "RY"),
-
-        // Trackpad analogs
-        //makePair(DU, "DU"),
-        //makePair(DD, "DD"),
-        //makePair(DL, "DL"),
-        //makePair(DR, "DR"),
-
-        // touch pad press
-//        makePair(LS, "LS"),
-//        makePair(RS, "RS"),
-        // Differentiate where we are in the touch pad click
-        //makePair(LS_CENTER, "LSCenter"),
-        //makePair(LS_X, "LSX"),
-        //makePair(LS_Y, "LSY"),
-//        makePair(RS_CENTER, "RSCenter"),
-//        makePair(RS_X, "RSX"),
-//        makePair(RS_Y, "RSY"),
-
-
-        // triggers
-        //makePair(LT, "LT"), // APP button
-//        makePair(RT, "RT"),
-
+        
+        makePair(RS_TOUCH, "RSTouch"),
         // Trigger clicks
         makePair(RT_CLICK, "RTClick"),
-//        makePair(RT_CLICK, "RTClick"),
 
-        // low profile side grip button.
-        //makePair(LEFT_GRIP, "LeftGrip"),
-//        makePair(RIGHT_GRIP, "RightGrip"),
+        // Differentiate where we are in the touch pad click
+        makePair(RS_CENTER, "RSCenter"),
+        makePair(RS_X, "RSX"),
+        makePair(RS_Y, "RSY"),
 
         // 3d location of controller
         makePair(RIGHT_HAND, "RightHand"),
-//        makePair(RIGHT_HAND, "RightHand"),
 
-        // app button above trackpad.
-        //Input::NamedPair(Input(_deviceID, LEFT_APP_MENU, ChannelType::BUTTON), "LeftApplicationMenu"),
-//        Input::NamedPair(Input(_deviceID, RIGHT_APP_MENU, ChannelType::BUTTON), "RightApplicationMenu"),
     };
 
     return availableInputs;
