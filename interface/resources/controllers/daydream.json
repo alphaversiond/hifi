@@ -1,7 +1,7 @@
 {
     "name": "Daydream to Standard",
     "channels": [
-        { "from": "Daydream.RY", "when": "Daydream.RSY", "filters": ["invert"], "to": "Standard.RY", "debug": true },
+        { "from": "Daydream.RY", "when": "Daydream.RSY", "to": "Actions.TranslateZ", "debug": true },
         { "from": "Daydream.RX", "when": "Daydream.RSX", "to": "Standard.RX", "debug": true },
 
         { "from": "Daydream.RTClick", "to": "Standard.RTClick", "peek": true, "debug": true},
