@@ -5481,6 +5481,9 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
     scriptEngine->registerGlobalObject("Users", DependencyManager::get<UsersScriptingInterface>().data());
 
+    scriptEngine->registerGlobalObject("App", this);
+    scriptEngine->registerFunction("App", "isAndroid", Application::isAndroid, 0);
+
 #ifndef ANDROID
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         scriptEngine->registerGlobalObject("Steam", new SteamScriptingInterface(scriptEngine, steamClient.get()));
@@ -6345,4 +6348,12 @@ void Application::updateThreadPoolCount() const {
     qCDebug(interfaceapp) << "Reserved threads " << reservedThreads;
     qCDebug(interfaceapp) << "Setting thread pool size to " << threadPoolSize;
     QThreadPool::globalInstance()->setMaxThreadCount(threadPoolSize);
+}
+
+QScriptValue Application::isAndroid(QScriptContext* context, QScriptEngine* engine) {
+#ifdef ANDROID
+            return QScriptValue(engine, true);
+#else
+            return QScriptValue(engine, false);
+#endif
 }

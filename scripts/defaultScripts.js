@@ -10,7 +10,6 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-var ANDROID = true;
 var DEFAULT_SCRIPTS = [];
 
 function pushAll(dest, orig) {
@@ -18,8 +17,7 @@ function pushAll(dest, orig) {
         dest.push(orig[k]);
     }
 }
-
-if (!ANDROID) {
+if (!App.isAndroid()) {
     pushAll(DEFAULT_SCRIPTS, [
         "system/progress.js",
         "system/away.js",
@@ -46,6 +44,7 @@ if (!ANDROID) {
         "system/bubble.js"
     ]);
 } else {
+    print('defaultScripts.js - isAndroid check IT IS ANDROID');
     pushAll(DEFAULT_SCRIPTS, [
         "system/progress.js",
         "system/away.js",

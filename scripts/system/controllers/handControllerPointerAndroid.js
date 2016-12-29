@@ -367,7 +367,7 @@ function updateMouseActivity(isClick) {
 }
 function expireMouseCursor(now) {
     if (!isPointingAtOverlay() && mouseCursorActivity.expired(now)) {
-        Reticle.visible = true; //false;
+        Reticle.visible = false;
     }
 }
 function hudReticleDistance() { // 3d distance from camera to the reticle position on hud
@@ -556,12 +556,11 @@ var LASER_SEARCH_COLOR_XYZW = {x: 10 / 255, y: 10 / 255, z: 255 / 255, w: LASER_
 var LASER_TRIGGER_COLOR_XYZW = {x: 250 / 255, y: 10 / 255, z: 10 / 255, w: LASER_ALPHA};
 var SYSTEM_LASER_DIRECTION = {x: 0, y: 0, z: -1};
 var systemLaserOn = false;
+
 function clearSystemLaser() {
-    // no more laser clearing?
-    //weMovedReticle = true;
-    //Reticle.position = { x: -1, y: -1};
+    // For android the laser is always ON
     return;
-    print("[CONTROLLER-3] clearSystemLaser systemLaserOn " + systemLaserOn);
+    /*print("[CONTROLLER-3] clearSystemLaser systemLaserOn " + systemLaserOn);
     if (!systemLaserOn) {
         return;
     }
@@ -569,7 +568,7 @@ function clearSystemLaser() {
     HMD.disableExtraLaser();
     systemLaserOn = false;
     weMovedReticle = true;
-    //Reticle.position = { x: -1, y: -1};
+    Reticle.position = { x: -1, y: -1};*/
 }
 function setColoredLaser() { // answer trigger state if lasers supported, else falsey.
     print("[CONTROLLER-4] setColoredLaser trigger " + activeTrigger.state + " isHandControllerAvailable " + HMD.isHandControllerAvailable());
@@ -626,13 +625,6 @@ function update() {
 
     leftTrigger.update();
     rightTrigger.update();
-
-    //getControllerWorldLocation(activeHand, true); // anddb remove this line, it's just for debug
-
-    /*var hudPoint2d;
-    if (activeHand) {
-        hudPoint2d = activeHudPoint2d(activeHand);
-    }*/
 
     if (!activeTrigger.state) {
         print("[CONTROLLER-3] // No trigger");
