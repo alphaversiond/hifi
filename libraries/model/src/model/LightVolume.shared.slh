@@ -29,7 +29,7 @@ float lightVolume_getRadiusSquare(LightVolume lv) { return lv.positionRadius.w *
 vec3 lightVolume_getDirection(LightVolume lv) { return lv.directionSpotCos.xyz; } // direction is -Z axis
 
 float lightVolume_getSpotAngleCos(LightVolume lv) { return lv.directionSpotCos.w; }
-vec2 lightVolume_getSpotOutsideNormal2(LightVolume lv) { return vec2(-1.0*sqrt(1.0 - lv.directionSpotCos.w * lv.directionSpotCos.w), lv.directionSpotCos.w); }
+vec2 lightVolume_getSpotOutsideNormal2(LightVolume lv) { return vec2(-sqrt(1.0 - lv.directionSpotCos.w * lv.directionSpotCos.w), lv.directionSpotCos.w); }
 
 
 bool lightVolume_clipFragToLightVolumePoint(LightVolume lv, vec3 fragPos, out vec4 fragLightVecLen2) {

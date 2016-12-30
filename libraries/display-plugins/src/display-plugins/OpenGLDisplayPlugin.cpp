@@ -97,7 +97,7 @@ public:
             Lock lock(_mutex);
             _shutdown = true;
             _condition.wait(lock, [&] { return !_shutdown;  });
-            qDebug() << "Present thread shutdown";
+            qCDebug(displayPlugins) << "Present thread shutdown";
         }
     }
 
@@ -504,7 +504,6 @@ void OpenGLDisplayPlugin::updateFrameData() {
 
 void OpenGLDisplayPlugin::compositeOverlay() {
     render([&](gpu::Batch& batch){
-        batch._debugBatch = true;
         batch.enableStereo(false);
         batch.setFramebuffer(_compositeFramebuffer);
         batch.setPipeline(_overlayPipeline);
@@ -553,9 +552,6 @@ void OpenGLDisplayPlugin::compositeScene() {
         batch.setStateScissorRect(ivec4(uvec2(), _compositeFramebuffer->getSize()));
         batch.resetViewTransform();
         batch.setProjectionTransform(mat4());
-        if (!_simplePipeline) {
-            //qDebug() << "OpenGLDisplayPlugin setting null _simplePipeline ";
-        }
         batch.setPipeline(_simplePipeline);
         batch.setResourceTexture(0, _currentFrame->framebuffer->getRenderBuffer(0));
         batch.draw(gpu::TRIANGLE_STRIP, 4);
@@ -593,10 +589,6 @@ void OpenGLDisplayPlugin::internalPresent() {
         batch.setFramebuffer(gpu::FramebufferPointer());
         batch.setViewportTransform(ivec4(uvec2(0), getSurfacePixels()));
         batch.setResourceTexture(0, _compositeFramebuffer->getRenderBuffer(0));
-        if (!_presentPipeline) {
-            qDebug() << "OpenGLDisplayPlugin setting null _presentPipeline ";
-        }
-
         batch.setPipeline(_presentPipeline);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
     });

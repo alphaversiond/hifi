@@ -126,6 +126,7 @@ void DeferredLightingEffect::init() {
 
     // Light Stage and clusters
     _lightStage = std::make_shared<LightStage>();
+    
     // Allocate a global light representing the Global Directional light casting shadow (the sun) and the ambient light
     _allocatedLights.push_back(std::make_shared<model::Light>());
     model::LightPointer lp = _allocatedLights[0];
@@ -479,6 +480,7 @@ model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
 }
 
 void PreparePrimaryFramebuffer::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, gpu::FramebufferPointer& primaryFramebuffer) {
+
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     auto framebufferSize = framebufferCache->getFrameBufferSize();
     glm::uvec2 frameSize(framebufferSize.width(), framebufferSize.height());
@@ -547,11 +549,7 @@ void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderC
     
     // Prepare a fresh Light Frame
     auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
-    if (deferredLightingEffect->getLightStage() != nullptr) {
-        deferredLightingEffect->getLightStage()->_currentFrame.clear();
-    }else {
-        qDebug() << "DeferredLightningEffect deferredLightingEffect->getLightStage() is null";
-    }
+    deferredLightingEffect->getLightStage()->_currentFrame.clear();
 }
 
 

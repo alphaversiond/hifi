@@ -24,6 +24,7 @@
 #include <QMimeData>
 #include <QDebug>
 
+#include "ui/Logging.h"
 #ifdef ANDROID
 #include <jni.h>
 
@@ -51,7 +52,7 @@ MainWindow::MainWindow(QWidget* parent) :
 }
 
 MainWindow::~MainWindow() {
-    qDebug() << "Destroying main window";
+    qCDebug(uiLogging) << "Destroying main window";
 }
 
 void MainWindow::restoreGeometry() {
@@ -67,9 +68,7 @@ void MainWindow::restoreGeometry() {
 #endif
     qDebug() << "MainWindow::restoreGeometry geometry: " << geometry;
     move(geometry.topLeft());
-    qDebug() << "MainWindow::restoreGeometry size: " << geometry.size();
     resize(geometry.size());
-    qDebug() << "MainWindow::restoreGeometry resize: " << geometry.size();
 
     // Restore to maximized or full screen after restoring to windowed so that going windowed goes to good position and sizes.
     Qt::WindowStates state = (Qt::WindowStates)_windowState.get(Qt::WindowNoState);

@@ -27,6 +27,7 @@
 #include "AddressManager.h"
 #include "Assignment.h"
 #include "HifiSockAddr.h"
+#include "FingerprintUtils.h"
 
 #include "NetworkLogging.h"
 #include "udt/PacketHeaders.h"
@@ -127,6 +128,7 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
     packetReceiver.registerListener(PacketType::ICEPingReply, &_domainHandler, "processICEPingReplyPacket");
     packetReceiver.registerListener(PacketType::DomainServerPathResponse, this, "processDomainServerPathResponse");
     packetReceiver.registerListener(PacketType::DomainServerRemovedNode, this, "processDomainServerRemovedNode");
+    packetReceiver.registerListener(PacketType::UsernameFromIDReply, this, "processUsernameFromIDReply");
 }
 
 qint64 NodeList::sendStats(QJsonObject statsObject, HifiSockAddr destination) {
@@ -370,6 +372,10 @@ void NodeList::sendDomainServerCheckIn() {
             }
 
             packetStream << hardwareAddress;
+
+            // now add the machine fingerprint - a null UUID if logged in, real one if not logged in
+            auto accountManager = DependencyManager::get<AccountManager>();
+            packetStream << (accountManager->isLoggedIn() ? QUuid() : FingerprintUtils::getMachineFingerprint());
         }
 
         // pack our data to send to the domain-server including
@@ -395,7 +401,7 @@ void NodeList::sendDomainServerCheckIn() {
         if (_numNoReplyDomainCheckIns >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
             // we haven't heard back from DS in MAX_SILENT_DOMAIN_SERVER_CHECK_INS
             // so emit our signal that says that
-            qDebug() << "Limit of silent domain checkins reached";
+            qCDebug(networking) << "Limit of silent domain checkins reached";
             emit limitOfSilentDomainCheckInsReached();
         }
 
@@ -623,7 +629,7 @@ void NodeList::processDomainServerAddedNode(QSharedPointer<ReceivedMessage> mess
 void NodeList::processDomainServerRemovedNode(QSharedPointer<ReceivedMessage> message) {
     // read the UUID from the packet, remove it if it exists
     QUuid nodeUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
-    qDebug() << "Received packet from domain-server to remove node with UUID" << uuidStringWithoutCurlyBraces(nodeUUID);
+    qCDebug(networking) << "Received packet from domain-server to remove node with UUID" << uuidStringWithoutCurlyBraces(nodeUUID);
     killNodeWithUUID(nodeUUID);
 }
 
@@ -787,7 +793,7 @@ void NodeList::ignoreNodeBySessionID(const QUuid& nodeID) {
             // write the node ID to the packet
             ignorePacket->write(nodeID.toRfc4122());
 
-            qDebug() << "Sending packet to ignore node" << uuidStringWithoutCurlyBraces(nodeID);
+            qCDebug(networking) << "Sending packet to ignore node" << uuidStringWithoutCurlyBraces(nodeID);
 
             // send off this ignore packet reliably to the matching node
             sendPacket(std::move(ignorePacket), *destinationNode);
@@ -849,7 +855,7 @@ void NodeList::kickNodeBySessionID(const QUuid& nodeID) {
             // write the node ID to the packet
             kickPacket->write(nodeID.toRfc4122());
 
-            qDebug() << "Sending packet to kick node" << uuidStringWithoutCurlyBraces(nodeID);
+            qCDebug(networking) << "Sending packet to kick node" << uuidStringWithoutCurlyBraces(nodeID);
 
             sendPacket(std::move(kickPacket), _domainHandler.getSockAddr());
         } else {
@@ -874,7 +880,7 @@ void NodeList::muteNodeBySessionID(const QUuid& nodeID) {
                 // write the node ID to the packet
                 mutePacket->write(nodeID.toRfc4122());
 
-                qDebug() << "Sending packet to mute node" << uuidStringWithoutCurlyBraces(nodeID);
+                qCDebug(networking) << "Sending packet to mute node" << uuidStringWithoutCurlyBraces(nodeID);
             
                 sendPacket(std::move(mutePacket), *audioMixer);
             } else {
@@ -888,4 +894,39 @@ void NodeList::muteNodeBySessionID(const QUuid& nodeID) {
         qWarning() << "NodeList::muteNodeBySessionID called with an invalid ID or an ID which matches the current session ID.";
 
     }
+}
+
+void NodeList::requestUsernameFromSessionID(const QUuid& nodeID) {
+    // send a request to domain-server to get the username associated with the given session ID
+    if (getThisNodeCanKick() || nodeID.isNull()) {
+        // setup the packet
+        auto usernameFromIDRequestPacket = NLPacket::create(PacketType::UsernameFromIDRequest, NUM_BYTES_RFC4122_UUID, true);
+
+        // write the node ID to the packet
+        if (nodeID.isNull()) {
+            usernameFromIDRequestPacket->write(getSessionUUID().toRfc4122());
+        } else {
+            usernameFromIDRequestPacket->write(nodeID.toRfc4122());
+        }
+
+        qCDebug(networking) << "Sending packet to get username of node" << uuidStringWithoutCurlyBraces(nodeID);
+
+        sendPacket(std::move(usernameFromIDRequestPacket), _domainHandler.getSockAddr());
+    } else {
+        qWarning() << "You do not have permissions to kick in this domain."
+            << "Request to get the username of node" << uuidStringWithoutCurlyBraces(nodeID) << "will not be sent";
+    }
+}
+
+void NodeList::processUsernameFromIDReply(QSharedPointer<ReceivedMessage> message) {
+    // read the UUID from the packet
+    QString nodeUUIDString = (QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID))).toString();
+    // read the username from the packet
+    QString username = message->readString();
+    // read the machine fingerprint from the packet
+    QString machineFingerprintString = (QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID))).toString();
+
+    qCDebug(networking) << "Got username" << username << "and machine fingerprint" << machineFingerprintString << "for node" << nodeUUIDString;
+
+    emit usernameFromIDReply(nodeUUIDString, username, machineFingerprintString);
 }

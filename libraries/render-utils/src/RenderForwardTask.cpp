@@ -31,14 +31,8 @@
 #include <render/drawItemBounds_frag.h>
 
 using namespace render;
-extern void initOverlay3DPipelines(render::ShapePlumber& plumber);
-extern void initDeferredPipelines(render::ShapePlumber& plumber);
 
 RenderForwardTask::RenderForwardTask(CullFunctor cullFunctor) {
-    // Prepare the ShapePipelines
-    ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
-    initDeferredPipelines(*shapePlumber);
-
     // CPU jobs:
     // Fetch and cull the items from the scene
     const auto spatialSelection = addJob<FetchSpatialTree>("FetchSceneSelection");
@@ -80,6 +74,9 @@ RenderForwardTask::RenderForwardTask(CullFunctor cullFunctor) {
 
     const auto framebuffer = addJob<PrepareFramebuffer>("PrepareFramebuffer");
 
+    addJob<DrawBackground>("DrawBackground", background);
+
+    // bounds do not draw on stencil buffer, so they must come last
     addJob<DrawBounds>("DrawBounds", opaques);
 
     // Blit!
@@ -110,7 +107,6 @@ void PrepareFramebuffer::run(const SceneContextPointer& sceneContext, const Rend
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     auto framebufferSize = framebufferCache->getFrameBufferSize();
     glm::uvec2 frameSize(framebufferSize.width(), framebufferSize.height());
-    //glm::uvec2 frameSize(2560, 1440);
 
     // Resizing framebuffers instead of re-building them seems to cause issues with threaded rendering
     if (_framebuffer && _framebuffer->getSize() != frameSize) {
@@ -124,6 +120,7 @@ void PrepareFramebuffer::run(const SceneContextPointer& sceneContext, const Rend
         auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
         auto colorTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, frameSize.x, frameSize.y, defaultSampler));
         _framebuffer->setRenderBuffer(0, colorTexture);
+
         auto depthFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL); // Depth24_Stencil8 texel format
         auto depthTexture = gpu::TexturePointer(gpu::Texture::create2D(depthFormat, frameSize.x, frameSize.y, defaultSampler));
         _framebuffer->setDepthStencilBuffer(depthTexture, depthFormat);
@@ -151,13 +148,11 @@ const gpu::PipelinePointer DrawBounds::getPipeline() {
         auto vs = gpu::Shader::createVertex(std::string(drawItemBounds_vert));
         auto ps = gpu::Shader::createPixel(std::string(drawItemBounds_frag));
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-        qDebug() << "drawItemBounds_vert " << drawItemBounds_vert;
 
         gpu::Shader::BindingSet slotBindings;
         gpu::Shader::makeProgram(*program, slotBindings);
 
         _cornerLocation = program->getUniforms().findLocation("inBoundPos");
-        qDebug() << "_cornerLocation " << _cornerLocation;
         _scaleLocation = program->getUniforms().findLocation("inBoundDim");
 
         auto state = std::make_shared<gpu::State>();
@@ -175,6 +170,8 @@ void DrawBounds::run(const SceneContextPointer& sceneContext, const RenderContex
     RenderArgs* args = renderContext->args;
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        args->_batch = &batch;
+
         // Setup projection
         glm::mat4 projMat;
         Transform viewMat;
@@ -198,4 +195,27 @@ void DrawBounds::run(const SceneContextPointer& sceneContext, const RenderContex
             batch.draw(gpu::LINES, NUM_VERTICES_PER_CUBE, 0);
         }
     });
+}
+
+void DrawBackground::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& items) {
+    RenderArgs* args = renderContext->args;
+
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        args->_batch = &batch;
+
+        batch.enableSkybox(true);
+        batch.setViewportTransform(args->_viewport);
+        batch.setStateScissorRect(args->_viewport);
+
+        // Setup projection
+        glm::mat4 projMat;
+        Transform viewMat;
+        args->getViewFrustum().evalProjectionMatrix(projMat);
+        args->getViewFrustum().evalViewTransform(viewMat);
+        batch.setProjectionTransform(projMat);
+        batch.setViewTransform(viewMat);
+
+        renderItems(sceneContext, renderContext, items);
+    });
+    args->_batch = nullptr;
 }
