@@ -7,7 +7,7 @@
         { "from": "Daydream.RTClick", "to": "Standard.RTClick", "peek": true, "debug": true},
         { "from": "Daydream.RS", "to": "Standard.RS" },
         { "from": "Daydream.RSTouch", "to": "Standard.RSTouch" },
-		{ "from": "Daydream.RSCenter", "to": "Standard.RightPrimaryThumb" },
+		{ "from": "Daydream.RightPrimaryThumb", "to": "Standard.RightPrimaryThumb" },
 
         { "from": "Daydream.RightHand", "to": "Standard.RightHand", "when": [ "Application.InHMD" ]  }    
     ]

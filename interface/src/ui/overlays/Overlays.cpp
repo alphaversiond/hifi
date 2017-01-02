@@ -262,28 +262,41 @@ bool Overlays::editOverlays(const QVariant& propertiesById) {
 
 void Overlays::deleteOverlay(unsigned int id) {
     Overlay::Pointer overlayToDelete;
-
+    qDebug() << "teleport deleteOverlay";
     {
         QWriteLocker lock(&_lock);
+        qDebug() << "teleport deleteOverlay taking overlay to delete";
         if (_overlaysHUD.contains(id)) {
             overlayToDelete = _overlaysHUD.take(id);
         } else if (_overlaysWorld.contains(id)) {
             overlayToDelete = _overlaysWorld.take(id);
         } else {
+            qDebug() << "teleport deleteOverlay taking overlay to delete RETURN";
             return;
         }
+        qDebug() << "teleport deleteOverlay taking overlay to delete DONE";
     }
-
+    qDebug() << "teleport deleteOverlay casting overlayToDelete";
+//#ifndef ANDROID
     auto attachable = std::dynamic_pointer_cast<PanelAttachable>(overlayToDelete);
+//#else
+//    PanelAttachable* attachable = /*(PanelAttachable*)*/ ((overlayToDelete).get());
+//#endif
+    qDebug() << "teleport deleteOverlay checking if it was attachable";
     if (attachable && attachable->getParentPanel()) {
+        qDebug() << "teleport deleteOverlay removing Child";
         attachable->getParentPanel()->removeChild(id);
+        qDebug() << "teleport deleteOverlay clearing";
         attachable->setParentPanel(nullptr);
+        qDebug() << "teleport deleteOverlay clearing DONE";
     }
 
     QWriteLocker lock(&_deleteLock);
+    qDebug() << "teleport deleteOverlay pushing back the overlayToDelete";
     _overlaysToDelete.push_back(overlayToDelete);
-
+    qDebug() << "teleport deleteOverlay emitting overlayDeleted id " << id;
     emit overlayDeleted(id);
+    qDebug() << "teleport deleteOverlay DONE";
 }
 
 QString Overlays::getOverlayType(unsigned int overlayId) const {
@@ -296,7 +309,11 @@ QString Overlays::getOverlayType(unsigned int overlayId) const {
 
 unsigned int Overlays::getParentPanel(unsigned int childId) const {
     Overlay::Pointer overlay = getOverlay(childId);
+//#ifndef ANDROID
     auto attachable = std::dynamic_pointer_cast<PanelAttachable>(overlay);
+//#else
+//    PanelAttachable* attachable = /*(PanelAttachable*)*/ ((overlayToDelete).get());
+//#endif
     if (attachable) {
         return _panels.key(attachable->getParentPanel());
     } else if (_panels.contains(childId)) {
@@ -306,7 +323,11 @@ unsigned int Overlays::getParentPanel(unsigned int childId) const {
 }
 
 void Overlays::setParentPanel(unsigned int childId, unsigned int panelId) {
+//#ifndef ANDROID
     auto attachable = std::dynamic_pointer_cast<PanelAttachable>(getOverlay(childId));
+//#else
+//    PanelAttachable* attachable = /*(PanelAttachable*)*/ ((overlayToDelete).get());
+//#endif
     if (attachable) {
         if (_panels.contains(panelId)) {
             auto panel = getPanel(panelId);

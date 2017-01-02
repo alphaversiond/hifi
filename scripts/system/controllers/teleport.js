@@ -10,6 +10,14 @@
 
 (function() { // BEGIN LOCAL_SCOPE
 
+var logEnabled = true;
+function printd(str) {
+    if (logEnabled)
+        print("teleport.js " + str);
+}
+
+printd("begin");
+
 var inTeleportMode = false;
 
 var SMOOTH_ARRIVAL_SPACING = 33;
@@ -107,14 +115,14 @@ function Teleporter() {
     };
 
     this.enterTeleportMode = function(hand) {
-
+        printd("enterTeleportMode start");
         if (inTeleportMode === true) {
             return;
         }
         if (isDisabled === 'both') {
             return;
         }
-
+        printd("enterTeleportMode wasn't yet and not disabled..");
         inTeleportMode = true;
         this.inCoolIn = true;
         if (coolInTimeout !== null) {
@@ -136,7 +144,7 @@ function Teleporter() {
         this.initialize();
         Script.update.connect(this.update);
         this.updateConnected = true;
-
+        printd("enterTeleportMode end");
 
 
     };
@@ -231,31 +239,40 @@ function Teleporter() {
 
     this.turnOffOverlayBeams = function() {
         this.rightOverlayOff();
+        printd("rightOverlayOff done");
         this.leftOverlayOff();
+        printd("leftOverlayOff done");
     }
 
     this.exitTeleportMode = function(value) {
+        printd("exitTeleportMode");
         if (activationTimeout !== null) {
+            printd("exitTeleportMode claring timeout");
             Script.clearTimeout(activationTimeout);
             activationTimeout = null;
+            printd("exitTeleportMode claring timeout DONE");
         }
         if (this.updateConnected === true) {
+            printd("exitTeleportMode disconnecting");
             Script.update.disconnect(this.update);
+            printd("exitTeleportMode disconnecting DONE");
         }
-
+        printd("exitTeleportMode disabling mappings");
         this.disableMappings();
+        printd("exitTeleportMode turning off overlay beams");
         this.turnOffOverlayBeams();
 
         this.updateConnected = null;
         this.inCoolIn = false;
         inTeleportMode = false;
+        printd("exitTeleportMode DONE");
     };
 
     this.update = function() {
         if (isDisabled === 'both') {
             return;
         }
-
+        printd("Teleporter update()");
         if (teleporter.teleportHand === 'left') {
             if (isDisabled === 'left') {
                 return;
@@ -283,12 +300,14 @@ function Teleporter() {
                     _this.hideTargetOverlay();
                     _this.hideCancelOverlay();
                 } else {
+                    printd("Teleporter update() doing teleport");
                     _this.teleport();
+                    printd("Teleporter update() teleport done");
                 }
                 return;
             }
         }
-
+        printd("Teleporter update() end");
     };
 
     this.rightRay = function() {
@@ -468,15 +487,19 @@ function Teleporter() {
     };
     this.rightOverlayOff = function() {
         if (this.rightOverlayLine !== null) {
+            printd("rightOverlayOff deleting");
             Overlays.deleteOverlay(this.rightOverlayLine);
             this.rightOverlayLine = null;
+            printd("rightOverlayOff deleting DONE");
         }
     };
 
     this.leftOverlayOff = function() {
         if (this.leftOverlayLine !== null) {
+            printd("leftOverlayOff deleting");
             Overlays.deleteOverlay(this.leftOverlayLine);
             this.leftOverlayLine = null;
+            printd("leftOverlayOff deleting DONE");
         }
     };
 
@@ -531,24 +554,33 @@ function Teleporter() {
     this.teleport = function(value) {
 
         if (value === undefined) {
+            printd("teleport exiting mode");
             this.exitTeleportMode();
+            printd("teleport exiting mode DONE");
         }
 
         if (this.intersection !== null) {
             if (this.tooClose === true) {
+                printd("teleport was to close");
                 this.exitTeleportMode();
                 this.hideCancelOverlay();
+                printd("teleport was to close DONE");
                 return;
             }
+            printd("teleport intersection good");
             var offset = getAvatarFootOffset();
             this.intersection.intersection.y += offset;
             this.exitTeleportMode();
             // Disable smooth arrival, possibly temporarily
             //this.smoothArrival();
+            printd("teleport setting new position..");
             MyAvatar.position = _this.intersection.intersection;
+            printd("teleport setting new position DONE");
             _this.hideTargetOverlay();
             _this.hideCancelOverlay();
+            printd("teleport overlays hidden");
             HMD.centerUI();
+            printd("teleport UI centered");
         }
     };
 
@@ -713,6 +745,7 @@ function registerMappings() {
         });
     teleportMapping.from(Controller.Standard.RightPrimaryThumb)
         .to(function(value) {
+            printd("RightPrimaryThumb")
             if (isDisabled === 'right' || isDisabled === 'both') {
                 return;
             }
@@ -725,12 +758,13 @@ function registerMappings() {
             if (isMoving() === true) {
                 return;
             }
-
+            printd("RightPrimaryThumb setting timeout");
             activationTimeout = Script.setTimeout(function() {
                 teleporter.enterTeleportMode('right')
                 Script.clearTimeout(activationTimeout);
                 activationTimeout = null;
             }, TELEPORT_DELAY)
+            printd("RightPrimaryThumb timeout set");
             return;
         });
 };
@@ -778,5 +812,7 @@ var handleHandMessages = function(channel, message, sender) {
 
 Messages.subscribe('Hifi-Teleport-Disabler');
 Messages.messageReceived.connect(handleHandMessages);
+
+printd("end");
 
 }()); // END LOCAL_SCOPE

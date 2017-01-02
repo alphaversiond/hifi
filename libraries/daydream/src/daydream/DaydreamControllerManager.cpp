@@ -264,6 +264,7 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleButtonEvent(floa
             _buttonPressedMap.insert(RS);
             _buttonPressedMap.insert(RS_TOUCH);
         } else if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_APP) {
+            _buttonPressedMap.insert(RIGHT_PRIMARY_THUMB);
           //_buttonPressedMap.insert(LS);
         } else if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_HOME) {
             // TODO: we must not use this home button, check the desired mapping
@@ -282,6 +283,9 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleButtonEvent(floa
             _buttonPressedMap.insert(RT);
             _buttonPressedMap.insert(RS);
             _buttonPressedMap.insert(RS_TOUCH);
+        } else if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_APP) {
+            _buttonPressedMap.insert(RIGHT_PRIMARY_THUMB);
+          //_buttonPressedMap.insert(LS);
         }
     }
 
@@ -292,6 +296,9 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleButtonEvent(floa
             //_buttonPressedMap.insert(LS_TOUCH);
             //qDebug() << "[DAYDREAM-CONTROLLER]: RT_CLICK inserted";
             //_buttonPressedMap.insert(RT_CLICK);
+        } else if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_APP) {
+            _buttonPressedMap.insert(RIGHT_PRIMARY_THUMB);
+          //_buttonPressedMap.insert(LS);
         }
     }
 }
@@ -357,6 +364,8 @@ controller::Input::NamedVector DaydreamControllerManager::DaydreamControllerDevi
         makePair(RS_CENTER, "RSCenter"),
         makePair(RS_X, "RSX"),
         makePair(RS_Y, "RSY"),
+
+        makePair(RIGHT_PRIMARY_THUMB, "RightPrimaryThumb"),
 
         // 3d location of controller
         makePair(RIGHT_HAND, "RightHand"),
