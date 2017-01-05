@@ -197,7 +197,7 @@ public:
 
     Q_INVOKABLE bool isPointingAtSystemOverlay() {
         bool pointing = !_compositor->getReticleOverDesktop();
-        qDebug() << "[controller] isPointingAtSystemOverlay " << !_compositor->getReticleOverDesktop();
+        //qDebug() << "[controller] isPointingAtSystemOverlay " << !_compositor->getReticleOverDesktop();
         return pointing;
     }
 

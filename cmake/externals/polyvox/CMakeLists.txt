@@ -1,7 +1,10 @@
 set(EXTERNAL_NAME polyvox)
 
 if (ANDROID)
-  set(ANDROID_CMAKE_ARGS "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}" "-DANDROID_NATIVE_API_LEVEL=24")
+  include("../../../cmake/android/ToolchainSetup.cmake")
+  set(ANDROID_ARGS "")
+  toolchain_setup_args(ANDROID_ARGS "gnustl")
+  list(APPEND ANDROID_CMAKE_ARGS ${ANDROID_ARGS})
 endif ()
 
 include(ExternalProject)

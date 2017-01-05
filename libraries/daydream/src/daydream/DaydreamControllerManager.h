@@ -55,6 +55,9 @@ private:
         void focusOutEvent() override;
         void partitionTouchpad(int sButton, int xAxis, int yAxis, int centerPsuedoButton, int xPseudoButton, int yPseudoButton);
         
+        QString nvlButn(int w);
+        QString nvlAxis(int w);
+
         class FilteredStick {
         public:
             glm::vec2 process(float deltaTime, const glm::vec2& stick) {

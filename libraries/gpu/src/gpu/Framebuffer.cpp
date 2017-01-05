@@ -15,6 +15,8 @@
 
 #include <Transform.h>
 
+#include <androidhacks.h>
+
 using namespace gpu;
 
 Framebuffer::~Framebuffer() {

@@ -287,6 +287,8 @@ public:
     Q_INVOKABLE void sendHoverOverEntity(QUuid id, PointerEvent event);
     Q_INVOKABLE void sendHoverLeaveEntity(QUuid id, PointerEvent event);
 
+    static Q_INVOKABLE QScriptValue isAndroid(QScriptContext* context, QScriptEngine* engine);
+
 signals:
     void svoImportRequested(const QString& url);
 
