@@ -581,6 +581,8 @@ function Teleporter() {
             printd("teleport overlays hidden");
             HMD.centerUI();
             printd("teleport UI centered");
+        } else {
+            printd("intersection was null, no teleport");
         }
     };
 

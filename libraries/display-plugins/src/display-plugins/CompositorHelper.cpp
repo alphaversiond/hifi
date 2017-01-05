@@ -269,17 +269,17 @@ bool CompositorHelper::getReticleOverDesktop() const {
         QMutexLocker locker(&_reticleLock);
         glm::vec2 maxOverlayPosition = _currentDisplayPlugin->getRecommendedUiSize();
         static const glm::vec2 minOverlayPosition;
-        qDebug() << "[controller] getReticleOverDesktop is over desktop VALUES: " <<
+        /*qDebug() << "[controller] getReticleOverDesktop is over desktop VALUES: " <<
                 " _reticlePositionInHMD : " << _reticlePositionInHMD.x << "," << _reticlePositionInHMD.y <<
                 " minOverlayPosition : " << minOverlayPosition.x << "," << minOverlayPosition.y <<
                 " maxOverlayPosition : " << maxOverlayPosition.x << "," << maxOverlayPosition.y
-                ;
+                ;*/
         if (glm::any(glm::lessThan(_reticlePositionInHMD, minOverlayPosition)) ||
             glm::any(glm::greaterThan(_reticlePositionInHMD, maxOverlayPosition))) {
             qDebug() << "[controller] getReticleOverDesktop is over desktop!";
             return true;
         }
-        qDebug() << "[controller] getReticleOverDesktop is NOT over desktop, return old value: " << _isOverDesktop;
+        //qDebug() << "[controller] getReticleOverDesktop is NOT over desktop, return old value: " << _isOverDesktop;
     }
     return _isOverDesktop;
 }
