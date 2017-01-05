@@ -2,6 +2,8 @@
 #include <QtNetwork/QNetworkReply>
 #include "FBXReader.h"
 
+#include <androidhacks.h>
+
 class OBJTokenizer {
 public:
     OBJTokenizer(QIODevice* device);

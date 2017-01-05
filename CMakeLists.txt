@@ -1,27 +1,13 @@
 cmake_minimum_required(VERSION 3.2)
 
 if (USE_ANDROID_TOOLCHAIN)
-  set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/android/android.toolchain.cmake")
-  set(ANDROID_NATIVE_API_LEVEL 24)
-  set(ANDROID_NDK_BAK "$ENV{ANDROID_NDK}")
-  set(ANDROID_NDK "") # turn it off so it chooses the standalone one
+  include("cmake/android/ToolchainSetup.cmake")
+  toolchain_setup("gnustl")
 
-  set(__ANDROID_STANDALONE_TOOLCHAIN "${ANDROID_NDK_BAK}/toolchains/my-tc-24-libc")
-  if( NOT EXISTS "${__ANDROID_STANDALONE_TOOLCHAIN}" )
-    message( FATAL_ERROR "The required standalone toolchain could not be found.
-    Generate it with
-      ${ANDROID_NDK_BAK}/build/tools/make_standalone_toolchain.py --arch arm --api 24 --stl=libc++ --install-dir ${ANDROID_NDK_BAK}/toolchains/my-tc-24-libc
-    " )
-  endif()
-
-  set(ANDROID_STANDALONE_TOOLCHAIN "${__ANDROID_STANDALONE_TOOLCHAIN}")
-  set(ANDROID_COMPILER_IS_CLANG 1)
-
-  # the intention is still to use the shared library but for it only works
-  # with the static one by now
-  set(ANDROID_STL c++_static)
-
-endif ()
+  set(ANDROID_ARGSXX "")
+  toolchain_setup_args(ANDROID_ARGSXX "gnustl")
+  message(STATUS "arguments to use ${ANDROID_ARGSXX}")
+endif()
 
 if (WIN32)
   cmake_policy(SET CMP0020 NEW)
@@ -225,7 +211,9 @@ endforeach()
 if (ANDROID)
   file(GLOB ANDROID_CUSTOM_MACROS "cmake/android/*.cmake")
   foreach(CUSTOM_MACRO ${ANDROID_CUSTOM_MACROS})
-    include(${CUSTOM_MACRO})
+    if (NOT ${CUSTOM_MACRO} MATCHES ".*ToolchainSetup.cmake")
+      include(${CUSTOM_MACRO})
+    endif()
   endforeach()
 
   # testing gvr cmake TODO delete
