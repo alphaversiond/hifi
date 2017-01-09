@@ -129,12 +129,19 @@ void Octree::recurseElementWithOperation(OctreeElementPointer element, RecurseOc
     }
 
     if (operation(element, extraData)) {
+        //qDebug() << "teleport Octree::recurseElementWithOperation operation? true";
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+            //qDebug() << "teleport Octree::recurseElementWithOperation with an element";
             OctreeElementPointer child = element->getChildAtIndex(i);
             if (child) {
                 recurseElementWithOperation(child, operation, extraData, recursionCount+1);
+                //qDebug() << "teleport Octree::recurseElementWithOperation with an element DONE";
+            } else {
+                //qDebug() << "teleport Octree::recurseElementWithOperation with an element no child!";
             }
         }
+    } else {
+        //qDebug() << "teleport Octree::recurseElementWithOperation operation? false";
     }
 }
 

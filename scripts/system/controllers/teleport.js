@@ -331,7 +331,19 @@ function Teleporter() {
 
 
         var rightIntersection = Entities.findRayIntersection(teleporter.rightPickRay, true, [], [this.targetEntity], true, true);
-
+        // CLD Hardcoding to see next steps working
+        /*rightIntersection = {
+            "intersects" : true,
+            "accurate" : true,
+            "entityID" : 0,
+            "properties" : {},
+            "distance" : 1,
+            "face" : "MIN_X_FACE",
+            "intersection" : {"x": 0.257461, "y": 0, "z": -5.11505},
+            "surfaceNormal" : {"x": 0, "y": 1, "z": 0}
+        };*/
+        //0.257461,0,-5.11505
+        printd("rightIntersection intersection " + JSON.stringify(rightIntersection.intersection));
         if (rightIntersection.intersects) {
             if (this.tooClose === true) {
                 this.hideTargetOverlay();

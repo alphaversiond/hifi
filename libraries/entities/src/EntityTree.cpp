@@ -580,6 +580,7 @@ bool EntityTree::findNearPointOperation(OctreeElementPointer element, void* extr
 }
 
 bool findRayIntersectionOp(OctreeElementPointer element, void* extraData) {
+    qDebug() << "teleport EntityTree::findRayIntersectionOp start";
     RayArgs* args = static_cast<RayArgs*>(extraData);
     bool keepSearching = true;
     EntityTreeElementPointer entityTreeElementPointer = std::static_pointer_cast<EntityTreeElement>(element);
@@ -588,6 +589,7 @@ bool findRayIntersectionOp(OctreeElementPointer element, void* extraData) {
         args->entityIdsToDiscard, args->visibleOnly, args->collidableOnly, args->intersectedObject, args->precisionPicking)) {
         args->found = true;
     }
+    qDebug() << "teleport EntityTree::findRayIntersectionOp ended (keep searching? " << keepSearching;
     return keepSearching;
 }
 
@@ -597,6 +599,7 @@ bool EntityTree::findRayIntersection(const glm::vec3& origin, const glm::vec3& d
                                     OctreeElementPointer& element, float& distance,
                                     BoxFace& face, glm::vec3& surfaceNormal, void** intersectedObject,
                                     Octree::lockType lockType, bool* accurateResult) {
+    qDebug() << "teleport EntityTree::findRayIntersection start";
     RayArgs args = { origin, direction, entityIdsToInclude, entityIdsToDiscard,
             visibleOnly, collidableOnly, precisionPicking,
             element, distance, face, surfaceNormal,  intersectedObject, false };
@@ -610,7 +613,7 @@ bool EntityTree::findRayIntersection(const glm::vec3& origin, const glm::vec3& d
     if (accurateResult) {
         *accurateResult = lockResult; // if user asked to accuracy or result, let them know this is accurate
     }
-
+    qDebug() << "teleport EntityTree::findRayIntersection end found? " << args.found;
     return args.found;
 }
 
