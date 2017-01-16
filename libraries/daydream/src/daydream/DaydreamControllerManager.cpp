@@ -260,7 +260,7 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleButtonEvent(floa
         if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_CLICK) {
             //qDebug() << "[DAYDREAM-CONTROLLER]: RT_CLICK inserted";
             //_buttonPressedMap.insert(RT_CLICK);
-            _buttonPressedMap.insert(RT);
+            //_buttonPressedMap.insert(RT);
             _buttonPressedMap.insert(RS);
             _buttonPressedMap.insert(RS_TOUCH);
         } else if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_APP) {
@@ -280,7 +280,7 @@ void DaydreamControllerManager::DaydreamControllerDevice::handleButtonEvent(floa
         if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_CLICK) {
             //qDebug() << "[DAYDREAM-CONTROLLER]: RT_CLICK inserted (continues)";
             //_buttonPressedMap.insert(RT_CLICK);
-            _buttonPressedMap.insert(RT);
+            //_buttonPressedMap.insert(RT);
             _buttonPressedMap.insert(RS);
             _buttonPressedMap.insert(RS_TOUCH);
         } else if (button == gvr_controller_button::GVR_CONTROLLER_BUTTON_APP) {
@@ -337,6 +337,11 @@ void DaydreamControllerManager::DaydreamControllerDevice::partitionTouchpad(int 
         //_buttonPressedMap.insert(isCenter ? centerPseudoButton : ((angle < DIAGONAL_DIVIDE_IN_RADIANS) ? xPseudoButton :yPseudoButton));
         qDebug() << "[DAYDREAM-CONTROLLER2]insert: " << toInsert;
         _buttonPressedMap.insert(toInsert);
+        if (isCenter) {
+            // extra RT
+            _buttonPressedMap.insert(controller::RT);
+            _axisStateMap[controller::RT] = 1;
+        }
     }
 }
 
@@ -357,6 +362,10 @@ controller::Input::NamedVector DaydreamControllerManager::DaydreamControllerDevi
         makePair(RY, "RY"),
         
         makePair(RS_TOUCH, "RSTouch"),
+
+        // triggers
+        makePair(RT, "RT"),
+
         // Trigger clicks
         makePair(RT_CLICK, "RTClick"),
 

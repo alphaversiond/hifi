@@ -897,7 +897,6 @@ void ScriptEngine::run() {
             auto thisSleepUntil = std::min(sleepUntil, clock::now() + FRAME_DURATION);
             std::this_thread::sleep_until(thisSleepUntil);
         }
-
 #ifdef SCRIPT_DELAY_DEBUG
         {
             auto actuallySleptUntil = clock::now();
@@ -1068,7 +1067,7 @@ void ScriptEngine::timerFired() {
 
     QTimer* callingTimer = reinterpret_cast<QTimer*>(sender());
     CallbackData timerData = _timerFunctionMap.value(callingTimer);
-
+    qCDebug(scriptengine) << "ScriptEngine::timerFired for " << timerData.function.toString();
     if (!callingTimer->isActive()) {
         // this timer is done, we can kill it
         _timerFunctionMap.remove(callingTimer);
@@ -1077,7 +1076,11 @@ void ScriptEngine::timerFired() {
 
     // call the associated JS function, if it exists
     if (timerData.function.isValid()) {
+        //qCDebug(scriptengine) << "ScriptEngine::timerFired for " << timerData.function.toString() << " function was valid, calling..";
         callWithEnvironment(timerData.definingEntityIdentifier, timerData.definingSandboxURL, timerData.function, timerData.function, QScriptValueList());
+        //qCDebug(scriptengine) << "ScriptEngine::timerFired for " << timerData.function.toString() << " function was valid, calling.. DONE";
+    } else {
+        //qCDebug(scriptengine) << "ScriptEngine::timerFired for " << timerData.function.toString() << " function was not valid";
     }
 }
 

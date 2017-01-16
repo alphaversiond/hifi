@@ -106,7 +106,7 @@ namespace controller {
 
     Pose ScriptingInterface::getPoseValue(const int& source) const {
         auto userInputMapper = DependencyManager::get<UserInputMapper>();
-        qDebug() << "ScriptingInterface::getPoseValue returning..";
+        //qDebug() << "ScriptingInterface::getPoseValue returning..";
         return userInputMapper->getPose(Input((uint32_t)source)); 
     }
     

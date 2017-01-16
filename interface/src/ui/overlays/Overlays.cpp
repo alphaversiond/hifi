@@ -206,7 +206,9 @@ unsigned int Overlays::addOverlay(Overlay::Pointer overlay) {
     } else {
         _overlaysHUD[thisID] = overlay;
     }
-
+    /*qDebug() << "handcontrollerpointer Overlays::addOverlay type: " << overlay->getType() << " pos: " << overlay->getProperty("x").toString() << " , " << overlay->getProperty("y").toString() << 
+                " size: " << overlay->getProperty("width").toString() << "x" << overlay->getProperty("height").toString();
+    qDebug() << "handcontrollerpointer Overlays::addOverlay ID: " << thisID << " text?: " << overlay->getProperty("text").toString() << " visible? " << overlay->getVisible();*/
     return thisID;
 }
 
@@ -344,11 +346,11 @@ void Overlays::setParentPanel(unsigned int childId, unsigned int panelId) {
 }
 
 unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
-    //qDebug() << "[CONTROLLER-DEBUG-15] getOverlayAtPoint " << point;
+    qDebug() << "[CONTROLLER-DEBUG-15] grab getOverlayAtPoint " << point;
     glm::vec2 pointCopy = point;
     QReadLocker lock(&_lock);
     if (!_enabled) {
-        //qDebug() << "[CONTROLLER-DEBUG-15] not enabled";
+        qDebug() << "[CONTROLLER-DEBUG-15] grab not enabled";
         return 0;
     }
     QMapIterator<unsigned int, Overlay::Pointer> i(_overlaysHUD);
@@ -365,24 +367,32 @@ unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
         i.previous();
         unsigned int thisID = i.key();
         if (i.value()->is3D()) {
-            //qDebug() << "[CONTROLLER-DEBUG-15] is3D";
+            qDebug() << "[CONTROLLER-DEBUG-15] grab is3D";
             auto thisOverlay = std::dynamic_pointer_cast<Base3DOverlay>(i.value());
             if (thisOverlay && !thisOverlay->getIgnoreRayIntersection()) {
-                //qDebug() << "[CONTROLLER-DEBUG-15] if 2 origin " << origin << " direction " << direction << " dist " << distance << " thisFace " << thisFace << " thisSurfaceNormal " << thisSurfaceNormal;
+                qDebug() << "[CONTROLLER-DEBUG-15] grab if 2 origin " << origin << " direction " << direction << " dist " << distance << " thisFace " << thisFace << " thisSurfaceNormal " << thisSurfaceNormal;
                 if (thisOverlay->findRayIntersection(origin, direction, distance, thisFace, thisSurfaceNormal)) {
                     return thisID;
                 }
             }
         } else {
-            //qDebug() << "[CONTROLLER-DEBUG-15] NOT 3D";
+            //qDebug() << "[CONTROLLER-DEBUG-15] grab NOT 3D";
             auto thisOverlay = std::static_pointer_cast<Overlay2D>(i.value());
             if (!thisOverlay) {
-                //qDebug() << "[CONTROLLER-DEBUG-15] thisOverlay is null";
+                qDebug() << "[CONTROLLER-DEBUG-15] grab thisOverlay is null";
             } else {
-                //qDebug() << "[CONTROLLER-DEBUG-15] isVisible " << thisOverlay->getVisible() << " isLoaded " << thisOverlay->isLoaded() << "contains..(" << pointCopy.x << "," << pointCopy.y << "):" << thisOverlay->getBoundingRect().contains(pointCopy.x, pointCopy.y, false);
+                //qDebug() << "[CONTROLLER-DEBUG-15] grab isVisible " << thisOverlay->getVisible() << " isLoaded " << thisOverlay->isLoaded() << "contains..(" << pointCopy.x << "," << pointCopy.y << "): containz: " << thisOverlay->getBoundingRect().contains(pointCopy.x, pointCopy.y, false);
+                //qDebug() << "[CONTROLLER-DEBUG-15] grab that overlay id(" << thisID << ") was at " << thisOverlay->getX() << ", " << thisOverlay->getY() << " size: " << thisOverlay->getWidth() << " x " << thisOverlay->getHeight();
             }
-            if (thisOverlay /*&& thisOverlay->getVisible()*/ && thisOverlay->isLoaded() &&
+            if (thisOverlay && thisOverlay->getVisible() && thisOverlay->isLoaded() &&
                 thisOverlay->getBoundingRect().contains(pointCopy.x, pointCopy.y, false)) {
+                qDebug() << "[CONTROLLER-DEBUG-15] grab isVisible " << thisOverlay->getVisible() << " isLoaded " << thisOverlay->isLoaded() << "contains..(" << pointCopy.x << "," << pointCopy.y << "): containz: " << thisOverlay->getBoundingRect().contains(pointCopy.x, pointCopy.y, false);
+                qDebug() << "[CONTROLLER-DEBUG-15] grab that overlay id(" << thisID << ") was at " << thisOverlay->getX() << ", " << thisOverlay->getY() << " size: " << thisOverlay->getWidth() << " x " << thisOverlay->getHeight();
+                return thisID;
+            } else if (thisOverlay                       && thisOverlay->isLoaded() &&
+                thisOverlay->getBoundingRect().contains(pointCopy.x, pointCopy.y, false)) {
+                qDebug() << "[CONTROLLER-DEBUG-15] handcontrollerpointer grab isVisible " << thisOverlay->getVisible() << " isLoaded " << thisOverlay->isLoaded() << "contains..(" << pointCopy.x << "," << pointCopy.y << "): containz: " << thisOverlay->getBoundingRect().contains(pointCopy.x, pointCopy.y, false);
+                qDebug() << "[CONTROLLER-DEBUG-15] handcontrollerpointer grab that overlay id(" << thisID << ") was at " << thisOverlay->getX() << ", " << thisOverlay->getY() << " size: " << thisOverlay->getWidth() << " x " << thisOverlay->getHeight();
                 return thisID;
             }
         }
