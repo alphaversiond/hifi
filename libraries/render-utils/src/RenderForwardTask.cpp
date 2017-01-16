@@ -19,9 +19,6 @@
 #include <ViewFrustum.h>
 #include <gpu/Context.h>
 
-#include <render/CullTask.h>
-#include <render/SortTask.h>
-
 #include "FramebufferCache.h"
 #include "TextureCache.h"
 
@@ -29,81 +26,39 @@
 
 #include <render/drawItemBounds_vert.h>
 #include <render/drawItemBounds_frag.h>
+#include "nop_frag.h"
 
 using namespace render;
+extern void initForwardPipelines(ShapePlumber& plumber);
 
-RenderForwardTask::RenderForwardTask(CullFunctor cullFunctor) {
-    // CPU jobs:
-    // Fetch and cull the items from the scene
-    const auto spatialSelection = addJob<FetchSpatialTree>("FetchSceneSelection");
+RenderForwardTask::RenderForwardTask(RenderFetchCullSortTask::Output items) {
+    // Prepare the ShapePipelines
+    ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
+    initForwardPipelines(*shapePlumber);
 
-    cullFunctor = cullFunctor ? cullFunctor : [](const RenderArgs*, const AABox&){ return true; };
-    auto spatialFilter = ItemFilter::Builder::visibleWorldItems().withoutLayered();
-    const auto culledSpatialSelection = addJob<CullSpatialSelection>("CullSceneSelection", spatialSelection, cullFunctor, RenderDetails::ITEM, spatialFilter);
-
-    // Overlays are not culled
-    const auto nonspatialSelection = addJob<FetchNonspatialItems>("FetchOverlaySelection");
-
-    // Multi filter visible items into different buckets
-    const int NUM_FILTERS = 3;
-    const int OPAQUE_SHAPE_BUCKET = 0;
-    const int TRANSPARENT_SHAPE_BUCKET = 1;
-    const int LIGHT_BUCKET = 2;
-    const int BACKGROUND_BUCKET = 2;
-    MultiFilterItem<NUM_FILTERS>::ItemFilterArray spatialFilters = { {
-            ItemFilter::Builder::opaqueShape(),
-            ItemFilter::Builder::transparentShape(),
-            ItemFilter::Builder::light()
-    } };
-    MultiFilterItem<NUM_FILTERS>::ItemFilterArray nonspatialFilters = { {
-            ItemFilter::Builder::opaqueShape(),
-            ItemFilter::Builder::transparentShape(),
-            ItemFilter::Builder::background()
-    } };
-    const auto filteredSpatialBuckets = addJob<MultiFilterItem<NUM_FILTERS>>("FilterSceneSelection", culledSpatialSelection, spatialFilters).get<MultiFilterItem<NUM_FILTERS>::ItemBoundsArray>();
-    const auto filteredNonspatialBuckets = addJob<MultiFilterItem<NUM_FILTERS>>("FilterOverlaySelection", nonspatialSelection, nonspatialFilters).get<MultiFilterItem<NUM_FILTERS>::ItemBoundsArray>();
-
-    // Extract / Sort opaques / Transparents / Lights / Overlays
-    const auto opaques = addJob<DepthSortItems>("DepthSortOpaque", filteredSpatialBuckets[OPAQUE_SHAPE_BUCKET]);
-    const auto transparents = addJob<DepthSortItems>("DepthSortTransparent", filteredSpatialBuckets[TRANSPARENT_SHAPE_BUCKET], DepthSortItems(false));
-    const auto lights = filteredSpatialBuckets[LIGHT_BUCKET];
-
-    const auto overlayOpaques = addJob<DepthSortItems>("DepthSortOverlayOpaque", filteredNonspatialBuckets[OPAQUE_SHAPE_BUCKET]);
-    const auto overlayTransparents = addJob<DepthSortItems>("DepthSortOverlayTransparent", filteredNonspatialBuckets[TRANSPARENT_SHAPE_BUCKET], DepthSortItems(false));
-    const auto background = filteredNonspatialBuckets[BACKGROUND_BUCKET];
+    // Extract opaques / transparents / lights / overlays
+    const auto opaques = items[0];
+    const auto transparents = items[1];
+    const auto lights = items[2];
+    const auto overlayOpaques = items[3];
+    const auto overlayTransparents = items[4];
+    const auto background = items[5];
 
     const auto framebuffer = addJob<PrepareFramebuffer>("PrepareFramebuffer");
 
+    addJob<Draw>("DrawOpaques", opaques, shapePlumber);
+    addJob<Stencil>("Stencil");
     addJob<DrawBackground>("DrawBackground", background);
 
-    // bounds do not draw on stencil buffer, so they must come last
+    // Bounds do not draw on stencil buffer, so they must come last
     addJob<DrawBounds>("DrawBounds", opaques);
 
     // Blit!
     addJob<Blit>("Blit", framebuffer);
 }
 
-void RenderForwardTask::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    // sanity checks
-    assert(sceneContext);
-    if (!sceneContext->_scene) {
-        return;
-    }
-
-
-    // Is it possible that we render without a viewFrustum ?
-    if (!(renderContext->args && renderContext->args->hasViewFrustum())) {
-        return;
-    }
-
-    auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
-
-    for (auto job : _jobs) {
-        job.run(sceneContext, renderContext);
-    }
-}
-
-void PrepareFramebuffer::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, gpu::FramebufferPointer& framebuffer) {
+void PrepareFramebuffer::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
+        gpu::FramebufferPointer& framebuffer) {
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     auto framebufferSize = framebufferCache->getFrameBufferSize();
     glm::uvec2 frameSize(framebufferSize.width(), framebufferSize.height());
@@ -143,6 +98,88 @@ void PrepareFramebuffer::run(const SceneContextPointer& sceneContext, const Rend
     framebuffer = _framebuffer;
 }
 
+void Draw::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
+        const Inputs& items) {
+    RenderArgs* args = renderContext->args;
+
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        args->_batch = &batch;
+
+        // Setup projection
+        glm::mat4 projMat;
+        Transform viewMat;
+        args->getViewFrustum().evalProjectionMatrix(projMat);
+        args->getViewFrustum().evalViewTransform(viewMat);
+        batch.setProjectionTransform(projMat);
+        batch.setViewTransform(viewMat);
+        batch.setModelTransform(Transform());
+
+        // Render items
+        renderStateSortShapes(sceneContext, renderContext, _shapePlumber, items, -1);
+    });
+    args->_batch = nullptr;
+}
+
+const gpu::PipelinePointer Stencil::getPipeline() {
+    if (!_stencilPipeline) {
+        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
+        auto ps = gpu::Shader::createPixel(std::string(nop_frag));
+        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::Shader::makeProgram(*program);
+
+        auto state = std::make_shared<gpu::State>();
+        state->setDepthTest(true, false, gpu::LESS_EQUAL);
+        const gpu::int8 STENCIL_OPAQUE = 1;
+        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(STENCIL_OPAQUE, 0xFF, gpu::ALWAYS,
+                    gpu::State::STENCIL_OP_REPLACE,
+                    gpu::State::STENCIL_OP_REPLACE,
+                    gpu::State::STENCIL_OP_KEEP));
+
+        _stencilPipeline = gpu::Pipeline::create(program, state);
+    }
+    return _stencilPipeline;
+}
+
+void Stencil::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+    RenderArgs* args = renderContext->args;
+
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        args->_batch = &batch;
+
+        batch.enableStereo(false);
+        batch.setViewportTransform(args->_viewport);
+        batch.setStateScissorRect(args->_viewport);
+
+        batch.setPipeline(getPipeline());
+        batch.draw(gpu::TRIANGLE_STRIP, 4);
+    });
+    args->_batch = nullptr;
+}
+
+void DrawBackground::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
+        const Inputs& background) {
+    RenderArgs* args = renderContext->args;
+
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        args->_batch = &batch;
+
+        batch.enableSkybox(true);
+        batch.setViewportTransform(args->_viewport);
+        batch.setStateScissorRect(args->_viewport);
+
+        // Setup projection
+        glm::mat4 projMat;
+        Transform viewMat;
+        args->getViewFrustum().evalProjectionMatrix(projMat);
+        args->getViewFrustum().evalViewTransform(viewMat);
+        batch.setProjectionTransform(projMat);
+        batch.setViewTransform(viewMat);
+
+        renderItems(sceneContext, renderContext, background);
+    });
+    args->_batch = nullptr;
+}
+
 const gpu::PipelinePointer DrawBounds::getPipeline() {
     if (!_boundsPipeline) {
         auto vs = gpu::Shader::createVertex(std::string(drawItemBounds_vert));
@@ -166,7 +203,8 @@ const gpu::PipelinePointer DrawBounds::getPipeline() {
     return _boundsPipeline;
 }
 
-void DrawBounds::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& items) {
+void DrawBounds::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
+        const Inputs& items) {
     RenderArgs* args = renderContext->args;
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
@@ -195,27 +233,4 @@ void DrawBounds::run(const SceneContextPointer& sceneContext, const RenderContex
             batch.draw(gpu::LINES, NUM_VERTICES_PER_CUBE, 0);
         }
     });
-}
-
-void DrawBackground::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& items) {
-    RenderArgs* args = renderContext->args;
-
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
-        args->_batch = &batch;
-
-        batch.enableSkybox(true);
-        batch.setViewportTransform(args->_viewport);
-        batch.setStateScissorRect(args->_viewport);
-
-        // Setup projection
-        glm::mat4 projMat;
-        Transform viewMat;
-        args->getViewFrustum().evalProjectionMatrix(projMat);
-        args->getViewFrustum().evalViewTransform(viewMat);
-        batch.setProjectionTransform(projMat);
-        batch.setViewTransform(viewMat);
-
-        renderItems(sceneContext, renderContext, items);
-    });
-    args->_batch = nullptr;
 }
