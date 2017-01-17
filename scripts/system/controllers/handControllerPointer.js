@@ -20,6 +20,10 @@
 // When partially squeezing over a HUD element, a laser or the reticle is shown where the active hand
 // controller beam intersects the HUD.
 
+var activeTrigger;
+function isLaserOn() {
+    return activeTrigger.partial();
+}
 Script.include("../libraries/controllers.js");
 
 // UTILITIES -------------
@@ -275,11 +279,8 @@ function isShakingMouse() { // True if the person is waving the mouse around try
 var NON_LINEAR_DIVISOR = 2;
 var MINIMUM_SEEK_DISTANCE = 0.1;
 function updateSeeking(doNotStartSeeking) {
-    if (!doNotStartSeeking && (!Reticle.visible || isShakingMouse())) {
-        if (!isSeeking) {
-            print('Start seeking mouse.');
-            isSeeking = true;
-        }
+    if (!doNotStartSeeking && !isLaserOn() && (!Reticle.visible || isShakingMouse())) {
+        isSeeking = true;
     } // e.g., if we're about to turn it on with first movement.
     if (!isSeeking) {
         return;
@@ -287,7 +288,6 @@ function updateSeeking(doNotStartSeeking) {
     averageMouseVelocity = lastIntegration = 0;
     var lookAt2D = HMD.getHUDLookAtPosition2D();
     if (!lookAt2D) { // If this happens, something has gone terribly wrong.
-        print('Cannot seek without lookAt position');
         isSeeking = false;
         return; // E.g., if parallel to location in HUD
     }
@@ -303,7 +303,6 @@ function updateSeeking(doNotStartSeeking) {
     }
     var okX = !updateDimension('x'), okY = !updateDimension('y'); // Evaluate both. Don't short-circuit.
     if (okX && okY) {
-        print('Finished seeking mouse');
         isSeeking = false;
     } else {
         Reticle.setPosition(copy); // Not setReticlePosition
@@ -374,7 +373,7 @@ setupHandler(Controller.mouseDoublePressEvent, onMouseClick);
 
 var leftTrigger = new Trigger('left');
 var rightTrigger = new Trigger('right');
-var activeTrigger = rightTrigger;
+activeTrigger = rightTrigger;
 var activeHand = Controller.Standard.RightHand;
 var LEFT_HUD_LASER = 1;
 var RIGHT_HUD_LASER = 2;
@@ -483,7 +482,6 @@ function clearSystemLaser() {
     HMD.disableExtraLaser();
     systemLaserOn = false;
     weMovedReticle = true;
-    Reticle.position = { x: -1, y: -1 };
 }
 function setColoredLaser() { // answer trigger state if lasers supported, else falsey.
     var color = (activeTrigger.state === 'full') ? LASER_TRIGGER_COLOR_XYZW : LASER_SEARCH_COLOR_XYZW;
@@ -567,12 +565,6 @@ function update() {
     Reticle.visible = false;
 }
 
-var BASIC_TIMER_INTERVAL = 20; // 20ms = 50hz good enough
-var updateIntervalTimer = Script.setInterval(function(){
-    update();
-}, BASIC_TIMER_INTERVAL);
-
-
 // Check periodically for changes to setup.
 var SETTINGS_CHANGE_RECHECK_INTERVAL = 10 * 1000; // 10 seconds
 function checkSettings() {
@@ -582,9 +574,10 @@ function checkSettings() {
 checkSettings();
 
 var settingsChecker = Script.setInterval(checkSettings, SETTINGS_CHANGE_RECHECK_INTERVAL);
+Script.update.connect(update);
 Script.scriptEnding.connect(function () {
     Script.clearInterval(settingsChecker);
-    Script.clearInterval(updateIntervalTimer);
+    Script.update.disconnect(update);
     OffscreenFlags.navigationFocusDisabled = false;
 });
 

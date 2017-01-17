@@ -39,6 +39,11 @@ class Stats : public QQuickItem {
     // How often the display device reprojecting old frames
     STATS_PROPERTY(float, stutterrate, 0)
 
+    STATS_PROPERTY(int, appdropped, 0)
+    STATS_PROPERTY(int, longsubmits, 0)
+    STATS_PROPERTY(int, longrenders, 0)
+    STATS_PROPERTY(int, longframes, 0)
+
     STATS_PROPERTY(float, presentnewrate, 0)
     STATS_PROPERTY(float, presentdroprate, 0)
     STATS_PROPERTY(int, simrate, 0)
@@ -135,6 +140,10 @@ public slots:
     void forceUpdateStats() { updateStats(true); }
 
 signals:
+    void longsubmitsChanged();
+    void longrendersChanged();
+    void longframesChanged();
+    void appdroppedChanged();
     void framerateChanged();
     void expandedChanged();
     void timingExpandedChanged();

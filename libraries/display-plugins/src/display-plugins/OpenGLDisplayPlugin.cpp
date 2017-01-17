@@ -166,6 +166,7 @@ public:
 
                         if (newPlugin) {
                             bool hasVsync = true;
+                            QThread::setPriority(newPlugin->getPresentPriority());
                             bool wantVsync = newPlugin->wantVsync();
                             _context->makeCurrent();
 #if defined(Q_OS_WIN)
@@ -562,22 +563,22 @@ void OpenGLDisplayPlugin::compositeLayers() {
     updateCompositeFramebuffer();
 
     {
-        PROFILE_RANGE_EX(render, "compositeScene", 0xff0077ff, (uint64_t)presentCount())
+        PROFILE_RANGE_EX(render_detail, "compositeScene", 0xff0077ff, (uint64_t)presentCount())
         compositeScene();
     }
 
     {
-        PROFILE_RANGE_EX(render, "compositeOverlay", 0xff0077ff, (uint64_t)presentCount())
+        PROFILE_RANGE_EX(render_detail, "compositeOverlay", 0xff0077ff, (uint64_t)presentCount())
         compositeOverlay();
     }
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
-//    if (compositorHelper->getReticleVisible()) {
-        PROFILE_RANGE_EX(render, "compositePointer", 0xff0077ff, (uint64_t)presentCount())
+    if (compositorHelper->getReticleVisible()) {
+        PROFILE_RANGE_EX(render_detail, "compositePointer", 0xff0077ff, (uint64_t)presentCount())
         compositePointer();
-//    }
+    }
 
     {
-        PROFILE_RANGE_EX(render, "compositeExtra", 0xff0077ff, (uint64_t)presentCount())
+        PROFILE_RANGE_EX(render_detail, "compositeExtra", 0xff0077ff, (uint64_t)presentCount())
         compositeExtra();
     }
 }

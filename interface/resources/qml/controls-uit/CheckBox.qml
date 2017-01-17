@@ -16,7 +16,6 @@ import "../styles-uit"
 
 Original.CheckBox {
     id: checkBox
-    HifiConstants { id: hifi }
 
     property int colorScheme: hifi.colorSchemes.light
     readonly property bool isLightColorScheme: colorScheme == hifi.colorSchemes.light
@@ -71,6 +70,18 @@ Original.CheckBox {
                 border.width: 2
                 border.color: hifi.colors.checkboxCheckedBorder
                 visible: checked && !pressed || !checked && pressed
+            }
+
+            Rectangle {
+                id: disabledOverlay
+                visible: !enabled
+                width: boxSize
+                height: boxSize
+                radius: boxRadius
+                border.width: 1
+                border.color: hifi.colors.baseGrayHighlight
+                color: hifi.colors.baseGrayHighlight
+                opacity: 0.5
             }
         }
 

@@ -89,7 +89,7 @@ public:
     glm::vec3 getGlobalBoundingBoxCorner() { return _avatar ? _avatar->getGlobalBoundingBoxCorner() : glm::vec3(0); }
     bool isRadiusIgnoring(const QUuid& other) { return _radiusIgnoredOthers.find(other) != _radiusIgnoredOthers.end(); }
     void addToRadiusIgnoringSet(const QUuid& other) { _radiusIgnoredOthers.insert(other); }
-    void removeFromRadiusIgnoringSet(const QUuid& other) { _radiusIgnoredOthers.erase(other); }
+    void removeFromRadiusIgnoringSet(SharedNodePointer self, const QUuid& other);
     void ignoreOther(SharedNodePointer self, SharedNodePointer other);
 
     void readViewFrustumPacket(const QByteArray& message);
@@ -101,6 +101,8 @@ public:
     void incrementAvatarOutOfView() { _recentOtherAvatarsOutOfView++; }
     const QString& getBaseDisplayName() { return _baseDisplayName; }
     void setBaseDisplayName(const QString& baseDisplayName) { _baseDisplayName = baseDisplayName; }
+    bool getRequestsDomainListData() { return _requestsDomainListData; }
+    void setRequestsDomainListData(bool requesting) { _requestsDomainListData = requesting; }
 
 private:
     AvatarSharedPointer _avatar { new AvatarData() };
@@ -129,6 +131,7 @@ private:
     int _recentOtherAvatarsInView { 0 };
     int _recentOtherAvatarsOutOfView { 0 };
     QString _baseDisplayName{}; // The santized key used in determinging unique sessionDisplayName, so that we can remove from dictionary.
+    bool _requestsDomainListData { false };
 };
 
 #endif // hifi_AvatarMixerClientData_h

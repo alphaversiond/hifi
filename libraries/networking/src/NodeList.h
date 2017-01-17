@@ -76,12 +76,19 @@ public:
     void toggleIgnoreRadius() { ignoreNodesInRadius(!getIgnoreRadiusEnabled()); }
     void enableIgnoreRadius() { ignoreNodesInRadius(true); }
     void disableIgnoreRadius() { ignoreNodesInRadius(false); }
-    void ignoreNodeBySessionID(const QUuid& nodeID);
+    void radiusIgnoreNodeBySessionID(const QUuid& nodeID, bool radiusIgnoreEnabled);
+    bool isRadiusIgnoringNode(const QUuid& other) const;
+    void ignoreNodeBySessionID(const QUuid& nodeID, bool ignoreEnabled);
     bool isIgnoringNode(const QUuid& nodeID) const;
+    void personalMuteNodeBySessionID(const QUuid& nodeID, bool muteEnabled);
+    bool isPersonalMutingNode(const QUuid& nodeID) const;
+    void setAvatarGain(const QUuid& nodeID, float gain);
 
     void kickNodeBySessionID(const QUuid& nodeID);
     void muteNodeBySessionID(const QUuid& nodeID);
     void requestUsernameFromSessionID(const QUuid& nodeID);
+    bool getRequestsDomainListData() { return _requestsDomainListData; }
+    void setRequestsDomainListData(bool isRequesting);
 
 public slots:
     void reset();
@@ -109,7 +116,7 @@ public slots:
 signals:
     void limitOfSilentDomainCheckInsReached();
     void receivedDomainServerList();
-    void ignoredNode(const QUuid& nodeID);
+    void ignoredNode(const QUuid& nodeID, bool enabled);
     void ignoreRadiusEnabledChanged(bool isIgnored);
     void usernameFromIDReply(const QString& nodeID, const QString& username, const QString& machineFingerprint);
 
@@ -153,9 +160,14 @@ private:
     HifiSockAddr _assignmentServerSocket;
     bool _isShuttingDown { false };
     QTimer _keepAlivePingTimer;
+    bool _requestsDomainListData;
 
+    mutable QReadWriteLock _radiusIgnoredSetLock;
+    tbb::concurrent_unordered_set<QUuid, UUIDHasher> _radiusIgnoredNodeIDs;
     mutable QReadWriteLock _ignoredSetLock;
     tbb::concurrent_unordered_set<QUuid, UUIDHasher> _ignoredNodeIDs;
+    mutable QReadWriteLock _personalMutedSetLock;
+    tbb::concurrent_unordered_set<QUuid, UUIDHasher> _personalMutedNodeIDs;
 
     void sendIgnoreRadiusStateToNode(const SharedNodePointer& destinationNode);
     Setting::Handle<bool> _ignoreRadiusEnabled { "IgnoreRadiusEnabled", true };

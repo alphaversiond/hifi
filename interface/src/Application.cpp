@@ -92,6 +92,7 @@
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
 #include <OffscreenUi.h>
+#include <gl/OffscreenQmlSurfaceCache.h>
 #include <gl/OffscreenGLCanvas.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
@@ -199,9 +200,10 @@ static QTimer pingTimer;
 
 static const int MAX_CONCURRENT_RESOURCE_DOWNLOADS = 16;
 
-// For processing on QThreadPool, target 2 less than the ideal number of threads, leaving
-// 2 logical cores available for time sensitive tasks.
-static const int MIN_PROCESSING_THREAD_POOL_SIZE = 2;
+// For processing on QThreadPool, we target a number of threads after reserving some 
+// based on how many are being consumed by the application and the display plugin.  However,
+// we will never drop below the 'min' value
+static const int MIN_PROCESSING_THREAD_POOL_SIZE = 1;
 
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
 static const QString SVO_EXTENSION  = ".svo";
@@ -256,7 +258,7 @@ public:
     static const unsigned long MAX_HEARTBEAT_AGE_USECS = 30 * USECS_PER_SECOND;
     static const int WARNING_ELAPSED_HEARTBEAT = 500 * USECS_PER_MSEC; // warn if elapsed heartbeat average is large
     static const int HEARTBEAT_SAMPLES = 100000; // ~5 seconds worth of samples
-    
+
     // Set the heartbeat on launch
     DeadlockWatchdogThread() {
         setObjectName("Deadlock Watchdog");
@@ -517,6 +519,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<InterfaceParentFinder>();
     DependencyManager::set<EntityTreeRenderer>(true, qApp, qApp);
     DependencyManager::set<CompositorHelper>();
+    DependencyManager::set<OffscreenQmlSurfaceCache>();
     return previousSessionCrashed;
 }
 
@@ -634,7 +637,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _window->setWindowTitle("Interface");
 
     Model::setAbstractViewStateInterface(this); // The model class will sometimes need to know view state details from us
-    
+
     auto nodeList = DependencyManager::get<NodeList>();
 
     // Set up a watchdog thread to intentionally crash the application on deadlocks
@@ -657,6 +660,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     qCDebug(interfaceapp) << "[VERSION] We will use DEVELOPMENT global services.";
 #endif
 
+    // set the OCULUS_STORE property so the oculus plugin can know if we ran from the Oculus Store
+    static const QString OCULUS_STORE_ARG = "--oculus-store";
+    setProperty(hifi::properties::OCULUS_STORE, arguments().indexOf(OCULUS_STORE_ARG) != -1);
 
     static const QString NO_UPDATER_ARG = "--no-updater";
     static const bool noUpdater = arguments().indexOf(NO_UPDATER_ARG) != -1;
@@ -720,7 +726,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     audioIO->setPositionGetter([]{
         auto avatarManager = DependencyManager::get<AvatarManager>();
         auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
-        
+
         return myAvatar ? myAvatar->getPositionForAudio() : Vectors::ZERO;
     });
     audioIO->setOrientationGetter([]{
@@ -904,7 +910,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 #ifdef Q_OS_MAC
     auto cursorTarget = _window; // OSX doesn't seem to provide for hiding the cursor only on the GL widget
 #else
-    // On windows and linux, hiding the top level cursor also means it's invisible when hovering over the 
+    // On windows and linux, hiding the top level cursor also means it's invisible when hovering over the
     // window menu, which is a pain, so only hide it for the GL surface
     auto cursorTarget = _glWidget;
 #endif
@@ -1152,7 +1158,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     loadSettings();
 
     // Now that we've loaded the menu and thus switched to the previous display plugin
-    // we can unlock the desktop repositioning code, since all the positions will be 
+    // we can unlock the desktop repositioning code, since all the positions will be
     // relative to the desktop size for this plugin
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     //offscreenUi->getDesktop()->setProperty("repositionLocked", false);
@@ -1166,7 +1172,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&_settingsThread, SIGNAL(finished()), &_settingsTimer, SLOT(stop()));
     _settingsTimer.moveToThread(&_settingsThread);
     _settingsTimer.setSingleShot(false);
-    _settingsTimer.setInterval(SAVE_SETTINGS_INTERVAL); // 10s, Qt::CoarseTimer acceptable
+    _settingsTimer.setInterval(SAVE_SETTINGS_INTERVAL);
     _settingsThread.start();
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson)) {
@@ -1628,7 +1634,7 @@ void Application::checkChangeCursor() {
 #ifdef Q_OS_MAC
         auto cursorTarget = _window; // OSX doesn't seem to provide for hiding the cursor only on the GL widget
 #else
-        // On windows and linux, hiding the top level cursor also means it's invisible when hovering over the 
+        // On windows and linux, hiding the top level cursor also means it's invisible when hovering over the
         // window menu, which is a pain, so only hide it for the GL surface
         auto cursorTarget = _glWidget;
 #endif
@@ -1815,7 +1821,7 @@ Application::~Application() {
 #endif
     // The window takes ownership of the menu, so this has the side effect of destroying it.
     _window->setMenuBar(nullptr);
-    
+
     _window->deleteLater();
 
     // Can't log to file passed this point, FileLogger about to be deleted
@@ -1841,10 +1847,10 @@ void Application::initializeGL() {
 
     _glWidget->makeCurrent();
     gpu::Context::init<gpu::gl::GLBackend>();
-    qApp->setProperty(hifi::properties::gl::MAKE_PROGRAM_CALLBACK, 
+    qApp->setProperty(hifi::properties::gl::MAKE_PROGRAM_CALLBACK,
         QVariant::fromValue((void*)(&gpu::gl::GLBackend::makeProgram)));
     _gpuContext = std::make_shared<gpu::Context>();
-    // The gpu context can make child contexts for transfers, so 
+    // The gpu context can make child contexts for transfers, so
     // we need to restore primary rendering context
     _glWidget->makeCurrent();
 
@@ -2048,6 +2054,10 @@ void Application::initializeUi() {
             showCursor(compositorHelper->getAllowMouseCapture() ? Qt::BlankCursor : Qt::ArrowCursor);
         }
     });
+
+    // Pre-create a couple of Web3D overlays to speed up tablet UI
+    auto offscreenSurfaceCache = DependencyManager::get<OffscreenQmlSurfaceCache>();
+    offscreenSurfaceCache->reserve(Web3DOverlay::QML, 2);
 }
 
 void Application::paintGL() {
@@ -2073,7 +2083,7 @@ void Application::paintGL() {
     // FIXME not needed anymore?
     _offscreenContext->makeCurrent();
 
-    // If a display plugin loses it's underlying support, it 
+    // If a display plugin loses it's underlying support, it
     // needs to be able to signal us to not use it
     if (!displayPlugin->beginFrameRender(_frameCount)) {
         _inPaint = false;
@@ -3024,7 +3034,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     if (isMirrorChecked) {
 
                         // if we got here without coming in from a non-Full Screen mirror case, then our
-                        // _returnFromFullScreenMirrorTo is unknown. In that case we'll go to the old 
+                        // _returnFromFullScreenMirrorTo is unknown. In that case we'll go to the old
                         // behavior of returning to ThirdPerson
                         if (_returnFromFullScreenMirrorTo.isEmpty()) {
                             _returnFromFullScreenMirrorTo = MenuOption::ThirdPerson;
@@ -3200,7 +3210,7 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
     maybeToggleMenuVisible(event);
 
     auto& compositor = getApplicationCompositor();
-    // if this is a real mouse event, and we're in HMD mode, then we should use it to move the 
+    // if this is a real mouse event, and we're in HMD mode, then we should use it to move the
     // compositor reticle
     // handleRealMouseMoveEvent() will return true, if we shouldn't process the event further
     if (!compositor.fakeEventActive() && compositor.handleRealMouseMoveEvent()) {
@@ -3491,6 +3501,66 @@ bool Application::shouldPaint(float nsecsElapsed) {
     return true;
 }
 
+#ifdef Q_OS_WIN
+#include <Windows.h>
+#include <TCHAR.h>
+#include <pdh.h>
+#pragma comment(lib, "pdh.lib")
+
+static ULARGE_INTEGER lastCPU, lastSysCPU, lastUserCPU;
+static int numProcessors;
+static HANDLE self;
+static PDH_HQUERY cpuQuery;
+static PDH_HCOUNTER cpuTotal;
+
+void initCpuUsage() {
+    SYSTEM_INFO sysInfo;
+    FILETIME ftime, fsys, fuser;
+
+    GetSystemInfo(&sysInfo);
+    numProcessors = sysInfo.dwNumberOfProcessors;
+
+    GetSystemTimeAsFileTime(&ftime);
+    memcpy(&lastCPU, &ftime, sizeof(FILETIME));
+
+    self = GetCurrentProcess();
+    GetProcessTimes(self, &ftime, &ftime, &fsys, &fuser);
+    memcpy(&lastSysCPU, &fsys, sizeof(FILETIME));
+    memcpy(&lastUserCPU, &fuser, sizeof(FILETIME));
+
+    PdhOpenQuery(NULL, NULL, &cpuQuery);
+    PdhAddCounter(cpuQuery, "\\Processor(_Total)\\% Processor Time", NULL, &cpuTotal);
+    PdhCollectQueryData(cpuQuery);
+}
+
+void getCpuUsage(vec3& systemAndUser) {
+    FILETIME ftime, fsys, fuser;
+    ULARGE_INTEGER now, sys, user;
+
+    GetSystemTimeAsFileTime(&ftime);
+    memcpy(&now, &ftime, sizeof(FILETIME));
+
+    GetProcessTimes(self, &ftime, &ftime, &fsys, &fuser);
+    memcpy(&sys, &fsys, sizeof(FILETIME));
+    memcpy(&user, &fuser, sizeof(FILETIME));
+    systemAndUser.x = (sys.QuadPart - lastSysCPU.QuadPart);
+    systemAndUser.y = (user.QuadPart - lastUserCPU.QuadPart);
+    systemAndUser /= (float)(now.QuadPart - lastCPU.QuadPart);
+    systemAndUser /= (float)numProcessors;
+    systemAndUser *= 100.0f;
+    lastCPU = now;
+    lastUserCPU = user;
+    lastSysCPU = sys;
+
+    PDH_FMT_COUNTERVALUE counterVal;
+    PdhCollectQueryData(cpuQuery);
+    PdhGetFormattedCounterValue(cpuTotal, PDH_FMT_DOUBLE, NULL, &counterVal);
+    systemAndUser.z = (float)counterVal.doubleValue;
+}
+
+#endif
+
+
 void Application::idle(float nsecsElapsed) {
     PerformanceTimer perfTimer("idle");
 
@@ -3507,15 +3577,30 @@ void Application::idle(float nsecsElapsed) {
         connect(offscreenUi.data(), &OffscreenUi::showDesktop, this, &Application::showDesktop);
     }
 
-    PROFILE_COUNTER(app, "fps", { { "fps", _frameCounter.rate() } });
-    PROFILE_COUNTER(app, "downloads", {
-        { "current", ResourceCache::getLoadingRequests().length() },
-        { "pending", ResourceCache::getPendingRequestCount() }
+#ifdef Q_OS_WIN
+    static std::once_flag once;
+    std::call_once(once, [] {
+        initCpuUsage(); 
     });
-    PROFILE_COUNTER(app, "processing", {
-        { "current", DependencyManager::get<StatTracker>()->getStat("Processing") },
-        { "pending", DependencyManager::get<StatTracker>()->getStat("PendingProcessing") }
-    });
+
+    vec3 kernelUserAndSystem;
+    getCpuUsage(kernelUserAndSystem);
+    PROFILE_COUNTER(app, "cpuProcess", { { "system", kernelUserAndSystem.x }, { "user", kernelUserAndSystem.y } });
+    PROFILE_COUNTER(app, "cpuSystem", { { "system", kernelUserAndSystem.z } });
+#endif
+
+    auto displayPlugin = getActiveDisplayPlugin();
+    if (displayPlugin) {
+        PROFILE_COUNTER_IF_CHANGED(app, "present", float, displayPlugin->presentRate());
+    }
+    PROFILE_COUNTER_IF_CHANGED(app, "fps", float, _frameCounter.rate());
+    PROFILE_COUNTER_IF_CHANGED(app, "currentDownloads", int, ResourceCache::getLoadingRequests().length());
+    PROFILE_COUNTER_IF_CHANGED(app, "pendingDownloads", int, ResourceCache::getPendingRequestCount());
+    PROFILE_COUNTER_IF_CHANGED(app, "currentProcessing", int, DependencyManager::get<StatTracker>()->getStat("Processing").toInt());
+    PROFILE_COUNTER_IF_CHANGED(app, "pendingProcessing", int, DependencyManager::get<StatTracker>()->getStat("PendingProcessing").toInt());
+
+
+
 
     PROFILE_RANGE(app, __FUNCTION__);
 
@@ -4227,7 +4312,7 @@ void Application::setKeyboardFocusEntity(EntityItemID entityItemID) {
                 }
                 _lastAcceptedKeyPress = usecTimestampNow();
 
-                setKeyboardFocusHighlight(entity->getPosition(), entity->getRotation(), 
+                setKeyboardFocusHighlight(entity->getPosition(), entity->getRotation(),
                     entity->getDimensions() * FOCUS_HIGHLIGHT_EXPANSION_FACTOR);
             }
         }
@@ -4818,7 +4903,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                 _octreeQuery.setMaxQueryPacketsPerSecond(0);
             }
 
-            // if asked to forceResend, then set the query's position/orientation to be degenerate in a manner 
+            // if asked to forceResend, then set the query's position/orientation to be degenerate in a manner
             // that will cause our next query to be guarenteed to be different and the server will resend to us
             if (forceResend) {
                 _octreeQuery.setCameraPosition(glm::vec3(-0.1, -0.1, -0.1));
@@ -5847,18 +5932,18 @@ void Application::showAssetServerWidget(QString filePath) {
 }
 
 void Application::addAssetToWorldFromURL(QString url) {
-    qInfo(interfaceapp) << "Download asset and add to world from" << url;
+    qInfo(interfaceapp) << "Download model and add to world from" << url;
 
     QString filename = url.section("filename=", 1, 1);  // Filename is in "?filename=" parameter at end of URL.
 
     if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
         QString errorInfo = "You do not have permissions to write to the Asset Server.";
-        qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
+        qWarning(interfaceapp) << "Error downloading model: " + errorInfo;
         addAssetToWorldError(filename, errorInfo);
         return;
     }
 
-    addAssetToWorldInfo(filename, "Downloading asset file " + filename + ".");
+    addAssetToWorldInfo(filename, "Downloading model file " + filename + ".");
 
     auto request = ResourceManager::createResourceRequest(nullptr, QUrl(url));
     connect(request, &ResourceRequest::finished, this, &Application::addAssetToWorldFromURLRequestFinished);
@@ -5873,7 +5958,7 @@ void Application::addAssetToWorldFromURLRequestFinished() {
     QString filename = url.section("filename=", 1, 1);  // Filename from trailing "?filename=" URL parameter.
 
     if (result == ResourceRequest::Success) {
-        qInfo(interfaceapp) << "Downloaded asset from" << url;
+        qInfo(interfaceapp) << "Downloaded model from" << url;
         QTemporaryDir temporaryDir;
         temporaryDir.setAutoRemove(false);
         if (temporaryDir.isValid()) {
@@ -5925,7 +6010,7 @@ void Application::addAssetToWorld(QString filePath) {
     // Test repeated because possibly different code paths.
     if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
         QString errorInfo = "You do not have permissions to write to the Asset Server.";
-        qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
+        qWarning(interfaceapp) << "Error downloading model: " + errorInfo;
         addAssetToWorldError(filename, errorInfo);
         return;
     }
@@ -5946,7 +6031,7 @@ void Application::addAssetToWorldWithNewMapping(QString filePath, QString mappin
         } else if (result != GetMappingRequest::NoError) {
             QString errorInfo = "Could not map asset name: "
                 + mapping.left(mapping.length() - QString::number(copy).length() - 1);
-            qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
+            qWarning(interfaceapp) << "Error downloading model: " + errorInfo;
             addAssetToWorldError(filenameFromPath(filePath), errorInfo);
         } else if (copy < MAX_COPY_COUNT - 1) {
             if (copy > 0) {
@@ -5956,9 +6041,9 @@ void Application::addAssetToWorldWithNewMapping(QString filePath, QString mappin
             mapping = mapping.insert(mapping.lastIndexOf("."), "-" + QString::number(copy));
             addAssetToWorldWithNewMapping(filePath, mapping, copy);
         } else {
-            QString errorInfo = "Too many copies of asset name: " 
+            QString errorInfo = "Too many copies of asset name: "
                 + mapping.left(mapping.length() - QString::number(copy).length() - 1);
-            qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
+            qWarning(interfaceapp) << "Error downloading model: " + errorInfo;
             addAssetToWorldError(filenameFromPath(filePath), errorInfo);
         }
         request->deleteLater();
@@ -5972,8 +6057,8 @@ void Application::addAssetToWorldUpload(QString filePath, QString mapping) {
     auto upload = DependencyManager::get<AssetClient>()->createUpload(filePath);
     QObject::connect(upload, &AssetUpload::finished, this, [=](AssetUpload* upload, const QString& hash) mutable {
         if (upload->getError() != AssetUpload::NoError) {
-            QString errorInfo = "Could not upload asset to the Asset Server.";
-            qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
+            QString errorInfo = "Could not upload model to the Asset Server.";
+            qWarning(interfaceapp) << "Error downloading model: " + errorInfo;
             addAssetToWorldError(filenameFromPath(filePath), errorInfo);
         } else {
             addAssetToWorldSetMapping(filePath, mapping, hash);
@@ -5998,7 +6083,7 @@ void Application::addAssetToWorldSetMapping(QString filePath, QString mapping, Q
     connect(request, &SetMappingRequest::finished, this, [=](SetMappingRequest* request) mutable {
         if (request->getError() != SetMappingRequest::NoError) {
             QString errorInfo = "Could not set asset mapping.";
-            qWarning(interfaceapp) << "Error downloading asset: " + errorInfo;
+            qWarning(interfaceapp) << "Error downloading model: " + errorInfo;
             addAssetToWorldError(filenameFromPath(filePath), errorInfo);
         } else {
             addAssetToWorldAddEntity(filePath, mapping);
@@ -6023,10 +6108,10 @@ void Application::addAssetToWorldAddEntity(QString filePath, QString mapping) {
 
     // Note: Model dimensions are not available here; model is scaled per FBX mesh in RenderableModelEntityItem::update() later
     // on. But FBX dimensions may be in cm, so we monitor for the dimension change and rescale again if warranted.
-    
+
     if (entityID == QUuid()) {
-        QString errorInfo = "Could not add asset " + mapping + " to world.";
-        qWarning(interfaceapp) << "Could not add asset to world: " + errorInfo;
+        QString errorInfo = "Could not add model " + mapping + " to world.";
+        qWarning(interfaceapp) << "Could not add model to world: " + errorInfo;
         addAssetToWorldError(filenameFromPath(filePath), errorInfo);
     } else {
         // Monitor when asset is rendered in world so that can resize if necessary.
@@ -6069,7 +6154,7 @@ void Application::addAssetToWorldCheckModelSize() {
             auto scale = std::min(MAXIMUM_DIMENSION / dimensions.x, std::min(MAXIMUM_DIMENSION / dimensions.y,
                 MAXIMUM_DIMENSION / dimensions.z));
             dimensions *= scale;
-            qInfo(interfaceapp) << "Asset" << name << "auto-resized from" << previousDimensions << " to " << dimensions;
+            qInfo(interfaceapp) << "Model" << name << "auto-resized from" << previousDimensions << " to " << dimensions;
             doResize = true;
 
             item = _addAssetToWorldResizeList.erase(item);  // Finished with this entity; advance to next.
@@ -6084,7 +6169,7 @@ void Application::addAssetToWorldCheckModelSize() {
                 // Rescale all dimensions.
                 const glm::vec3 UNIT_DIMENSIONS = glm::vec3(1.0f, 1.0f, 1.0f);
                 dimensions = UNIT_DIMENSIONS;
-                qInfo(interfaceapp) << "Asset" << name << "auto-resize timed out; resized to " << dimensions;
+                qInfo(interfaceapp) << "Model" << name << "auto-resize timed out; resized to " << dimensions;
                 doResize = true;
 
                 item = _addAssetToWorldResizeList.erase(item);  // Finished with this entity; advance to next.
@@ -6137,7 +6222,7 @@ void Application::addAssetToWorldInfo(QString modelName, QString infoText) {
     if (!_addAssetToWorldErrorTimer.isActive()) {
         if (!_addAssetToWorldMessageBox) {
             _addAssetToWorldMessageBox = DependencyManager::get<OffscreenUi>()->createMessageBox(OffscreenUi::ICON_INFORMATION,
-                "Downloading Asset", "", QMessageBox::NoButton, QMessageBox::NoButton);
+                "Downloading Model", "", QMessageBox::NoButton, QMessageBox::NoButton);
             connect(_addAssetToWorldMessageBox, SIGNAL(destroyed()), this, SLOT(onAssetToWorldMessageBoxClosed()));
         }
 
@@ -6202,7 +6287,6 @@ void Application::addAssetToWorldInfoTimeout() {
     }
 }
 
-
 void Application::addAssetToWorldError(QString modelName, QString errorText) {
     // Displays the most recent error message for a few seconds.
 
@@ -6221,7 +6305,7 @@ void Application::addAssetToWorldError(QString modelName, QString errorText) {
 
     if (!_addAssetToWorldMessageBox) {
         _addAssetToWorldMessageBox = DependencyManager::get<OffscreenUi>()->createMessageBox(OffscreenUi::ICON_INFORMATION,
-            "Downloading Asset", "", QMessageBox::NoButton, QMessageBox::NoButton);
+            "Downloading Model", "", QMessageBox::NoButton, QMessageBox::NoButton);
         connect(_addAssetToWorldMessageBox, SIGNAL(destroyed()), this, SLOT(onAssetToWorldMessageBoxClosed()));
     }
 
@@ -6349,7 +6433,7 @@ void Application::loadScriptURLDialog() const {
 
 void Application::toggleLogDialog() {
     if (! _logDialog) {
-        _logDialog = new LogDialog(_glWidget, getLogger());
+        _logDialog = new LogDialog(nullptr, getLogger());
     }
 
     if (_logDialog->isVisible()) {
@@ -6488,7 +6572,7 @@ glm::uvec2 Application::getCanvasSize() const {
 }
 
 QRect Application::getRenderingGeometry() const {
-    auto geometry = _glWidget->geometry(); 
+    auto geometry = _glWidget->geometry();
     auto topLeft = geometry.topLeft();
     auto topLeftScreen = _glWidget->mapToGlobal(topLeft);
     geometry.moveTopLeft(topLeftScreen);
@@ -6855,8 +6939,8 @@ bool Application::makeRenderingContextCurrent() {
     return _offscreenContext->makeCurrent();
 }
 
-bool Application::isForeground() const { 
-    return _isForeground && !_window->isMinimized(); 
+bool Application::isForeground() const {
+    return _isForeground && !_window->isMinimized();
 }
 
 void Application::sendMousePressOnEntity(QUuid id, PointerEvent event) {

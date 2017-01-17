@@ -66,6 +66,8 @@
 #include "MIDIEvent.h"
 
 static const QString SCRIPT_EXCEPTION_FORMAT = "[UncaughtException] %1 in %2:%3";
+static const QScriptEngine::QObjectWrapOptions DEFAULT_QOBJECT_WRAP_OPTIONS =
+                QScriptEngine::ExcludeDeleteLater | QScriptEngine::ExcludeChildObjects;
 
 Q_DECLARE_METATYPE(QScriptEngine::FunctionSignature)
 int functionSignatureMetaID = qRegisterMetaType<QScriptEngine::FunctionSignature>();
@@ -94,7 +96,7 @@ static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine){
 }
 
 QScriptValue avatarDataToScriptValue(QScriptEngine* engine, AvatarData* const &in) {
-    return engine->newQObject(in);
+    return engine->newQObject(in, QScriptEngine::QtOwnership, DEFAULT_QOBJECT_WRAP_OPTIONS);
 }
 
 void avatarDataFromScriptValue(const QScriptValue &object, AvatarData* &out) {
@@ -105,7 +107,7 @@ Q_DECLARE_METATYPE(controller::InputController*)
 //static int inputControllerPointerId = qRegisterMetaType<controller::InputController*>();
 
 QScriptValue inputControllerToScriptValue(QScriptEngine *engine, controller::InputController* const &in) {
-    return engine->newQObject(in);
+    return engine->newQObject(in, QScriptEngine::QtOwnership, DEFAULT_QOBJECT_WRAP_OPTIONS);
 }
 
 void inputControllerFromScriptValue(const QScriptValue &object, controller::InputController* &out) {
@@ -459,7 +461,8 @@ static QScriptValue scriptableResourceToScriptValue(QScriptEngine* engine, const
 
     auto object = engine->newQObject(
         const_cast<ScriptableResourceRawPtr>(resource),
-        QScriptEngine::ScriptOwnership);
+        QScriptEngine::ScriptOwnership,
+        DEFAULT_QOBJECT_WRAP_OPTIONS);
     return object;
 }
 
@@ -478,7 +481,8 @@ static QScriptValue createScriptableResourcePrototype(QScriptEngine* engine) {
         state->setProperty(metaEnum.key(i), metaEnum.value(i));
     }
 
-    auto prototypeState = engine->newQObject(state, QScriptEngine::QtOwnership, QScriptEngine::ExcludeSlots | QScriptEngine::ExcludeSuperClassMethods);
+    auto prototypeState = engine->newQObject(state, QScriptEngine::QtOwnership,
+       QScriptEngine::ExcludeDeleteLater | QScriptEngine::ExcludeSlots | QScriptEngine::ExcludeSuperClassMethods);
     prototype.setProperty("State", prototypeState);
 
     return prototype;
@@ -611,7 +615,7 @@ void ScriptEngine::registerGlobalObject(const QString& name, QObject* object) {
 
     if (!globalObject().property(name).isValid()) {
         if (object) {
-            QScriptValue value = newQObject(object);
+            QScriptValue value = newQObject(object, QScriptEngine::QtOwnership, DEFAULT_QOBJECT_WRAP_OPTIONS);
             globalObject().setProperty(name, value);
         } else {
             globalObject().setProperty(name, QScriptValue());
@@ -908,19 +912,11 @@ void ScriptEngine::run() {
                 break;
             }
 
-            // determine how long before the next timer should fire, we'd ideally like to sleep just
-            // that long, so the next processEvents() will allow the timers to fire on time.
-            const std::chrono::microseconds minTimerTimeRemaining(USECS_PER_MSEC * getTimersRemainingTime());
-
-            // However, if we haven't yet slept at least as long as our average timer per frame, then we will 
-            // punish the timers to at least wait as long as the average run time of the timers.
-            auto untilTimer = std::max(minTimerTimeRemaining, averageTimerPerFrame);
-
-            // choose the closest time point, our 
-            auto remainingSleepUntil = std::chrono::duration_cast<std::chrono::microseconds>(sleepUntil - clock::now());
-            auto closestUntil = std::min(remainingSleepUntil, untilTimer);
-            auto thisSleepUntil = std::min(sleepUntil, clock::now() + closestUntil);
-            std::this_thread::sleep_until(thisSleepUntil);
+            // We only want to sleep a small amount so that any pending events (like timers or invokeMethod events)
+            // will be able to process quickly.
+            static const int SMALL_SLEEP_AMOUNT = 100;
+            auto smallSleepUntil = clock::now() + static_cast<std::chrono::microseconds>(SMALL_SLEEP_AMOUNT);
+            std::this_thread::sleep_until(smallSleepUntil);
         }
 
 #ifdef SCRIPT_DELAY_DEBUG
@@ -1035,6 +1031,7 @@ void ScriptEngine::stopAllTimers() {
         stopTimer(timer);
     }
 }
+
 void ScriptEngine::stopAllTimersForEntityScript(const EntityItemID& entityID) {
      // We could maintain a separate map of entityID => QTimer, but someone will have to prove to me that it's worth the complexity. -HRS
     QVector<QTimer*> toDelete;

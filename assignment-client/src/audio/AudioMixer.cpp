@@ -28,6 +28,7 @@
 #include <StDev.h>
 #include <UUID.h>
 
+#include "AudioHelpers.h"
 #include "AudioRingBuffer.h"
 #include "AudioMixerClientData.h"
 #include "AvatarAudioStream.h"
@@ -68,6 +69,8 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
     packetReceiver.registerListener(PacketType::NodeMuteRequest, this, "handleNodeMuteRequestPacket");
     packetReceiver.registerListener(PacketType::RadiusIgnoreRequest, this, "handleRadiusIgnoreRequestPacket");
+    packetReceiver.registerListener(PacketType::RequestsDomainListData, this, "handleRequestsDomainListDataPacket"); 
+    packetReceiver.registerListener(PacketType::PerAvatarGainSet, this, "handlePerAvatarGainSetDataPacket");
 
     connect(nodeList.data(), &NodeList::nodeKilled, this, &AudioMixer::handleNodeKilled);
 }
@@ -185,7 +188,8 @@ void AudioMixer::handleNodeKilled(SharedNodePointer killedNode) {
     nodeList->eachNode([&killedNode](const SharedNodePointer& node) {
         auto clientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
         if (clientData) {
-            clientData->removeHRTFsForNode(killedNode->getUUID());
+            QUuid killedUUID = killedNode->getUUID();
+            clientData->removeHRTFsForNode(killedUUID);
         }
     });
 }
@@ -221,8 +225,36 @@ void AudioMixer::handleKillAvatarPacket(QSharedPointer<ReceivedMessage> packet, 
     }
 }
 
+void AudioMixer::handleRequestsDomainListDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->getOrCreateLinkedData(senderNode);
+
+    if (senderNode->getLinkedData()) {
+        AudioMixerClientData* nodeData = dynamic_cast<AudioMixerClientData*>(senderNode->getLinkedData());
+        if (nodeData != nullptr) {
+            bool isRequesting;
+            message->readPrimitive(&isRequesting);
+            nodeData->setRequestsDomainListData(isRequesting);
+        }
+    }
+}
+
 void AudioMixer::handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
     sendingNode->parseIgnoreRequestMessage(packet);
+}
+
+void AudioMixer::handlePerAvatarGainSetDataPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
+    auto clientData = dynamic_cast<AudioMixerClientData*>(sendingNode->getLinkedData());
+    if (clientData) {
+        QUuid listeningNodeUUID = sendingNode->getUUID();
+        // parse the UUID from the packet
+        QUuid audioSourceUUID = QUuid::fromRfc4122(packet->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+        uint8_t packedGain;
+        packet->readPrimitive(&packedGain);
+        float gain = unpackFloatGainFromByte(packedGain);
+        clientData->hrtfForStream(audioSourceUUID, QUuid()).setGainAdjustment(gain);
+        qDebug() << "Setting gain adjustment for hrtf[" << listeningNodeUUID << "][" << audioSourceUUID << "] to " << gain;
+    }
 }
 
 void AudioMixer::handleRadiusIgnoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
