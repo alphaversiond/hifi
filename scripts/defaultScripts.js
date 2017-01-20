@@ -58,7 +58,7 @@ if (!App.isAndroid()) {
         //"system/selectAudioDevice.js",
         //"system/notifications.js",
         "system/controllers/controllerDisplayManager.js",
-        //"system/controllers/handControllerGrab.js",
+        "system/controllers/handControllerGrabAndroid.js",
         "system/controllers/handControllerPointerAndroid.js",
         "system/controllers/squeezeHands.js",
         "system/controllers/grab.js",

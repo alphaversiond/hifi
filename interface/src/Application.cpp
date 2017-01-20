@@ -1073,12 +1073,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
         if (action == controller::toInt(controller::Action::RETICLE_CLICK)) {
             auto reticlePos = getApplicationCompositor().getReticlePosition();
+            //qDebug() << "[CONTROLLER-2] handcontrollerpointer Application action was controller::Action::RETICLE_CLICK " << reticlePos.x << "," << reticlePos.y << " state: " << state;
             QPoint localPos(reticlePos.x, reticlePos.y); // both hmd and desktop already handle this in our coordinates.
             if (state) {
+                //qDebug() << "[CONTROLLER-2] handcontrollerpointer Application::Application RETICLE_CLICK sending event mousePress to " << _glWidget;
                 QMouseEvent mousePress(QEvent::MouseButtonPress, localPos, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
                 sendEvent(_glWidget, &mousePress);
                 _reticleClickPressed = true;
             } else {
+                //qDebug() << "[CONTROLLER-2] handcontrollerpointer Application::Application RETICLE_CLICK sending event mouseRelease";
                 QMouseEvent mouseRelease(QEvent::MouseButtonRelease, localPos, Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
                 sendEvent(_glWidget, &mouseRelease);
                 _reticleClickPressed = false;
@@ -4474,7 +4477,7 @@ void Application::update(float deltaTime) {
             inputPlugin->pluginUpdate(deltaTime, calibrationData);
         }
     }
-
+    //qDebug() << "handControllerPointer mappings deltaTime is " << deltaTime;
     userInputMapper->update(deltaTime);
 
     if (keyboardMousePlugin && keyboardMousePlugin->isActive()) {

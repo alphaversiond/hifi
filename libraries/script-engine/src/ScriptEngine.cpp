@@ -918,7 +918,6 @@ void ScriptEngine::run() {
             auto smallSleepUntil = clock::now() + static_cast<std::chrono::microseconds>(SMALL_SLEEP_AMOUNT);
             std::this_thread::sleep_until(smallSleepUntil);
         }
-
 #ifdef SCRIPT_DELAY_DEBUG
         {
             auto actuallySleptUntil = clock::now();
@@ -1108,7 +1107,6 @@ void ScriptEngine::timerFired() {
 
     QTimer* callingTimer = reinterpret_cast<QTimer*>(sender());
     CallbackData timerData = _timerFunctionMap.value(callingTimer);
-
     if (!callingTimer->isActive()) {
         // this timer is done, we can kill it
         _timerFunctionMap.remove(callingTimer);

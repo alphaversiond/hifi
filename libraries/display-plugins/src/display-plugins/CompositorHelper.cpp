@@ -315,20 +315,20 @@ void CompositorHelper::sendFakeMouseEvent() {
 
 void CompositorHelper::setReticlePosition(const glm::vec2& position, bool sendFakeEvent) {
     if (isHMD()) {
-        qDebug() << "CompositorHelper::setReticlePosition " << position.x << position.y;
+        //qDebug() << "CompositorHelper::setReticlePosition " << position.x << position.y;
         glm::vec2 maxOverlayPosition = _currentDisplayPlugin->getRecommendedUiSize();
         // FIXME don't allow negative mouseExtra
         glm::vec2 mouseExtra = (MOUSE_EXTENTS_PIXELS - maxOverlayPosition) / 2.0f;
         glm::vec2 minMouse = vec2(0) - mouseExtra;
         glm::vec2 maxMouse = maxOverlayPosition + mouseExtra;
-        qDebug() << "CompositorHelper::setReticlePosition  maxOverlayPosition" << maxOverlayPosition.x << "," << maxOverlayPosition.y;
+        /*qDebug() << "CompositorHelper::setReticlePosition  maxOverlayPosition" << maxOverlayPosition.x << "," << maxOverlayPosition.y;
         qDebug() << "CompositorHelper::setReticlePosition  mouseExtra" << mouseExtra.x << "," << mouseExtra.y;
         qDebug() << "CompositorHelper::setReticlePosition  minMouse" << minMouse.x << "," << minMouse.y;
-        qDebug() << "CompositorHelper::setReticlePosition  maxMouse" << maxMouse.x << "," << maxMouse.y;
+        qDebug() << "CompositorHelper::setReticlePosition  maxMouse" << maxMouse.x << "," << maxMouse.y;*/
         {
             QMutexLocker locker(&_reticleLock);
             _reticlePositionInHMD = glm::clamp(position, minMouse, maxMouse);
-            qDebug() << "CompositorHelper::setReticlePosition  _reticlePositionInHMD" << _reticlePositionInHMD.x << "," << _reticlePositionInHMD.y;
+            //qDebug() << "CompositorHelper::setReticlePosition  _reticlePositionInHMD" << _reticlePositionInHMD.x << "," << _reticlePositionInHMD.y;
         }
 
         if (sendFakeEvent) {

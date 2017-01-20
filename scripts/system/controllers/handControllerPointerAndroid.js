@@ -22,11 +22,11 @@
 var logEnabled = false;
 function printd(str) {
     if (logEnabled)
-        print(str);
+        print("anddb-handControllerPointer.js - " + str);
 }
 
-printd("anddb-handControllerPointer.js start");
-printd("anddb-handControllerPointer.js including controllers.js");
+printd("start");
+printd("including controllers.js");
 Script.include("../libraries/controllers.js");
 
 // UTILITIES -------------
@@ -41,7 +41,7 @@ function setupHandler(event, handler) {
     });
 }
 
-printd("anddb-handControllerPointer.js setupHandler defined");
+printd("setupHandler defined");
 // If some capability is not available until expiration milliseconds after the last update.
 function TimeLock(expiration) {
     var last = 0;
@@ -53,7 +53,7 @@ function TimeLock(expiration) {
     };
 }
 
-printd("anddb-handControllerPointer.js TimeLock defined");
+printd("TimeLock defined");
 var handControllerLockOut = new TimeLock(2000);
 
 function Trigger(label) {
@@ -67,11 +67,11 @@ function Trigger(label) {
     that.triggerValue = 0;           // rolling average of trigger value
     that.triggerClicked = false;
     that.triggerClick = function (value) {
-        printd('anddb-handControllerPointer.js [DAYDREAM-CONTROLLER] that.triggerClick ' + value + ' which ' + that.label);
+        printd('[DAYDREAM-CONTROLLER] that.triggerClick ' + value + ' which ' + that.label);
         that.triggerClicked = value;
     };
     that.triggerPress = function (value) {
-        printd('anddb-handControllerPointer.js [DAYDREAM-CONTROLLER] that.triggerPress ' + value + ' which ' + that.label);
+        printd('[DAYDREAM-CONTROLLER] that.triggerPress ' + value + ' which ' + that.label);
         that.rawTriggerValue = value;
     };
     that.updateSmoothedTrigger = function () { // e.g., call once/update for effect
@@ -80,14 +80,14 @@ function Trigger(label) {
         that.triggerValue = (that.triggerValue * that.TRIGGER_SMOOTH_RATIO) +
             (triggerValue * (1.0 - that.TRIGGER_SMOOTH_RATIO));
         OffscreenFlags.navigationFocusDisabled = that.triggerValue != 0.0;
-        //printd('anddb-handControllerPointer.js [DAYDREAM-CONTROLLER] updateSmoothedTrigger raw[' + that.rawTriggerValue + '] triggerValue[' + that.triggerValue + ']');
+        //printd('[DAYDREAM-CONTROLLER] updateSmoothedTrigger raw[' + that.rawTriggerValue + '] triggerValue[' + that.triggerValue + ']');
     };
     // Current smoothed state, without hysteresis. Answering booleans.
     that.triggerSmoothedClick = function () {
         var clicked = that.triggerClicked;
-        if (clicked || Math.random()>0.988) {
-            printd('anddb-handControllerPointer.js [DAYDREAM-CONTROLLER] Trigger.triggerSmoothedClick clicked? ' + clicked + ' trigger ' + that.label);
-        }
+        //if (clicked || Math.random()>0.988) {
+            printd('[DAYDREAM-CONTROLLER] Trigger.triggerSmoothedClick clicked? ' + clicked + ' trigger ' + that.label);
+        //}
         return clicked;
     };
     that.triggerSmoothedSqueezed = function () {
@@ -105,24 +105,24 @@ function Trigger(label) {
 
         // The first two are independent of previous state:
         if (that.triggerSmoothedClick()) {
-            printd('anddb-handControllerPointer.js [DAYDREAM-CONTROLLER] that.triggerSmoothedClick state to full' +  ' which ' + that.label );
+            printd('[DAYDREAM-CONTROLLER] that.triggerSmoothedClick state to full' +  ' which ' + that.label );
             state = 'full';
         } else if (that.triggerSmoothedReleased()) {
-            if (state!==null || Math.random()>0.988) {
-                printd('anddb-handControllerPointer.js [DAYDREAM-CONTROLLER] that.triggerSmoothedReleased state to null' +  ' which ' + that.label);
-            }
+            //if (state!==null || Math.random()>0.988) {
+                printd('[DAYDREAM-CONTROLLER] that.triggerSmoothedReleased state to null' +  ' which ' + that.label);
+            //}
             state = null;
         } else if (that.triggerSmoothedSqueezed()) {
             // Another way to do this would be to have hysteresis in this branch, but that seems to make things harder to use.
             // In particular, the vive has a nice detent as you release off of full, and we want that to be a transition from
             // full to partial.
-            printd('anddb-handControllerPointer.js [DAYDREAM-CONTROLLER] that.triggerSmoothedSqueezed state to partial' +  ' which ' + that.label);
+            printd('[DAYDREAM-CONTROLLER] that.triggerSmoothedSqueezed state to partial' +  ' which ' + that.label);
             state = 'partial';
         }
         that.state = state;
-        if (state || Math.random()>0.98) {
-            printd('anddb-handControllerPointer.js Trigger.update state ' + that.state + ' trigger ' + that.label);
-        }
+        //if (state || Math.random()>0.98) {
+            printd('Trigger.update state ' + that.state + ' trigger ' + that.label);
+        //}
     };
     // Answer a controller source function (answering either 0.0 or 1.0).
     that.partial = function () {
@@ -133,7 +133,7 @@ function Trigger(label) {
     };
 }
 
-printd("anddb-handControllerPointer.js Trigger defined");
+printd("Trigger defined");
 // VERTICAL FIELD OF VIEW ---------
 //
 // Cache the verticalFieldOfView setting and update it every so often.
@@ -142,27 +142,35 @@ function updateFieldOfView() {
     verticalFieldOfView = Settings.getValue('fieldOfView') || DEFAULT_VERTICAL_FIELD_OF_VIEW;
 }
 
-printd("anddb-handControllerPointer.js updateFieldOfView defined");
+printd("updateFieldOfView defined");
 // SHIMS ----------
 //
 var weMovedReticle = false;
 function ignoreMouseActivity() {
+    // For Android we'll just ignore any Mouse Activity because the one generated by Qt is misleading (generates max x max y mouse movements)
+    return true;
+    /*var pos = Reticle.position;
+    printd("ignoreMouseActivity START with: allowMouseCapture: " + Reticle.allowMouseCapture + " weMovedReticle: " + weMovedReticle + " Reticle.position: " + pos.x + " , " + pos.y);
     // If we're paused, or if change in cursor position is from this script, not the hardware mouse.
     if (!Reticle.allowMouseCapture) {
+        printd("ignoreMouseActivity RETURNED true by !Reticle.allowMouseCapture");
         return true;
     }
-    var pos = Reticle.position;
+    //var pos = Reticle.position;
     if (!pos || (pos.x == -1 && pos.y == -1)) {
+        printd("ignoreMouseActivity RETURNED true by pos stuff");
         return true;
     }
     // Only we know if we moved it, which is why this script has to replace depthReticle.js
     if (!weMovedReticle) {
+        printd("ignoreMouseActivity RETURNED false by pos !weMovedReticle");
         return false;
     }
     weMovedReticle = false;
-    return true;
+    printd("ignoreMouseActivity RETURNED true by default (CHANGED weMovedReticle to false!)");
+    return true;*/
 }
-printd("anddb-handControllerPointer.js ignoreMouseActivity defined");
+printd("ignoreMouseActivity defined");
 var MARGIN = 25;
 var reticleMinX = MARGIN, reticleMaxX, reticleMinY = MARGIN, reticleMaxY;
 function updateRecommendedArea() {
@@ -174,9 +182,10 @@ var setReticlePosition = function (point2d) {
     weMovedReticle = true;
     point2d.x = Math.max(reticleMinX, Math.min(point2d.x, reticleMaxX));
     point2d.y = Math.max(reticleMinY, Math.min(point2d.y, reticleMaxY));
-    if (Math.random()>0.75)
-        printd('anddb-handControllerPointer.js setReticlePosition ' + JSON.stringify(point2d));
+    /*if (Math.random()>0.75)
+        printd('setReticlePosition ' + JSON.stringify(point2d));*/
     Reticle.setPosition(point2d);
+    canClearReticle = false;
 };
 
 // Generalizations of utilities that work with system and overlay elements.
@@ -189,10 +198,13 @@ function findRayIntersection(pickRay) {
     return result;
 }
 function isPointingAtOverlay(optionalHudPosition2d) {
+    return true;
     var isPointing = Reticle.pointingAtSystemOverlay || Overlays.getOverlayAtPoint(optionalHudPosition2d || Reticle.position);
-    //printd("[CONTROLLER-2] isPointingAtOverlay isPointing " + isPointing + " Reticle.position= " + JSON.stringify(Reticle.position));
+    printd("[CONTROLLER-2] isPointingAtOverlay handControllerPointer isPointing= " + isPointing);
+    printd("[CONTROLLER-2] isPointingAtOverlay handControllerPointer Reticle.pointingAtSystemOverlay= " + Reticle.pointingAtSystemOverlay + " getOverlayAtPoint= " + Overlays.getOverlayAtPoint(optionalHudPosition2d || Reticle.position));
+    printd("[CONTROLLER-2] isPointingAtOverlay handControllerPointer optionalHudPosition2d= " + optionalHudPosition2d + " Reticle.position= " + JSON.stringify(Reticle.position) + "  == ||= " + JSON.stringify(optionalHudPosition2d || Reticle.position));
     if (isPointing) {
-            printd("[CONTROLLER-4] isPointingAtOverlay " + JSON.stringify(optionalHudPosition2d || Reticle.position));// + isPointing + " Reticle.pointingAtSystemOverlay " + Reticle.pointingAtSystemOverlay + 
+            printd("[CONTROLLER-4] isPointingAtOverlay handControllerPointer " + JSON.stringify(optionalHudPosition2d || Reticle.position));// + isPointing + " Reticle.pointingAtSystemOverlay " + Reticle.pointingAtSystemOverlay + 
             //' optionalHudPosition2d ' + JSON.stringify(optionalHudPosition2d) + ' Reticle.position ' + JSON.stringify(Reticle.position) + 
             //' Overlays.getOverlayAtPoint(optionalHudPosition2d || Reticle.position) ' + Overlays.getOverlayAtPoint(optionalHudPosition2d || Reticle.position) );
     }
@@ -271,11 +283,11 @@ function activeHudPoint2dGamePad() {
 
 function activeHudPoint2d(activeHand) { // if controller is valid, update reticle position and answer 2d point. Otherwise falsey.
     var shouldLog = activeTrigger.full() || Math.random()>0.5;
-    //printd("anddb-handControllerPointer.js activeHudPoint2d start activeHand " + activeHand);
+    //printd("activeHudPoint2d start activeHand " + activeHand);
     var controllerPose = getControllerWorldLocation(activeHand, true); // note: this will return head pose if hand pose is invalid (third eye)
     if (!controllerPose.valid) {
         if (shouldLog)
-            printd('anddb-handControllerPointer.js activeHudPoint2d invalid!');
+            printd('activeHudPoint2d invalid!');
         return; // Controller is cradled.
     }
     var controllerPosition = controllerPose.position;
@@ -284,13 +296,15 @@ function activeHudPoint2d(activeHand) { // if controller is valid, update reticl
     var hudPoint3d = calculateRayUICollisionPoint(controllerPosition, controllerDirection);
     if (!hudPoint3d) {
         if (Menu.isOptionChecked("Overlays")) { // With our hud resetting strategy, hudPoint3d should be valid here
-            printd('anddb-handControllerPointer.js Controller is parallel to HUD');  // so let us know that our assumptions are wrong.
+            printd('Controller is parallel to HUD');  // so let us know that our assumptions are wrong.
         }
         if (shouldLog)
-            printd('anddb-handControllerPointer.js activeHudPoint2d BAD hudPoint3d');
+            printd('activeHudPoint2d BAD hudPoint3d');
         return;
     }
+    printd('handControllerPointer hudPoint3d ' + hudPoint3d.x + ', ' + hudPoint3d.y + ', ' + hudPoint3d.z);
     var hudPoint2d = overlayFromWorldPoint(hudPoint3d);
+    printd('handControllerPointer hudPoint2d ' + hudPoint2d.x + ', ' + hudPoint2d.y);
 
     // We don't know yet if we'll want to make the cursor or laser visble, but we need to move it to see if
     // it's pointing at a QML tool (aka system overlay).
@@ -331,6 +345,7 @@ function updateSeeking(doNotStartSeeking) {
         return;
     }
     averageMouseVelocity = lastIntegration = 0;
+    printd("updateSeeking, call getHUDLookAtPosition2D");
     var lookAt2D = HMD.getHUDLookAtPosition2D();
     if (!lookAt2D) { // If this happens, something has gone terribly wrong.
         printd('Cannot seek without lookAt position');
@@ -353,12 +368,14 @@ function updateSeeking(doNotStartSeeking) {
         isSeeking = false;
     } else {
         Reticle.setPosition(copy); // Not setReticlePosition
+        canClearReticle = false;
     }
 }
 
 var mouseCursorActivity = new TimeLock(5000);
 var APPARENT_MAXIMUM_DEPTH = 100.0; // this is a depth at which things all seem sufficiently distant
 function updateMouseActivity(isClick) {
+    printd('updateMouseActivity calls ignoreMouseActivity()');
     if (ignoreMouseActivity()) {
         return;
     }
@@ -367,6 +384,7 @@ function updateMouseActivity(isClick) {
     if (isClick) {
         return;
     } // Bug: mouse clicks should keep going. Just not hand controller clicks
+    printd('updateMouseActivity was not click, calling handControllerLockOut.update(now)');
     handControllerLockOut.update(now);
     Reticle.visible = true;
 }
@@ -393,6 +411,7 @@ Script.setInterval(maybeAdjustReticleDepth,ADJUST_RETICLE_DEPTH_INTERVAL);
 
 function onMouseMove() {
     // Display cursor at correct depth (as in depthReticle.js), and updateMouseActivity.
+    printd('onMouseMove calls ignoreMouseActivity()');
     if (ignoreMouseActivity()) {
         return;
     }
@@ -406,6 +425,7 @@ function onMouseMove() {
             Reticle.depth = result.intersects ? result.distance : APPARENT_MAXIMUM_DEPTH;
         }
     }
+    printd('onMouseMove calls updateMouseActivity()');
     updateMouseActivity(); // After the above, just in case the depth movement is awkward when becoming visible.
 }
 function onMouseClick() {
@@ -459,6 +479,8 @@ function monitorRTClick(trigger) {
     }
 }
 
+var prevWasFull = false;
+
 // Gather the trigger data for smoothing.
 clickMapping.from(Controller.Standard.RT).peek().to(rightTrigger.triggerPress);
 clickMapping.from(Controller.Standard.LT).peek().to(leftTrigger.triggerPress);
@@ -471,7 +493,7 @@ function isPointingAtOverlayStartedNonFullTrigger(trigger) {
     var lockedIn = false;
     return function (value) {
         //if (trigger.full()) {
-            //printd('[DAYDREAM-CONTROLLER] isPointingAtOverlayStartedNonFullTrigger analysis rightTrigger.full value {' + value + '} current trigger is full? ' + activeTrigger.full());
+            printd('[DAYDREAM-CONTROLLER] isPointingAtOverlayStartedNonFullTrigger analysis rightTrigger.full value {' + value + '} current trigger is full? ' + activeTrigger.full());
         //}
         if (trigger !== activeTrigger) {
 //            if (lockedIn || Math.random()>0.98) {
@@ -482,32 +504,31 @@ function isPointingAtOverlayStartedNonFullTrigger(trigger) {
         }
         if (!isPointingAtOverlay()) {
             if (lockedIn) {
-                printd('anddb-handControllerPointer.js isPointingAtOverlayStartedNonFullTrigger lockedIn ' + lockedIn + ' returning (NOT POINTING AT OVERLAY)' + ' trigger: ' + trigger.label );
+                printd('isPointingAtOverlayStartedNonFullTrigger lockedIn ' + lockedIn + ' returning (NOT POINTING AT OVERLAY)' + ' trigger: ' + trigger.label );
             }
+            printd('isPointingAtOverlayStartedNonFullTrigger returning false (NOT POINTING AT OVERLAY)' + ' trigger: ' + trigger.label );
             return lockedIn = false;
         }
         if (lockedIn) {
-            if (lockedIn) {
-                //printd('[DAYDREAM-CONTROLLER] isPointingAtOverlayStartedNonFullTrigger returning TRUE lockedIn ' + lockedIn + ' returning' + ' trigger: ' + trigger.label );
-            }
+            printd('[DAYDREAM-CONTROLLER] isPointingAtOverlayStartedNonFullTrigger returning TRUE lockedIn ' + lockedIn + ' returning' + ' trigger: ' + trigger.label );
             return true;
         }
-        lockedIn = !trigger.full();
+        lockedIn = !trigger.full() && prevWasFull;
         if (lockedIn) {
-            printd('anddb-handControllerPointer.js isPointingAtOverlayStartedNonFullTrigger lockedIn (POINTING, LOCKED IN prev, is ActiveTrigger) ' + lockedIn + ' trigger: ' + trigger.label + '(' + trigger.full() + ')');    
+            printd('isPointingAtOverlayStartedNonFullTrigger lockedIn (POINTING, LOCKED IN prev, is ActiveTrigger) ' + lockedIn + ' trigger: ' + trigger.label + '(' + trigger.full() + ')');
         }
-
-        printd('[DAYDREAM-CONTROLLER] isPointingAtOverlayStartedNonFullTrigger RETURN lockedIn ' + lockedIn);    
+        prevWasFull = trigger.full();
+        printd('[DAYDREAM-CONTROLLER] isPointingAtOverlayStartedNonFullTrigger RETURN lockedIn ' + lockedIn);
         return lockedIn;
     }
 }
-printd("anddb-handControllerPointer.js isPointingAtOverlayStartedNonFullTrigger defined");
+printd("isPointingAtOverlayStartedNonFullTrigger defined");
 //clickMapping.from(rightTrigger.full).when(isPointingAtOverlayStartedNonFullTrigger(rightTrigger)).to(Controller.Actions.ReticleClick); before
 //clickMapping.from(leftTrigger.full).when(isPointingAtOverlayStartedNonFullTrigger(leftTrigger)).to(Controller.Actions.ReticleClick); before
 clickMapping.from(rightTrigger.full).debug().when(isPointingAtOverlayStartedNonFullTrigger(rightTrigger)).to(Controller.Actions.ReticleClick);
 /*clickMapping.from(leftTrigger.full).when(isPointingAtOverlayStartedNonFullTrigger(leftTrigger)).to(function (clicked) {
     if (clicked || Math.random()>0.98) {
-        printd("anddb-handControllerPointer.js leftTrigger full? " + clicked );
+        printd("leftTrigger full? " + clicked );
     }
 });*/
 
@@ -553,7 +574,7 @@ clickMapping.from(rightTrigger.full).to(makeToggleAction(Controller.Standard.Rig
 clickMapping.from(leftTrigger.full).to(makeToggleAction(Controller.Standard.LeftHand));
 clickMapping.enable();
 
-printd("anddb-handControllerPointer.js clickMapping defined");
+printd("clickMapping defined");
 // VISUAL AID -----------
 // Same properties as handControllerGrab search sphere
 var LASER_ALPHA = 0.5;
@@ -563,8 +584,10 @@ var SYSTEM_LASER_DIRECTION = {x: 0, y: 0, z: -1};
 var systemLaserOn = false;
 
 function clearSystemLaser() {
-    // For android the laser is always ON
+    // clear the reticle position with a delay so the position is still there when Application gets the event
+    clearReticlePositionDelayed();
     return;
+    // For android the laser is always ON
     /*printd("[CONTROLLER-3] clearSystemLaser systemLaserOn " + systemLaserOn);
     if (!systemLaserOn) {
         return;
@@ -590,13 +613,16 @@ function setColoredLaser() { // answer trigger state if lasers supported, else f
     return HMD.setHandLasers(activeHudLaser, true, color, SYSTEM_LASER_DIRECTION) && activeTrigger.state;
 }
 
-printd("anddb-handControllerPointer.js setColoredLaser defined");
+printd(" setColoredLaser defined");
 // MAIN OPERATIONS -----------
 //
 function update() {
     // laser always on (changes color if clicked)
     if (!systemLaserOn || (systemLaserOn !== activeTrigger.state)) {
         systemLaserOn = setColoredLaser();
+        printd("[CONTROLLER-4] setColoredLaser result " + systemLaserOn);
+    } else {
+        printd("[CONTROLLER-4] setColoredLaser state is still.. " + activeTrigger.state + " and systemLaserOn was " + systemLaserOn);
     }
 
     var shouldLog = Math.random()>0.98;
@@ -624,7 +650,7 @@ function update() {
         // using the mouse on another app. (Fogbugz case 546.)
         // However, in HMD, you might not realize you're not on top, and you wouldn't be able to operate
         // other apps anyway. So in that case, we DO keep going even though we're not on top. (Fogbugz 1831.)
-        printd("[CONTROLLER-3] // Don't mess with other apps or paused mouse activity");
+        printd("[CONTROLLER-3] calling off // Don't mess with other apps or paused mouse activity");
         return off(); // Don't mess with other apps or paused mouse activity
     }
 
@@ -632,12 +658,12 @@ function update() {
     rightTrigger.update();
 
     if (!activeTrigger.state) {
-        printd("[CONTROLLER-3] // No trigger");
+        printd("[CONTROLLER-3] calling off // No trigger");
         return off(); // No trigger
     }
 
     if (getGrabCommunications()) {
-        printd("[CONTROLLER-4] // getGrabCommunications");
+        printd("[CONTROLLER-3] calling off // getGrabCommunications");
         return off();
     }
     var hudPoint2d;
@@ -645,7 +671,7 @@ function update() {
         hudPoint2d = activeHudPoint2d(activeHand);
     }
     if (!hudPoint2d) {
-        printd("[CONTROLLER-4] // !hudPoint2d");        
+        printd("[CONTROLLER-3] calling off // !hudPoint2d");        
         return off();
     }
 
@@ -683,13 +709,13 @@ function update() {
     Reticle.visible = true; // false;*/
 }
 
-printd("anddb-handControllerPointer.js update defined");
+printd("update defined");
 var BASIC_TIMER_INTERVAL = 20; // 20ms = 50hz good enough
 var updateIntervalTimer = Script.setInterval(function(){
     update();
 }, BASIC_TIMER_INTERVAL);
 
-printd("anddb-handControllerPointer.js updateIntervalTimer defined");
+printd("updateIntervalTimer defined");
 
 // Check periodically for changes to setup.
 var SETTINGS_CHANGE_RECHECK_INTERVAL = 10 * 1000; // 10 seconds
@@ -699,7 +725,24 @@ function checkSettings() {
 }
 checkSettings();
 
-printd("anddb-handControllerPointer.js checkSettings called");
+var CLEAR_RETICLE_TIMEOUT = BASIC_TIMER_INTERVAL * 10;
+// remove var WE_MOVED_RETICLE_PREVENT_TIMEOUT = CLEAR_RETICLE_TIMEOUT / 2;
+var canClearReticle = false; // false when a position was already set, true after a clearReticle order was issued
+function clearReticlePositionDelayed() {
+    canClearReticle = true;
+    weMovedReticle = true;
+    Script.setTimeout(function() {
+        if (canClearReticle) {
+            weMovedReticle = true; // new to avoid problem of not ignoring mouse and cancelling update()
+            Reticle.position = { x: -1, y: -1};
+            printd("clearReticle done");
+        } else {
+            printd("clearReticle cancelled");
+        }
+    }, CLEAR_RETICLE_TIMEOUT);
+}
+
+printd("checkSettings called");
 var settingsChecker = Script.setInterval(checkSettings, SETTINGS_CHANGE_RECHECK_INTERVAL);
 Script.scriptEnding.connect(function () {
     Script.clearInterval(settingsChecker);
@@ -707,5 +750,5 @@ Script.scriptEnding.connect(function () {
     OffscreenFlags.navigationFocusDisabled = false;
 });
 
-printd("anddb-handControllerPointer.js end");
+printd("end");
 }()); // END LOCAL_SCOPE

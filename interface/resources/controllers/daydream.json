@@ -6,6 +6,7 @@
 
         { "from": "Daydream.RTClick", "to": "Standard.RTClick", "peek": true, "debug": true},
         { "from": "Daydream.RS", "to": "Standard.RS" },
+        { "from": "Daydream.RT", "to": "Standard.RT"},
         { "from": "Daydream.RSTouch", "to": "Standard.RSTouch" },
 		{ "from": "Daydream.RightPrimaryThumb", "to": "Standard.RightPrimaryThumb" },
 

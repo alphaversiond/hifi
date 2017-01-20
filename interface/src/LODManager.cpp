@@ -217,8 +217,12 @@ QString LODManager::getLODFeedbackText() {
 bool LODManager::shouldRender(const RenderArgs* args, const AABox& bounds) {
     // FIXME - eventually we want to use the render accuracy as an indicator for the level of detail
     // to use in rendering.
+#ifdef ANDROID
+    return true; // for the moment let's try to render everything
+#else
     float renderAccuracy = calculateRenderAccuracy(args->getViewFrustum().getPosition(), bounds, args->_sizeScale, args->_boundaryLevelAdjust);
     return (renderAccuracy > 0.0f);
+#endif
 };
 
 void LODManager::setOctreeSizeScale(float sizeScale) {

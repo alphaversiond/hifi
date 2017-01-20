@@ -735,7 +735,7 @@ Pose UserInputMapper::getPose(const Endpoint::Pointer& endpoint, bool peek) {
 }
 
 Pose UserInputMapper::getPose(const Input& input) const {
-    qCDebug(controllers) << "UserInputMapper::getPose 1";
+    //qCDebug(controllers) << "UserInputMapper::getPose 1";
     Locker locker(_lock);
     auto endpoint = endpointFor(input);
     if (!endpoint) {

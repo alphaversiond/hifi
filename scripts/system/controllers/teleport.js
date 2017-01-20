@@ -10,7 +10,7 @@
 
 (function() { // BEGIN LOCAL_SCOPE
 
-var logEnabled = true;
+var logEnabled = false;
 function printd(str) {
     if (logEnabled)
         print("teleport.js " + str);
