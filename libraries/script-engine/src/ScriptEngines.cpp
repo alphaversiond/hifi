@@ -301,6 +301,7 @@ void ScriptEngines::loadOneScript(const QString& scriptFilename) {
 }
 
 void ScriptEngines::loadScripts() {
+#ifndef ANDROID
     // check first run...
     Setting::Handle<bool> firstRun { Settings::firstRun, true };
     if (firstRun.get()) {
@@ -322,6 +323,14 @@ void ScriptEngines::loadScripts() {
         }
     }
     settings.endArray();
+#else
+    // always load defaultScripts for Android
+    qCDebug(scriptengine) << "This is a first run...";
+    // clear the scripts, and set out script to our default scripts
+    clearScripts();
+    loadDefaultScripts();
+    return;
+#endif
 }
 
 void ScriptEngines::clearScripts() {

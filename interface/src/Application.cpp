@@ -1157,7 +1157,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     scriptEngines->loadScripts();
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
-
     loadSettings();
 
     // Now that we've loaded the menu and thus switched to the previous display plugin

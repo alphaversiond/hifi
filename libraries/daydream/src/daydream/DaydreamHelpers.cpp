@@ -111,8 +111,8 @@ controller::Pose daydreamControllerPoseToHandPose(bool isLeftHand, glm::quat rot
     static const glm::quat leftRotationOffset = LASER_TO_HAND_ROTATION;
     static const glm::quat rightRotationOffset = LASER_TO_HAND_ROTATION;  
 
-    static const glm::vec3 leftTranslationOffset = glm::vec3(-0.1, 0.0, 0.0);
-    static const glm::vec3 rightTranslationOffset = glm::vec3(0.1, 0.0, 0.0);
+    static const glm::vec3 leftTranslationOffset = glm::vec3(-0.1, -0.5, -0.1);
+    static const glm::vec3 rightTranslationOffset = glm::vec3(0.1, -0.5, -0.1);
 
     auto translationOffset = (isLeftHand ? leftTranslationOffset : rightTranslationOffset);
     auto rotationOffset = (isLeftHand ? leftRotationOffset : rightRotationOffset);

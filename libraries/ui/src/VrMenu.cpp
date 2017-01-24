@@ -129,7 +129,7 @@ void VrMenu::addMenu(QMenu* menu) {
     QObject* parent = menu->parent();
     QObject* qmlParent = nullptr;
 #ifdef ANDROID
-    QMenu* parentMenu = static_cast<QMenu*>(parent);
+    QMenu* parentMenu = dynamic_cast<QMenu*>(parent);
 #else
     QMenu* parentMenu = dynamic_cast<QMenu*>(parent);
 #endif
@@ -140,7 +140,7 @@ void VrMenu::addMenu(QMenu* menu) {
         }
         qmlParent = findMenuObject(userData->uuid.toString());
 #ifdef ANDROID
-    } else if (static_cast<QMenuBar*>(parent)) {
+    } else if (dynamic_cast<QMenuBar*>(parent)) {
 #else
     } else if (dynamic_cast<QMenuBar*>(parent)) {
 #endif

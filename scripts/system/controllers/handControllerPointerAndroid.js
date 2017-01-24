@@ -599,10 +599,11 @@ function clearSystemLaser() {
     Reticle.position = { x: -1, y: -1};*/
 }
 function setColoredLaser() { // answer trigger state if lasers supported, else falsey.
-    printd("[CONTROLLER-4] setColoredLaser trigger " + activeTrigger.state + " isHandControllerAvailable " + HMD.isHandControllerAvailable());
+    printd("[CONTROLLER-4] [LASERS] setColoredLaser trigger " + activeTrigger.state + " isHandControllerAvailable " + HMD.isHandControllerAvailable());
     var color = (activeTrigger.state === 'full') ? LASER_TRIGGER_COLOR_XYZW : LASER_SEARCH_COLOR_XYZW;
 
     if (!HMD.isHandControllerAvailable()) {
+        printd("[CONTROLLER-4] [LASERS] isHandControllerAvailable was false");
         // NOTE: keep this offset in sync with scripts/system/librarires/controllers.js:57
         var VERTICAL_HEAD_LASER_OFFSET = 0.1;
         var position = Vec3.sum(HMD.position, Vec3.multiplyQbyV(HMD.orientation, {x: 0, y: VERTICAL_HEAD_LASER_OFFSET, z: 0}));
@@ -618,7 +619,8 @@ printd(" setColoredLaser defined");
 //
 function update() {
     // laser always on (changes color if clicked)
-    if (!systemLaserOn || (systemLaserOn !== activeTrigger.state)) {
+    if (/*!systemLaserOn || */(systemLaserOn !== activeTrigger.state)) {
+        // ^ avoid calling setColoredLaser everytime when not pressed
         systemLaserOn = setColoredLaser();
         printd("[CONTROLLER-4] setColoredLaser result " + systemLaserOn);
     } else {
