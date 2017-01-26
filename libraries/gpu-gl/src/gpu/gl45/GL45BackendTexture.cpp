@@ -415,11 +415,6 @@ void GL45Texture::stripToMip(uint16_t newMinMip) {
             _sparseInfo.allocatedPages -= deallocatedPages;
         }
         _minMip = newMinMip;
-
-        // FIXME account for mip offsets here
-        const Sampler& sampler = _gpuObject.getSampler();
-        auto baseMip = std::max<uint16_t>(sampler.getMipOffset(), _minMip);
-        //glTextureParameteri(_id, GL_TEXTURE_BASE_LEVEL, baseMip);
     } else {
         GLuint oldId = _id;
         // Find the distance between the old min mip and the new one
@@ -456,10 +451,10 @@ void GL45Texture::stripToMip(uint16_t newMinMip) {
             _handle = 0;
         }
         glDeleteTextures(1, &oldId);
-        // Re-sync the sampler to force access to the new mip level
-        syncSampler();
     }
 
+    // Re-sync the sampler to force access to the new mip level
+    syncSampler();
     updateSize();
 
     // Re-insert into the texture-by-mips map if appropriate
