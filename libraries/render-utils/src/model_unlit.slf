@@ -36,11 +36,11 @@ void main(void) {
 
     vec3 albedo = getMaterialAlbedo(mat);
     <$evalMaterialAlbedo(albedoTex, albedo, matKey, albedo)$>;
-    //!!albedo *= _color;
+    albedo *= _color;
 
-    /*!! packDeferredFragmentUnlit(
+     packDeferredFragmentUnlit(
         normalize(_normal), 
         opacity,
-        albedo * isUnlitEnabled());*/
-    _fragColor0 = vec4(albedoTex.rgb, 1.0); //!!
+        albedo * isUnlitEnabled());
+
 }
