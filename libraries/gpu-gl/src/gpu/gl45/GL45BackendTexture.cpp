@@ -360,10 +360,7 @@ void GL45Texture::syncSampler() const {
     glTextureParameterf(_id, GL_TEXTURE_MIN_LOD, (float)sampler.getMinMip());
     glTextureParameterf(_id, GL_TEXTURE_MAX_LOD, (sampler.getMaxMip() == Sampler::MAX_MIP_LEVEL ? 1000.f : sampler.getMaxMip() - _mipOffset));
     glTextureParameterf(_id, GL_TEXTURE_MAX_ANISOTROPY_EXT, sampler.getMaxAnisotropy());
-
-    const_cast<GLuint64&>(_handle) = glGetTextureHandleARB(_id);
     (void)CHECK_GL_ERROR();
-
 }
 
 void GL45Texture::postTransfer() {
@@ -418,6 +415,11 @@ void GL45Texture::stripToMip(uint16_t newMinMip) {
             _sparseInfo.allocatedPages -= deallocatedPages;
         }
         _minMip = newMinMip;
+
+        // FIXME account for mip offsets here
+        const Sampler& sampler = _gpuObject.getSampler();
+        auto baseMip = std::max<uint16_t>(sampler.getMipOffset(), _minMip);
+        //glTextureParameteri(_id, GL_TEXTURE_BASE_LEVEL, baseMip);
     } else {
         GLuint oldId = _id;
         // Find the distance between the old min mip and the new one
@@ -449,11 +451,15 @@ void GL45Texture::stripToMip(uint16_t newMinMip) {
         }
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
         glDeleteFramebuffers(1, &fbo);
+        if (_handle) {
+            glMakeTextureHandleNonResidentARB(_handle);
+            _handle = 0;
+        }
         glDeleteTextures(1, &oldId);
+        // Re-sync the sampler to force access to the new mip level
+        syncSampler();
     }
 
-    // Re-sync the sampler to force access to the new mip level
-    syncSampler();
     updateSize();
 
     // Re-insert into the texture-by-mips map if appropriate
@@ -462,6 +468,14 @@ void GL45Texture::stripToMip(uint16_t newMinMip) {
         Lock lock(texturesByMipCountsMutex);
         texturesByMipCounts[mipLevels].insert(this);
     }
+}
+
+GLuint64 GL45Texture::getHandle() {
+    if (!_handle) {
+        _handle = glGetTextureHandleARB(_id);
+        glMakeTextureHandleResidentARB(_handle);
+    }
+    return _handle;
 }
 
 void GL45Texture::updateMips() {
@@ -520,7 +534,7 @@ GL45TextureTable::GL45TextureTable(const std::weak_ptr<GLBackend>& backend, cons
     : Parent(backend, textureTable, allocate()), _stamp(textureTable.getStamp()), _handles(handles), _complete(handlesComplete) {
     Backend::setGPUObject(textureTable, this);
     // FIXME include these in overall buffer storage reporting
-    glNamedBufferStorage(_id, sizeof(uvec4) * TextureTable::COUNT, &_handles[0], 0);
+    glNamedBufferStorage(_id, sizeof(uvec2) * TextureTable::COUNT, &_handles[0], 0);
 }
 
 
@@ -538,31 +552,30 @@ GL45TextureTable::~GL45TextureTable() {
 GL45TextureTable* GL45Backend::syncGPUObject(const TextureTablePointer& textureTablePointer) {
     const auto& textureTable = *textureTablePointer;
 
+    // Find the target handles
+    auto textures = textureTable.getTextures();
+    bool handlesComplete = true;
+    GL45TextureTable::HandlesArray handles{};
+    for (size_t i = 0; i < textures.size(); ++i) {
+        auto texture = textures[i];
+        if (!texture) {
+            continue;
+        }
+        // FIXME what if we have a non-transferrable texture here?
+        auto gltexture = (GL45Texture*)syncGPUObject(texture, true);
+        if (!gltexture) {
+            handlesComplete = false;
+            continue;
+        }
+        auto handle = gltexture->getHandle();
+        memcpy(&handles[i], &handle, sizeof(handle));
+    }
+
     // If the object hasn't been created, or the object definition is out of date, drop and re-create
     GL45TextureTable* object = Backend::getGPUObject<GL45TextureTable>(textureTable);
 
-    if (!object || object->_stamp != textureTable.getStamp() || !object->_complete) {
-        // Find the target handles
-        auto textures = textureTable.getTextures();
-        bool handlesComplete = true;
-        GL45TextureTable::HandlesArray handles {};
-        for (size_t i = 0; i < textures.size(); ++i) {
-            auto texture = textures[i];
-            if (!texture) {
-                continue;
-            }
-            // FIXME what if we have a non-transferrable texture here?
-            auto gltexture = (GL45Texture*)syncGPUObject(texture, true);
-            if (!gltexture) {
-                handlesComplete = false;
-                continue;
-            }
-            memcpy(&(handles[i]), &(gltexture->_handle), sizeof(GLuint64));
-        }
-
-        if (!object || object->_handles != handles) {
-            object = new GL45TextureTable(shared_from_this(), textureTable, handles, handlesComplete);
-        }
+    if (!object || object->_stamp != textureTable.getStamp() || !object->_complete || handles != object->_handles) {
+        object = new GL45TextureTable(shared_from_this(), textureTable, handles, handlesComplete);
     }
 
     return object;

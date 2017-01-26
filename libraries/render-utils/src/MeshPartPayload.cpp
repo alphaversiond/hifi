@@ -142,13 +142,14 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     auto textureCache = DependencyManager::get<TextureCache>();
     if (!_drawMaterialTextures) {
 		_drawMaterialTextures = std::make_shared<gpu::TextureTable>();
-        _drawMaterialTextures->setTexture(ShapePipeline::Slot::ALBEDO, textureCache->getWhiteTexture());
-        _drawMaterialTextures->setTexture(ShapePipeline::Slot::MAP::ROUGHNESS, textureCache->getWhiteTexture());
-        _drawMaterialTextures->setTexture(ShapePipeline::Slot::MAP::NORMAL, textureCache->getBlueTexture());
-        _drawMaterialTextures->setTexture(ShapePipeline::Slot::MAP::METALLIC, textureCache->getBlackTexture());
-        _drawMaterialTextures->setTexture(ShapePipeline::Slot::MAP::OCCLUSION, textureCache->getWhiteTexture());
-        _drawMaterialTextures->setTexture(ShapePipeline::Slot::MAP::SCATTERING, textureCache->getWhiteTexture());
-        _drawMaterialTextures->setTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, textureCache->getBlackTexture());
+        _drawMaterialTextures->setTexture(model::MaterialKey::ALBEDO_MAP, textureCache->getWhiteTexture());
+        _drawMaterialTextures->setTexture(model::MaterialKey::ROUGHNESS_MAP, textureCache->getWhiteTexture());
+        _drawMaterialTextures->setTexture(model::MaterialKey::NORMAL_MAP, textureCache->getBlueTexture());
+        _drawMaterialTextures->setTexture(model::MaterialKey::METALLIC_MAP, textureCache->getBlackTexture());
+        _drawMaterialTextures->setTexture(model::MaterialKey::OCCLUSION_MAP, textureCache->getWhiteTexture());
+        _drawMaterialTextures->setTexture(model::MaterialKey::SCATTERING_MAP, textureCache->getWhiteTexture());
+        _drawMaterialTextures->setTexture(model::MaterialKey::EMISSIVE_MAP, textureCache->getBlackTexture());
+        _drawMaterialTextures->setTexture(model::MaterialKey::LIGHTMAP_MAP, textureCache->getGrayTexture());
     }
 
     batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::MATERIAL, _drawMaterial->getSchemaBuffer());
@@ -164,7 +165,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     if (materialKey.isAlbedoMap()) {
         auto itr = textureMaps.find(model::MaterialKey::ALBEDO_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
-            _drawMaterialTextures->setTexture(ShapePipeline::Slot::ALBEDO, itr->second->getTextureView());
+            _drawMaterialTextures->setTexture(model::MaterialKey::ALBEDO_MAP, itr->second->getTextureView());
         }
     }
 
@@ -172,7 +173,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     if (materialKey.isRoughnessMap()) {
         auto itr = textureMaps.find(model::MaterialKey::ROUGHNESS_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
-            _drawMaterialTextures->setTexture(ShapePipeline::Slot::MAP::ROUGHNESS, itr->second->getTextureView());
+            _drawMaterialTextures->setTexture(model::MaterialKey::ROUGHNESS_MAP, itr->second->getTextureView());
         }
     }
 
@@ -180,7 +181,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     if (materialKey.isNormalMap()) {
         auto itr = textureMaps.find(model::MaterialKey::NORMAL_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
-            _drawMaterialTextures->setTexture(ShapePipeline::Slot::MAP::NORMAL, itr->second->getTextureView());
+            _drawMaterialTextures->setTexture(model::MaterialKey::NORMAL_MAP, itr->second->getTextureView());
         }
     }
 
@@ -188,7 +189,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     if (materialKey.isMetallicMap()) {
         auto itr = textureMaps.find(model::MaterialKey::METALLIC_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
-            _drawMaterialTextures->setTexture(ShapePipeline::Slot::MAP::METALLIC, itr->second->getTextureView());
+            _drawMaterialTextures->setTexture(model::MaterialKey::METALLIC_MAP, itr->second->getTextureView());
         } 
     }
 
@@ -196,7 +197,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     if (materialKey.isOcclusionMap()) {
         auto itr = textureMaps.find(model::MaterialKey::OCCLUSION_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
-            _drawMaterialTextures->setTexture(ShapePipeline::Slot::MAP::OCCLUSION, itr->second->getTextureView());
+            _drawMaterialTextures->setTexture(model::MaterialKey::OCCLUSION_MAP, itr->second->getTextureView());
         }
     }
 
@@ -204,7 +205,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     if (materialKey.isScatteringMap()) {
         auto itr = textureMaps.find(model::MaterialKey::SCATTERING_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
-            _drawMaterialTextures->setTexture(ShapePipeline::Slot::MAP::SCATTERING, itr->second->getTextureView());
+            _drawMaterialTextures->setTexture(model::MaterialKey::SCATTERING_MAP, itr->second->getTextureView());
         }
     }
 
@@ -212,12 +213,14 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     if (materialKey.isLightmapMap()) {
         auto itr = textureMaps.find(model::MaterialKey::LIGHTMAP_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
-            _drawMaterialTextures->setTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, itr->second->getTextureView());
+            _drawMaterialTextures->setTexture(model::MaterialKey::LIGHTMAP_MAP, itr->second->getTextureView());
         } 
-    } else if (materialKey.isEmissiveMap()) {
+    } 
+    
+    if (materialKey.isEmissiveMap()) {
         auto itr = textureMaps.find(model::MaterialKey::EMISSIVE_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
-            _drawMaterialTextures->setTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, itr->second->getTextureView());
+            _drawMaterialTextures->setTexture(model::MaterialKey::EMISSIVE_MAP, itr->second->getTextureView());
         } 
     }
 }

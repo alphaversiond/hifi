@@ -76,6 +76,8 @@ public:
             GLint pageDimensionsIndex { 0 };
         };
 
+        GLuint64 getHandle();
+
     protected:
         void updateMips() override;
         void stripToMip(uint16_t newMinMip);
