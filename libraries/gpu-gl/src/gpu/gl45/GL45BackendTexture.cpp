@@ -277,7 +277,6 @@ void GL45Texture::allocateStorage() const {
     // Get the dimensions, accounting for the downgrade level
     Vec3u dimensions = _gpuObject.evalMipDimensions(_minMip + _mipOffset);
     glTextureStorage2D(_id, usedMipLevels(), _internalFormat, dimensions.x, dimensions.y);
-    const_cast<GLuint64&>(_handle) = glGetTextureHandleARB(_id);
     (void)CHECK_GL_ERROR();
 }
 
@@ -361,6 +360,10 @@ void GL45Texture::syncSampler() const {
     glTextureParameterf(_id, GL_TEXTURE_MIN_LOD, (float)sampler.getMinMip());
     glTextureParameterf(_id, GL_TEXTURE_MAX_LOD, (sampler.getMaxMip() == Sampler::MAX_MIP_LEVEL ? 1000.f : sampler.getMaxMip() - _mipOffset));
     glTextureParameterf(_id, GL_TEXTURE_MAX_ANISOTROPY_EXT, sampler.getMaxAnisotropy());
+
+    const_cast<GLuint64&>(_handle) = glGetTextureHandleARB(_id);
+    (void)CHECK_GL_ERROR();
+
 }
 
 void GL45Texture::postTransfer() {
@@ -570,6 +573,6 @@ void GL45Backend::do_setResourceTextureTable(const Batch& batch, size_t paramOff
     auto slot = batch._params[paramOffset + 1]._uint;
     GL45TextureTable* glTextureTable = syncGPUObject(textureTable);
     if (glTextureTable) {
-        //glBindBufferBase()
+        glBindBufferBase(GL_UNIFORM_BUFFER, slot + GLBackend::RESOURCE_TABLE_TEXTURE_SLOT_OFFSET, glTextureTable->_id);
     }
 }
