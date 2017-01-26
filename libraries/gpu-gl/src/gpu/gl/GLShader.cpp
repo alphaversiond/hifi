@@ -68,6 +68,11 @@ static const std::string stereoVersion {
 #endif
 };
 
+// TextureTable specific defines
+static const std::string textureTableVersion {
+    "#extension GL_ARB_bindless_texture : require\n#define GPU_TEXTURE_TABLE_BINDLESS\n"
+};
+
 // Versions specific of the shader
 static const std::array<std::string, GLShader::NumVersions> VERSION_DEFINES { {
     "",
@@ -80,10 +85,15 @@ GLShader* compileBackendShader(GLBackend& backend, const Shader& shader) {
     GLenum shaderDomain = SHADER_DOMAINS[shader.getType()];
     GLShader::ShaderObjects shaderObjects;
 
+    bool supportTextureTableBindless = true;
+
     for (int version = 0; version < GLShader::NumVersions; version++) {
         auto& shaderObject = shaderObjects[version];
 
-        std::string shaderDefines = glslVersion + "\n" + DOMAIN_DEFINES[shader.getType()] + "\n" + VERSION_DEFINES[version];
+        std::string shaderDefines = glslVersion + "\n"
+            + (supportTextureTableBindless ? textureTableVersion : "\n")
+            + DOMAIN_DEFINES[shader.getType()] + "\n"
+            + VERSION_DEFINES[version];
 
 #ifdef SEPARATE_PROGRAM
         bool result = ::gl::compileShader(shaderDomain, shaderSource, shaderDefines, shaderObject.glshader, shaderObject.glprogram);
