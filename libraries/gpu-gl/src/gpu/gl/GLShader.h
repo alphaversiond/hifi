@@ -12,6 +12,23 @@
 
 namespace gpu { namespace gl {
 
+struct ShaderObject {
+    GLuint glshader { 0 };
+    GLuint glprogram { 0 };
+    GLint transformCameraSlot { -1 };
+    GLint transformObjectSlot { -1 };
+    GLint resourceTextureTableSlot0 { -1 };
+    GLint resourceTextureTableSlot1 { -1 };
+};
+
+int makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,
+    Shader::SlotSet& uniforms, Shader::SlotSet& textures, Shader::SlotSet& textureTables, Shader::SlotSet& samplers);
+int makeUniformBlockSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& buffers);
+int makeInputSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& inputs);
+int makeOutputSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& outputs);
+void makeProgramBindings(ShaderObject& shaderObject);
+
+
 class GLShader : public GPUObject {
 public:
     static GLShader* sync(GLBackend& backend, const Shader& shader);
