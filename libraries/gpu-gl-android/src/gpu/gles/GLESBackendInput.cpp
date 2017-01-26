@@ -17,3 +17,13 @@ void GLESBackend::updateInput() {
     Parent::updateInput();
 }
 
+
+void GLESBackend::resetInputStage() {
+    Parent::resetInputStage();
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    for (uint32_t i = 0; i < _input._attributeActivation.size(); i++) {
+        glDisableVertexAttribArray(i);
+        glVertexAttribPointer(i, 4, GL_FLOAT, GL_FALSE, 0, 0);
+    }
+}

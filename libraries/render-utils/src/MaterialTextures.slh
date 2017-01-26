@@ -14,10 +14,11 @@
 
 <@func declareMaterialTexMapArrayBuffer()@>
 
-const int MAX_TEXCOORDS = 2;
+//const int MAX_TEXCOORDS = 2;
 
 struct TexMapArray { 
-    mat4 _texcoordTransforms[MAX_TEXCOORDS];
+    mat4 _texcoordTransforms0;
+    mat4 _texcoordTransforms1;
     vec4 _lightmapParams;
 };
 
@@ -31,13 +32,13 @@ TexMapArray getTexMapArray() {
 
 <@func evalTexMapArrayTexcoord0(texMapArray, inTexcoord0, outTexcoord0)@>
 {
-    <$outTexcoord0$> = (<$texMapArray$>._texcoordTransforms[0] * vec4(<$inTexcoord0$>.st, 0.0, 1.0)).st;
+    <$outTexcoord0$> = (<$texMapArray$>._texcoordTransforms0 * vec4(<$inTexcoord0$>.st, 0.0, 1.0)).st;
 }
 <@endfunc@>
 
 <@func evalTexMapArrayTexcoord1(texMapArray, inTexcoord1, outTexcoord1)@>
 {
-    <$outTexcoord1$> = (<$texMapArray$>._texcoordTransforms[1] * vec4(<$inTexcoord1$>.st, 0.0, 1.0)).st;
+    <$outTexcoord1$> = (<$texMapArray$>._texcoordTransforms1 * vec4(<$inTexcoord1$>.st, 0.0, 1.0)).st;
 }
 <@endfunc@>
 
@@ -102,7 +103,7 @@ float fetchScatteringMap(vec2 uv) {
 
 <@func fetchMaterialTexturesCoord0(matKey, texcoord0, albedo, roughness, normal, metallic, emissive, scattering)@>
 <@if albedo@>
-    vec4 <$albedo$> = (((<$matKey$> & (ALBEDO_MAP_BIT | OPACITY_MASK_MAP_BIT | OPACITY_TRANSLUCENT_MAP_BIT)) != 0) ? fetchAlbedoMap(<$texcoord0$>) : vec4(1.0));
+    vec4 <$albedo$> = fetchAlbedoMap(<$texcoord0$>); //!! (((<$matKey$> & (ALBEDO_MAP_BIT | OPACITY_MASK_MAP_BIT | OPACITY_TRANSLUCENT_MAP_BIT)) != 0) ? fetchAlbedoMap(<$texcoord0$>) : vec4(1.0));
 <@endif@>
 <@if roughness@>
     float <$roughness$> = (((<$matKey$> & ROUGHNESS_MAP_BIT) != 0) ? fetchRoughnessMap(<$texcoord0$>) : 1.0);
@@ -155,10 +156,10 @@ vec3 fetchLightmapMap(vec2 uv) {
 
 <@func evalMaterialAlbedo(fetchedAlbedo, materialAlbedo, matKey, albedo)@>
 {
-    <$albedo$>.xyz = (((<$matKey$> & ALBEDO_VAL_BIT) != 0) ? <$materialAlbedo$> : vec3(1.0));
+    //!!<$albedo$>.xyz = (((<$matKey$> & ALBEDO_VAL_BIT) != 0) ? <$materialAlbedo$> : vec3(1.0));
 
     if (((<$matKey$> & ALBEDO_MAP_BIT) != 0)) {
-        <$albedo$>.xyz *= <$fetchedAlbedo$>.xyz;
+        //!!<$albedo$>.xyz *= <$fetchedAlbedo$>.xyz;
     }
 }
 <@endfunc@>
@@ -166,9 +167,9 @@ vec3 fetchLightmapMap(vec2 uv) {
 <@func evalMaterialOpacity(fetchedOpacity, materialOpacity, matKey, opacity)@>
 {
     const float OPACITY_MASK_THRESHOLD = 0.5;
-    <$opacity$> = (((<$matKey$> & (OPACITY_TRANSLUCENT_MAP_BIT | OPACITY_MASK_MAP_BIT)) != 0) ?
+    /*!!<$opacity$> = (((<$matKey$> & (OPACITY_TRANSLUCENT_MAP_BIT | OPACITY_MASK_MAP_BIT)) != 0) ?
                      (((<$matKey$> & OPACITY_MASK_MAP_BIT) != 0) ? step(OPACITY_MASK_THRESHOLD, <$fetchedOpacity$>) : <$fetchedOpacity$>) :
-                     1.0) * <$materialOpacity$>;
+                     1.0) * <$materialOpacity$>;*/
 }
 <@endfunc@>
 
@@ -182,19 +183,19 @@ vec3 fetchLightmapMap(vec2 uv) {
 
 <@func evalMaterialRoughness(fetchedRoughness, materialRoughness, matKey, roughness)@>
 {
-    <$roughness$> = (((<$matKey$> & ROUGHNESS_MAP_BIT) != 0) ? <$fetchedRoughness$> : <$materialRoughness$>);
+    //!!<$roughness$> = (((<$matKey$> & ROUGHNESS_MAP_BIT) != 0) ? <$fetchedRoughness$> : <$materialRoughness$>);
 }
 <@endfunc@>
 
 <@func evalMaterialMetallic(fetchedMetallic, materialMetallic, matKey, metallic)@>
 {
-    <$metallic$> = (((<$matKey$> & METALLIC_MAP_BIT) != 0) ? <$fetchedMetallic$> : <$materialMetallic$>);
+    //!!<$metallic$> = (((<$matKey$> & METALLIC_MAP_BIT) != 0) ? <$fetchedMetallic$> : <$materialMetallic$>);
 }
 <@endfunc@>
 
 <@func evalMaterialEmissive(fetchedEmissive, materialEmissive, matKey, emissive)@>
 {
-    <$emissive$> = (((<$matKey$> & EMISSIVE_MAP_BIT) != 0) ? <$fetchedEmissive$> : <$materialEmissive$>);
+    //!!<$emissive$> = (((<$matKey$> & EMISSIVE_MAP_BIT) != 0) ? <$fetchedEmissive$> : <$materialEmissive$>);
 }
 <@endfunc@>
 
@@ -206,7 +207,7 @@ vec3 fetchLightmapMap(vec2 uv) {
 
 <@func evalMaterialScattering(fetchedScattering, materialScattering, matKey, scattering)@>
 {
-    <$scattering$> = (((<$matKey$> & SCATTERING_MAP_BIT) != 0) ? <$fetchedScattering$> : <$materialScattering$>);
+    //!!<$scattering$> = (((<$matKey$> & SCATTERING_MAP_BIT) != 0) ? <$fetchedScattering$> : <$materialScattering$>);
 }
 <@endfunc@>
 

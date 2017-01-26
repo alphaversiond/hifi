@@ -70,6 +70,7 @@ protected:
 
     // Input Stage
     void updateInput() override;
+    void resetInputStage() override;
 
     // Synchronize the state cache of this Backend with the actual real state of the GL Context
     void transferTransformState(const Batch& batch) const override;
