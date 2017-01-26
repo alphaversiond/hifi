@@ -305,6 +305,12 @@ void Batch::setResourceTexture(uint32 slot, const TexturePointer& texture) {
     _params.emplace_back(slot);
 }
 
+void Batch::setResourceTextureTable(const TextureTablePointer& textureTable, uint32 slot) {
+    ADD_COMMAND(setResourceTextureTable);
+    _params.emplace_back(_textureTables.cache(textureTable));
+    _params.emplace_back(slot);
+}
+
 void Batch::setResourceTexture(uint32 slot, const TextureView& view) {
     setResourceTexture(slot, view._texture);
 }

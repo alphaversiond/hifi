@@ -90,6 +90,8 @@ namespace gpu {
     using Textures = std::vector<TexturePointer>;
     class TextureView;
     using TextureViews = std::vector<TextureView>;
+    class TextureTable;
+    using TextureTablePointer = std::shared_ptr<TextureTable>;
 
     struct StereoState {
         bool _enable{ false };

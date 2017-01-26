@@ -123,6 +123,7 @@ public:
 
     // Resource Stage
     virtual void do_setResourceTexture(const Batch& batch, size_t paramOffset) final;
+    virtual void do_setResourceTextureTable(const Batch& batch, size_t paramOffset)  = 0;
 
     // Pipeline Stage
     virtual void do_setPipeline(const Batch& batch, size_t paramOffset) final;

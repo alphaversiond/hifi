@@ -65,6 +65,7 @@ public:
     std::shared_ptr<const model::Mesh> _drawMesh;
 
     std::shared_ptr<const model::Material> _drawMaterial;
+    mutable gpu::TextureTablePointer _drawMaterialTextures;
     model::Mesh::Part _drawPart;
 
     size_t getVerticesCount() const { return _drawMesh ? _drawMesh->getNumVertices() : 0; }

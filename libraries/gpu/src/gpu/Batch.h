@@ -192,6 +192,8 @@ public:
     void setResourceTexture(uint32 slot, const TexturePointer& view);
     void setResourceTexture(uint32 slot, const TextureView& view); // not a command, just a shortcut from a TextureView
 
+    void setResourceTextureTable(const TextureTablePointer& table, uint32 slot = 0);
+
     // Ouput Stage
     void setFramebuffer(const FramebufferPointer& framebuffer);
  
@@ -291,6 +293,7 @@ public:
 
         COMMAND_setUniformBuffer,
         COMMAND_setResourceTexture,
+        COMMAND_setResourceTextureTable,
 
         COMMAND_setFramebuffer,
         COMMAND_clearFramebuffer,
@@ -403,6 +406,7 @@ public:
 
     typedef Cache<BufferPointer>::Vector BufferCaches;
     typedef Cache<TexturePointer>::Vector TextureCaches;
+    typedef Cache<TextureTablePointer>::Vector TextureTableCaches;
     typedef Cache<Stream::FormatPointer>::Vector StreamFormatCaches;
     typedef Cache<Transform>::Vector TransformCaches;
     typedef Cache<PipelinePointer>::Vector PipelineCaches;
@@ -457,6 +461,7 @@ public:
 
     BufferCaches _buffers;
     TextureCaches _textures;
+    TextureTableCaches _textureTables;
     StreamFormatCaches _streamFormats;
     TransformCaches _transforms;
     PipelineCaches _pipelines;

@@ -502,3 +502,8 @@ void GL45Backend::derezTextures() const {
     lock.unlock();
     targetTexture->derez();
 }
+
+
+void GL45Backend::do_setResourceTextureTable(const Batch& batch, size_t paramOffset) {
+
+}

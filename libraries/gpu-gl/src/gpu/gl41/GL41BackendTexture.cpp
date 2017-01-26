@@ -163,3 +163,7 @@ void GL41Backend::GL41Texture::syncSampler() const {
     glTexParameterf(_target, GL_TEXTURE_MAX_ANISOTROPY_EXT, sampler.getMaxAnisotropy());
 }
 
+
+void GL41Backend::do_setResourceTextureTable(const Batch& batch, size_t paramOffset) {
+
+}
