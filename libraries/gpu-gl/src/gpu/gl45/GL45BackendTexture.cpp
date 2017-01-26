@@ -19,6 +19,8 @@
 #include <QtCore/QDebug>
 #include <QtCore/QThread>
 
+#include <gpu/TextureTable.h>
+
 #include "../gl/GLTexelFormat.h"
 
 using namespace gpu;
@@ -30,6 +32,7 @@ using namespace gpu::gl45;
 #define DEFAULT_GL_PIXEL_ALIGNMENT 4
 
 using GL45Texture = GL45Backend::GL45Texture;
+using GL45TextureTable = GL45Backend::GL45TextureTable;
 
 static std::map<uint16_t, std::unordered_set<GL45Texture*>> texturesByMipCounts;
 static Mutex texturesByMipCountsMutex;
@@ -274,6 +277,7 @@ void GL45Texture::allocateStorage() const {
     // Get the dimensions, accounting for the downgrade level
     Vec3u dimensions = _gpuObject.evalMipDimensions(_minMip + _mipOffset);
     glTextureStorage2D(_id, usedMipLevels(), _internalFormat, dimensions.x, dimensions.y);
+    const_cast<GLuint64&>(_handle) = glGetTextureHandleARB(_id);
     (void)CHECK_GL_ERROR();
 }
 
@@ -503,7 +507,69 @@ void GL45Backend::derezTextures() const {
     targetTexture->derez();
 }
 
+GLuint GL45TextureTable::allocate() {
+    GLuint result;
+    glCreateBuffers(1, &result);
+    return result;
+}
+
+GL45TextureTable::GL45TextureTable(const std::weak_ptr<GLBackend>& backend, const TextureTable& textureTable, const HandlesArray& handles, bool handlesComplete)
+    : Parent(backend, textureTable, allocate()), _stamp(textureTable.getStamp()), _handles(handles), _complete(handlesComplete) {
+    Backend::setGPUObject(textureTable, this);
+    // FIXME include these in overall buffer storage reporting
+    glNamedBufferStorage(_id, sizeof(uvec4) * TextureTable::COUNT, &_handles[0], 0);
+}
+
+
+GL45TextureTable::~GL45TextureTable() {
+    if (_id) {
+        auto backend = _backend.lock();
+        if (backend) {
+            // FIXME include these in overall buffer storage reporting
+            backend->releaseBuffer(_id, 0);
+        }
+    }
+}
+
+
+GL45TextureTable* GL45Backend::syncGPUObject(const TextureTablePointer& textureTablePointer) {
+    const auto& textureTable = *textureTablePointer;
+
+    // If the object hasn't been created, or the object definition is out of date, drop and re-create
+    GL45TextureTable* object = Backend::getGPUObject<GL45TextureTable>(textureTable);
+
+    if (!object || object->_stamp != textureTable.getStamp() || !object->_complete) {
+        // Find the target handles
+        auto textures = textureTable.getTextures();
+        bool handlesComplete = true;
+        GL45TextureTable::HandlesArray handles {};
+        for (size_t i = 0; i < textures.size(); ++i) {
+            auto texture = textures[i];
+            if (!texture) {
+                continue;
+            }
+            // FIXME what if we have a non-transferrable texture here?
+            auto gltexture = (GL45Texture*)syncGPUObject(texture, true);
+            if (!gltexture) {
+                handlesComplete = false;
+                continue;
+            }
+            memcpy(&(handles[i]), &(gltexture->_handle), sizeof(GLuint64));
+        }
+
+        if (!object || object->_handles != handles) {
+            object = new GL45TextureTable(shared_from_this(), textureTable, handles, handlesComplete);
+        }
+    }
+
+    return object;
+}
 
 void GL45Backend::do_setResourceTextureTable(const Batch& batch, size_t paramOffset) {
-
+    auto textureTable = batch._textureTables.get(batch._params[paramOffset]._uint);
+    auto slot = batch._params[paramOffset + 1]._uint;
+    GL45TextureTable* glTextureTable = syncGPUObject(textureTable);
+    if (glTextureTable) {
+        //glBindBufferBase()
+    }
 }

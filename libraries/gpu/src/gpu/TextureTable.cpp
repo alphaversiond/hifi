@@ -13,7 +13,7 @@ using namespace gpu;
 TextureTable::TextureTable() { }
 
 TextureTable::TextureTable(const std::initializer_list<TexturePointer>& textures) {
-    auto max = std::min(COUNT, textures.size());
+    auto max = std::min<size_t>(COUNT, textures.size());
     auto itr = textures.begin();
     size_t index = 0;
     while (itr != textures.end() && index < max) {
@@ -29,11 +29,20 @@ void TextureTable::setTexture(size_t index, const TexturePointer& texturePointer
     if (index >= COUNT || _textures[index] == texturePointer) {
         return;
     }
-    ++_stamp;
-    _textures[index] = texturePointer;
+    {
+        Lock lock(_mutex);
+        ++_stamp;
+        _textures[index] = texturePointer;
+    }
 }
 
 void TextureTable::setTexture(size_t index, const TextureView& textureView) {
     setTexture(index, textureView._texture);
 }
 
+TextureTable::Array TextureTable::getTextures() const {
+     Array result; 
+     Lock lock(_mutex); 
+     result = _textures;
+     return result; 
+}

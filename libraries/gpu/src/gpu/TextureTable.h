@@ -1,9 +1,6 @@
 //
-//  Texture.h
-//  libraries/gpu/src/gpu
-//
-//  Created by Sam Gateau on 1/16/2015.
-//  Copyright 2014 High Fidelity, Inc.
+//  Created by Bradley Austin Davis on 2017/01/25
+//  Copyright 2013-2017 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -20,6 +17,8 @@ namespace gpu {
 class TextureTable {
 public:
     static const size_t COUNT = 8;
+    using Array = std::array<TexturePointer, COUNT>;
+    using Array = std::array<TexturePointer, COUNT>;
     TextureTable();
     TextureTable(const std::initializer_list<TexturePointer>& textures);
     TextureTable(const std::array<TexturePointer, COUNT>& textures);
@@ -28,11 +27,13 @@ public:
     const GPUObjectPointer gpuObject{};
 
     void setTexture(size_t index, const TexturePointer& texturePointer);
-    void setTexture(size_t index, const TextureView& textureView);
+    void setTexture(size_t index, const TextureView& texturePointer);
 
+    Array getTextures() const;
     Stamp getStamp() const { return _stamp; }
 private:
-    std::array<TexturePointer, COUNT> _textures;
+    mutable Mutex _mutex;
+    Array _textures;
     Stamp _stamp{ 0 };
 };
 

@@ -13,6 +13,7 @@
 
 #include "../gl/GLBackend.h"
 #include "../gl/GLTexture.h"
+#include <gpu/TextureTable.h>
 
 #define INCREMENTAL_TRANSFER 0
 
@@ -28,6 +29,21 @@ class GL45Backend : public GLBackend {
 public:
     explicit GL45Backend(bool syncCache) : Parent(syncCache) {}
     GL45Backend() : Parent() {}
+
+    class GL45TextureTable : public GLObject<TextureTable>  {
+        static GLuint allocate();
+        using Parent = GLObject<TextureTable>;
+    public:
+        using HandlesArray = std::array<uvec4, TextureTable::COUNT>;
+        GL45TextureTable(const std::weak_ptr<GLBackend>& backend, const TextureTable& texture, const HandlesArray& newHandles, bool complete);
+        ~GL45TextureTable();
+
+        // FIXME instead of making a buffer for each table, there should be a global buffer of all materials
+        // and we should store an offset into that buffer
+        const uint32_t _stamp { 0 };
+        const HandlesArray _handles;
+        const bool _complete { false };
+    };
 
     class GL45Texture : public GLTexture {
         using Parent = GLTexture;
@@ -78,11 +94,13 @@ public:
 
         SparseInfo _sparseInfo;
         uint16_t _mipOffset { 0 };
+        uint64_t _handle { 0 };
         friend class GL45Backend;
     };
 
 
 protected:
+
     void recycle() const override;
     void derezTextures() const;
 
@@ -97,6 +115,8 @@ protected:
 
     GLuint getQueryID(const QueryPointer& query) override;
     GLQuery* syncGPUObject(const Query& query) override;
+
+    GL45TextureTable* syncGPUObject(const TextureTablePointer& textureTable);
 
     // Draw Stage
     void do_draw(const Batch& batch, size_t paramOffset) override;
