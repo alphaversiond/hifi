@@ -446,9 +446,11 @@ void GL45Texture::stripToMip(uint16_t newMinMip) {
         }
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
         glDeleteFramebuffers(1, &fbo);
-        if (_handle) {
-            glMakeTextureHandleNonResidentARB(_handle);
-            _handle = 0;
+        if (_handleAndBias != uvec4()) {
+            GLuint64 handle; 
+            memcpy(&handle, &_handleAndBias, sizeof(handle));
+            glMakeTextureHandleNonResidentARB(handle);
+            _handleAndBias = uvec4();
         }
         glDeleteTextures(1, &oldId);
     }
@@ -465,12 +467,14 @@ void GL45Texture::stripToMip(uint16_t newMinMip) {
     }
 }
 
-GLuint64 GL45Texture::getHandle() {
-    if (!_handle) {
-        _handle = glGetTextureHandleARB(_id);
-        glMakeTextureHandleResidentARB(_handle);
+const uvec4& GL45Texture::getHandle() {
+    if (uvec4() == _handleAndBias) {
+        auto handle = glGetTextureHandleARB(_id);
+        glMakeTextureHandleResidentARB(handle);
+        memcpy(&_handleAndBias, &handle, sizeof(handle));
     }
-    return _handle;
+    _handleAndBias.z = _minMip;
+    return _handleAndBias;
 }
 
 void GL45Texture::updateMips() {
@@ -529,7 +533,7 @@ GL45TextureTable::GL45TextureTable(const std::weak_ptr<GLBackend>& backend, cons
     : Parent(backend, textureTable, allocate()), _stamp(textureTable.getStamp()), _handles(handles), _complete(handlesComplete) {
     Backend::setGPUObject(textureTable, this);
     // FIXME include these in overall buffer storage reporting
-    glNamedBufferStorage(_id, sizeof(uvec2) * TextureTable::COUNT, &_handles[0], 0);
+    glNamedBufferStorage(_id, sizeof(uvec4) * TextureTable::COUNT, &_handles[0], 0);
 }
 
 

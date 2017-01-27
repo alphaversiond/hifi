@@ -76,8 +76,7 @@ public:
             GLint pageDimensionsIndex { 0 };
         };
 
-        GLuint64 getHandle();
-
+        const uvec4& getHandle();
     protected:
         void updateMips() override;
         void stripToMip(uint16_t newMinMip);
@@ -96,7 +95,7 @@ public:
 
         SparseInfo _sparseInfo;
         uint16_t _mipOffset { 0 };
-        uint64_t _handle { 0 };
+        uvec4 _handleAndBias;
         friend class GL45Backend;
     };
 
