@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "DomainServerSettingsManager.h"
+
 #include <algorithm>
 
 #include <QtCore/QCoreApplication>
@@ -16,22 +18,19 @@
 #include <QtCore/QFile>
 #include <QtCore/QJsonArray>
 #include <QtCore/QJsonObject>
-#include <QtCore/QSettings>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QUrl>
 #include <QtCore/QUrlQuery>
-#include <AccountManager.h>
-#include <QTimeZone>
 
+#include <AccountManager.h>
 #include <Assignment.h>
 #include <HifiConfigVariantMap.h>
 #include <HTTPConnection.h>
 #include <NLPacketList.h>
 #include <NumericalConstants.h>
+#include <SettingHandle.h>
 
 #include "DomainServerNodeData.h"
-
-#include "DomainServerSettingsManager.h"
 
 const QString SETTINGS_DESCRIPTION_RELATIVE_PATH = "/resources/describe-settings.json";
 
@@ -42,6 +41,8 @@ const QString SETTING_DESCRIPTION_TYPE_KEY = "type";
 const QString DESCRIPTION_COLUMNS_KEY = "columns";
 
 const QString SETTINGS_VIEWPOINT_KEY = "viewpoint";
+
+static Setting::Handle<double> JSON_SETTING_VERSION("json-settings/version", 0.0);
 
 DomainServerSettingsManager::DomainServerSettingsManager() :
     _descriptionArray(),
@@ -103,9 +104,7 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
 
     // What settings version were we before and what are we using now?
     // Do we need to do any re-mapping?
-    QSettings appSettings;
-    const QString JSON_SETTINGS_VERSION_KEY = "json-settings/version";
-    double oldVersion = appSettings.value(JSON_SETTINGS_VERSION_KEY, 0.0).toDouble();
+    double oldVersion = JSON_SETTING_VERSION.get();
 
     if (oldVersion != _descriptionVersion) {
         const QString ALLOWED_USERS_SETTINGS_KEYPATH = "security.allowed_users";
@@ -270,11 +269,6 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
             _agentPermissions.clear();
         }
 
-        if (oldVersion < 1.5) {
-            // This was prior to operating hours, so add default hours
-            validateDescriptorsMap();
-        }
-
         if (oldVersion < 1.6) {
             unpackPermissions();
 
@@ -301,49 +295,13 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
     unpackPermissions();
 
     // write the current description version to our settings
-    appSettings.setValue(JSON_SETTINGS_VERSION_KEY, _descriptionVersion);
+    JSON_SETTING_VERSION.set(_descriptionVersion);
 }
 
 QVariantMap& DomainServerSettingsManager::getDescriptorsMap() {
-    validateDescriptorsMap();
-
     static const QString DESCRIPTORS{ "descriptors" };
     return *static_cast<QVariantMap*>(getSettingsMap()[DESCRIPTORS].data());
 }
-
-void DomainServerSettingsManager::validateDescriptorsMap() {
-    static const QString WEEKDAY_HOURS{ "descriptors.weekday_hours" };
-    static const QString WEEKEND_HOURS{ "descriptors.weekend_hours" };
-    static const QString UTC_OFFSET{ "descriptors.utc_offset" };
-
-    QVariant* weekdayHours = _configMap.valueForKeyPath(WEEKDAY_HOURS, true);
-    QVariant* weekendHours = _configMap.valueForKeyPath(WEEKEND_HOURS, true);
-    QVariant* utcOffset = _configMap.valueForKeyPath(UTC_OFFSET, true);
-
-    static const QString OPEN{ "open" };
-    static const QString CLOSE{ "close" };
-    static const QString DEFAULT_OPEN{ "00:00" };
-    static const QString DEFAULT_CLOSE{ "23:59" };
-    bool wasMalformed = false;
-    if (weekdayHours->isNull()) {
-        *weekdayHours = QVariantList{ QVariantMap{ { OPEN, QVariant(DEFAULT_OPEN) }, { CLOSE, QVariant(DEFAULT_CLOSE) } } };
-        wasMalformed = true;
-    }
-    if (weekendHours->isNull()) {
-        *weekendHours = QVariantList{ QVariantMap{ { OPEN, QVariant(DEFAULT_OPEN) }, { CLOSE, QVariant(DEFAULT_CLOSE) } } };
-        wasMalformed = true;
-    }
-    if (utcOffset->isNull()) {
-        *utcOffset = QVariant(QTimeZone::systemTimeZone().offsetFromUtc(QDateTime::currentDateTime()) / (float)SECS_PER_HOUR);
-        wasMalformed = true;
-    }
-
-    if (wasMalformed) {
-        // write the new settings to file
-        persistToFile();
-    }
-}
-
 
 void DomainServerSettingsManager::initializeGroupPermissions(NodePermissionsMap& permissionsRows,
                                                              QString groupName, NodePermissionsPointer perms) {
@@ -444,6 +402,9 @@ void DomainServerSettingsManager::packPermissions() {
     // save settings for MAC addresses
     packPermissionsForMap("permissions", _macPermissions, MAC_PERMISSIONS_KEYPATH);
 
+    // save settings for Machine Fingerprint
+    packPermissionsForMap("permissions", _machineFingerprintPermissions, MACHINE_FINGERPRINT_PERMISSIONS_KEYPATH);
+
     // save settings for groups
     packPermissionsForMap("permissions", _groupPermissions, GROUP_PERMISSIONS_KEYPATH);
 
@@ -522,6 +483,18 @@ void DomainServerSettingsManager::unpackPermissions() {
             }
     });
 
+    needPack |= unpackPermissionsForKeypath(MACHINE_FINGERPRINT_PERMISSIONS_KEYPATH, &_machineFingerprintPermissions,
+        [&](NodePermissionsPointer perms){
+            // make sure that this permission row has valid machine fingerprint
+            if (QUuid(perms->getKey().first) == QUuid()) {
+                _machineFingerprintPermissions.remove(perms->getKey());
+
+                // we removed a row, so we'll need a re-pack
+                needPack = true;
+            }
+
+    });
+
 
     needPack |= unpackPermissionsForKeypath(GROUP_PERMISSIONS_KEYPATH, &_groupPermissions,
         [&](NodePermissionsPointer perms){
@@ -575,7 +548,9 @@ void DomainServerSettingsManager::unpackPermissions() {
     QList<QHash<NodePermissionsKey, NodePermissionsPointer>> permissionsSets;
     permissionsSets << _standardAgentPermissions.get() << _agentPermissions.get()
                     << _groupPermissions.get() << _groupForbiddens.get()
-                    << _ipPermissions.get() << _macPermissions.get();
+                    << _ipPermissions.get() << _macPermissions.get() 
+                    << _machineFingerprintPermissions.get();
+
     foreach (auto permissionSet, permissionsSets) {
         QHashIterator<NodePermissionsKey, NodePermissionsPointer> i(permissionSet);
         while (i.hasNext()) {
@@ -707,9 +682,10 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
                         ipPermissions->clear(NodePermissions::Permission::canConnectToDomain);
                     }
 
-                    // potentially remove connect permissions for the MAC address
-                    DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(matchingNode->getLinkedData());
+                    // potentially remove connect permissions for the MAC address and machine fingerprint
+                    DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(matchingNode->getLinkedData());
                     if (nodeData) {
+                        // mac address first
                         NodePermissionsKey macAddressKey(nodeData->getHardwareAddress(), 0);
 
                         bool hadMACPermissions = hasPermissionsForMAC(nodeData->getHardwareAddress());
@@ -720,6 +696,18 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
                             newPermissions = true;
 
                             macPermissions->clear(NodePermissions::Permission::canConnectToDomain);
+                        }
+
+                        // now for machine fingerprint
+                        NodePermissionsKey machineFingerprintKey(nodeData->getMachineFingerprint().toString(), 0);
+                        
+                        bool hadFingerprintPermissions = hasPermissionsForMachineFingerprint(nodeData->getMachineFingerprint());
+                        
+                        auto fingerprintPermissions = _machineFingerprintPermissions[machineFingerprintKey];
+                        
+                        if (!hadFingerprintPermissions || fingerprintPermissions->can(NodePermissions::Permission::canConnectToDomain)) {
+                            newPermissions = true;
+                            fingerprintPermissions->clear(NodePermissions::Permission::canConnectToDomain);
                         }
                     }
                 }
@@ -745,6 +733,57 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
     } else {
         qWarning() << "Refusing to process a kick packet from node" << uuidStringWithoutCurlyBraces(sendingNode->getUUID())
         << "that does not have kick permissions.";
+    }
+}
+
+// This function processes the "Get Username from ID" request.
+void DomainServerSettingsManager::processUsernameFromIDRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    // From the packet, pull the UUID we're identifying
+    QUuid nodeUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+
+    if (!nodeUUID.isNull()) {
+        // First, make sure we actually have a node with this UUID
+        auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+        auto matchingNode = limitedNodeList->nodeWithUUID(nodeUUID);
+
+        // If we do have a matching node...
+        if (matchingNode) {
+            // Setup the packet
+            auto usernameFromIDReplyPacket = NLPacket::create(PacketType::UsernameFromIDReply);
+
+            QString verifiedUsername;
+            QUuid machineFingerprint;
+
+            // Write the UUID to the packet
+            usernameFromIDReplyPacket->write(nodeUUID.toRfc4122());
+
+            // Check if the sending node has permission to kick (is an admin)
+            // OR if the message is from a node whose UUID matches the one in the packet
+            if (sendingNode->getCanKick() || nodeUUID == sendingNode->getUUID()) {
+                // It's time to figure out the username
+                verifiedUsername = matchingNode->getPermissions().getVerifiedUserName();
+                usernameFromIDReplyPacket->writeString(verifiedUsername);
+
+                // now put in the machine fingerprint
+                DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(matchingNode->getLinkedData());
+                machineFingerprint = nodeData ? nodeData->getMachineFingerprint() : QUuid();
+                usernameFromIDReplyPacket->write(machineFingerprint.toRfc4122());
+            } else {
+                usernameFromIDReplyPacket->writeString(verifiedUsername);
+                usernameFromIDReplyPacket->write(machineFingerprint.toRfc4122());
+            }
+            // Write whether or not the user is an admin
+            bool isAdmin = matchingNode->getCanKick();
+            usernameFromIDReplyPacket->writePrimitive(isAdmin);
+
+            qDebug() << "Sending username" << verifiedUsername << "and machine fingerprint" << machineFingerprint << "associated with node" << nodeUUID << ". Node admin status: " << isAdmin;
+            // Ship it!
+            limitedNodeList->sendPacket(std::move(usernameFromIDReplyPacket), *sendingNode);
+        } else {
+            qWarning() << "Node username request received for unknown node. Refusing to process.";
+        }
+    } else {
+        qWarning() << "Node username request received for invalid node ID. Refusing to process.";
     }
 }
 
@@ -789,6 +828,16 @@ NodePermissions DomainServerSettingsManager::getPermissionsForMAC(const QString&
     NodePermissionsKey macKey = NodePermissionsKey(macAddress, 0);
     if (_macPermissions.contains(macKey)) {
         return *(_macPermissions[macKey].get());
+    }
+    NodePermissions nullPermissions;
+    nullPermissions.setAll(false);
+    return nullPermissions;
+}
+
+NodePermissions DomainServerSettingsManager::getPermissionsForMachineFingerprint(const QUuid& machineFingerprint) const {
+    NodePermissionsKey fingerprintKey = NodePermissionsKey(machineFingerprint.toString(), 0);
+    if (_machineFingerprintPermissions.contains(fingerprintKey)) {
+        return *(_machineFingerprintPermissions[fingerprintKey].get());
     }
     NodePermissions nullPermissions;
     nullPermissions.setAll(false);

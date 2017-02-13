@@ -7,23 +7,39 @@
 // Distributed under the Apache License, Version 2.0
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+/* globals Tablet, Toolbars, Script, HMD, Settings, DialogsManager, Menu, Reticle, OverlayWebWindow, Desktop, Account, MyAvatar */
 
 (function() { // BEGIN LOCAL_SCOPE
 
 var SNAPSHOT_DELAY = 500; // 500ms
-var toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
+var FINISH_SOUND_DELAY = 350;
 var resetOverlays;
 var reticleVisible;
 var clearOverlayWhenMoving;
-var button = toolBar.addButton({
-    objectName: "snapshot",
-    imageURL: Script.resolvePath("assets/images/tools/snap.svg"),
-    visible: true,
-    buttonState: 1,
-    defaultState: 1,
-    hoverState: 2,
-    alpha: 0.9,
-});
+
+var button;
+var buttonName = "SNAP";
+var tablet = null;
+var toolBar = null;
+
+var buttonConnected = false;
+
+if (Settings.getValue("HUDUIEnabled")) {
+    toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
+    button = toolBar.addButton({
+        objectName: buttonName,
+        imageURL: Script.resolvePath("assets/images/tools/snap.svg"),
+        visible: true,
+        alpha: 0.9,
+    });
+} else {
+    tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    button = tablet.addButton({
+        icon: "icons/tablet-icons/snap-i.svg",
+        text: buttonName,
+        sortOrder: 5
+    });
+}
 
 function shouldOpenFeedAfterShare() {
     var persisted = Settings.getValue('openFeedAfterShare', true); // might answer true, false, "true", or "false"
@@ -55,10 +71,10 @@ function confirmShare(data) {
                 Desktop.show("hifi/dialogs/GeneralPreferencesDialog.qml", "GeneralPreferencesDialog");
                 break;
             case 'setOpenFeedFalse':
-                Settings.setValue('openFeedAfterShare', false)
+                Settings.setValue('openFeedAfterShare', false);
                 break;
             case 'setOpenFeedTrue':
-                Settings.setValue('openFeedAfterShare', true)
+                Settings.setValue('openFeedAfterShare', true);
                 break;
             default:
                 dialog.webEventReceived.disconnect(onMessage);
@@ -116,23 +132,19 @@ function onClicked() {
     reticleVisible = Reticle.visible;
     Reticle.visible = false;
     Window.snapshotTaken.connect(resetButtons);
-    
-    button.writeProperty("buttonState", 0);
-    button.writeProperty("defaultState", 0);
-    button.writeProperty("hoverState", 2);
 
     // hide overlays if they are on
     if (resetOverlays) {
         Menu.setIsOptionChecked("Overlays", false);
     }
-    
-    // hide hud
-    toolBar.writeProperty("visible", false);
 
     // take snapshot (with no notification)
     Script.setTimeout(function () {
-        Window.takeSnapshot(false, true, 1.91);
-    }, SNAPSHOT_DELAY);
+        HMD.closeTablet();
+        Script.setTimeout(function () {
+            Window.takeSnapshot(false, true, 1.91);
+        }, SNAPSHOT_DELAY);
+    }, FINISH_SOUND_DELAY);
 }
 
 function isDomainOpen(id) {
@@ -156,44 +168,72 @@ function isDomainOpen(id) {
 }
 
 function resetButtons(pathStillSnapshot, pathAnimatedSnapshot, notify) {
-    // show hud
-    toolBar.writeProperty("visible", true);
-    Reticle.visible = reticleVisible;
-    
-    // update button states
-    button.writeProperty("buttonState", 1);
-    button.writeProperty("defaultState", 1);
-    button.writeProperty("hoverState", 3);
-    Window.snapshotTaken.disconnect(resetButtons);
-    // show overlays if they were on
-    if (resetOverlays) {
-        Menu.setIsOptionChecked("Overlays", true);
+    // If we're not taking an animated snapshot, we have to show the HUD.
+    // If we ARE taking an animated snapshot, we've already re-enabled the HUD by this point.
+    if (pathAnimatedSnapshot === "") {
+        // show hud
+
+        Reticle.visible = reticleVisible;
+        // show overlays if they were on
+        if (resetOverlays) {
+            Menu.setIsOptionChecked("Overlays", true);
+        }
+    } else {
+        // Allow the user to click the snapshot HUD button again
+        if (!buttonConnected) {
+            button.clicked.connect(onClicked);
+            buttonConnected = true;
+        }
     }
+    Window.snapshotTaken.disconnect(resetButtons);
 
     // A Snapshot Review dialog might be left open indefinitely after taking the picture,
     // during which time the user may have moved. So stash that info in the dialog so that
     // it records the correct href. (We can also stash in .jpegs, but not .gifs.)
     // last element in data array tells dialog whether we can share or not
-    confirmShare([ 
-        { localPath: pathAnimatedSnapshot, href: href },
+    var confirmShareContents = [
         { localPath: pathStillSnapshot, href: href },
         {
             canShare: !!isDomainOpen(domainId),
             openFeedAfterShare: shouldOpenFeedAfterShare()
-        }
-    ]);
+        }];
+    if (pathAnimatedSnapshot !== "") {
+        confirmShareContents.unshift({ localPath: pathAnimatedSnapshot, href: href });
+    }
+    confirmShare(confirmShareContents);
     if (clearOverlayWhenMoving) {
         MyAvatar.setClearOverlayWhenMoving(true); // not until after the share dialog
     }
 }
 
+function processingGif() {
+    // show hud
+    Reticle.visible = reticleVisible;
+
+    button.clicked.disconnect(onClicked);
+    buttonConnected = false;
+    // show overlays if they were on
+    if (resetOverlays) {
+        Menu.setIsOptionChecked("Overlays", true);
+    }
+}
+
 button.clicked.connect(onClicked);
+buttonConnected = true;
 Window.snapshotShared.connect(snapshotShared);
+Window.processingGif.connect(processingGif);
 
 Script.scriptEnding.connect(function () {
-    toolBar.removeButton("snapshot");
     button.clicked.disconnect(onClicked);
+    buttonConnected = false;
+    if (tablet) {
+        tablet.removeButton(button);
+    }
+    if (toolBar) {
+        toolBar.removeButton(buttonName);
+    }
     Window.snapshotShared.disconnect(snapshotShared);
+    Window.processingGif.disconnect(processingGif);
 });
 
 }()); // END LOCAL_SCOPE

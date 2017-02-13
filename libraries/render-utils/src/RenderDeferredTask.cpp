@@ -48,49 +48,24 @@ using namespace render;
 extern void initOverlay3DPipelines(render::ShapePlumber& plumber);
 extern void initDeferredPipelines(render::ShapePlumber& plumber);
 
-RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
-    cullFunctor = cullFunctor ? cullFunctor : [](const RenderArgs*, const AABox&){ return true; };
-
+RenderDeferredTask::RenderDeferredTask(RenderFetchCullSortTask::Output items) {
     // Prepare the ShapePipelines
     ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
     initDeferredPipelines(*shapePlumber);
 
-    // CPU jobs:
-    // Fetch and cull the items from the scene
-    auto spatialFilter = ItemFilter::Builder::visibleWorldItems().withoutLayered();
-    const auto spatialSelection = addJob<FetchSpatialTree>("FetchSceneSelection", spatialFilter);
-    const auto culledSpatialSelection = addJob<CullSpatialSelection>("CullSceneSelection", spatialSelection, cullFunctor, RenderDetails::ITEM, spatialFilter);
+    // Extract opaques / transparents / lights / metas / overlays / background
+    const auto opaques = items[RenderFetchCullSortTask::OPAQUE_SHAPE];
+    const auto transparents = items[RenderFetchCullSortTask::TRANSPARENT_SHAPE];
+    const auto lights = items[RenderFetchCullSortTask::LIGHT];
+    const auto metas = items[RenderFetchCullSortTask::META];
+    const auto overlayOpaques = items[RenderFetchCullSortTask::OVERLAY_OPAQUE_SHAPE];
+    const auto overlayTransparents = items[RenderFetchCullSortTask::OVERLAY_TRANSPARENT_SHAPE];
+    const auto background = items[RenderFetchCullSortTask::BACKGROUND];
+    const auto spatialSelection = items[RenderFetchCullSortTask::SPATIAL_SELECTION];
 
-    // Overlays are not culled
-    const auto nonspatialSelection = addJob<FetchNonspatialItems>("FetchOverlaySelection");
-
-    // Multi filter visible items into different buckets
-    const int NUM_FILTERS = 3;
-    const int OPAQUE_SHAPE_BUCKET = 0;
-    const int TRANSPARENT_SHAPE_BUCKET = 1;
-    const int LIGHT_BUCKET = 2;
-    const int BACKGROUND_BUCKET = 2;
-    MultiFilterItem<NUM_FILTERS>::ItemFilterArray spatialFilters = { {
-            ItemFilter::Builder::opaqueShape(),
-            ItemFilter::Builder::transparentShape(),
-            ItemFilter::Builder::light()
-    } };
-    MultiFilterItem<NUM_FILTERS>::ItemFilterArray nonspatialFilters = { {
-            ItemFilter::Builder::opaqueShape(),
-            ItemFilter::Builder::transparentShape(),
-            ItemFilter::Builder::background()
-    } };
-    const auto filteredSpatialBuckets = addJob<MultiFilterItem<NUM_FILTERS>>("FilterSceneSelection", culledSpatialSelection, spatialFilters).get<MultiFilterItem<NUM_FILTERS>::ItemBoundsArray>();
-    const auto filteredNonspatialBuckets = addJob<MultiFilterItem<NUM_FILTERS>>("FilterOverlaySelection", nonspatialSelection, nonspatialFilters).get<MultiFilterItem<NUM_FILTERS>::ItemBoundsArray>();
-
-    // Extract / Sort opaques / Transparents / Lights / Overlays
-    const auto opaques = addJob<DepthSortItems>("DepthSortOpaque", filteredSpatialBuckets[OPAQUE_SHAPE_BUCKET]);
-    const auto transparents = addJob<DepthSortItems>("DepthSortTransparent", filteredSpatialBuckets[TRANSPARENT_SHAPE_BUCKET], DepthSortItems(false));
-    const auto lights = filteredSpatialBuckets[LIGHT_BUCKET];
-
-    const auto overlayOpaques = addJob<DepthSortItems>("DepthSortOverlayOpaque", filteredNonspatialBuckets[OPAQUE_SHAPE_BUCKET]);
-    const auto overlayTransparents = addJob<DepthSortItems>("DepthSortOverlayTransparent", filteredNonspatialBuckets[TRANSPARENT_SHAPE_BUCKET], DepthSortItems(false));
-    const auto background = filteredNonspatialBuckets[BACKGROUND_BUCKET];
+    // Filter the non antialiaased overlays
+    const int LAYER_NO_AA = 3;
+    const auto nonAAOverlays = addJob<FilterItemLayer>("Filter2DWebOverlays", overlayOpaques, LAYER_NO_AA);
 
     // Prepare deferred, generate the shared Deferred Frame Transform
     const auto deferredFrameTransform = addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform");
@@ -188,6 +163,11 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     
     // Debugging stages
     {
+
+
+        // Bounds do not draw on stencil buffer, so they must come last
+        addJob<DrawBounds>("DrawMetaBounds", metas);
+
         // Debugging Deferred buffer job
         const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer));
         addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);
@@ -200,7 +180,7 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
         addJob<DebugAmbientOcclusion>("DebugAmbientOcclusion", debugAmbientOcclusionInputs);
 
 
-        // Scene Octree Debuging job
+        // Scene Octree Debugging job
         {
             addJob<DrawSceneOctree>("DrawSceneOctree", spatialSelection);
             addJob<DrawItemSelection>("DrawItemSelection", spatialSelection);
@@ -219,6 +199,10 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     // AA job to be revisited
     addJob<Antialiasing>("Antialiasing", primaryFramebuffer);
 
+    // Draw 2DWeb non AA
+    const auto nonAAOverlaysInputs = DrawOverlay3D::Inputs(nonAAOverlays, lightingModel).hasVarying();
+    addJob<DrawOverlay3D>("Draw2DWebSurfaces", nonAAOverlaysInputs, false);
+
     addJob<EndGPURangeTimer>("ToneAndPostRangeTimer", toneAndPostRangeTimer);
 
     // Blit!
@@ -226,26 +210,6 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
 
  //   addJob<EndGPURangeTimer>("RangeTimer", fullFrameRangeTimer);
 
-}
-
-void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    // sanity checks
-    assert(sceneContext);
-    if (!sceneContext->_scene) {
-        return;
-    }
-
-
-    // Is it possible that we render without a viewFrustum ?
-    if (!(renderContext->args && renderContext->args->hasViewFrustum())) {
-        return;
-    }
-
-    auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
-
-    for (auto job : _jobs) {
-        job.run(sceneContext, renderContext);
-    }
 }
 
 void BeginGPURangeTimer::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, gpu::RangeTimerPointer& timer) {

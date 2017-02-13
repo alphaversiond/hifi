@@ -42,7 +42,7 @@ const appIcon = path.join(__dirname, '../resources/console.png');
 const DELETE_LOG_FILES_OLDER_THAN_X_SECONDS = 60 * 60 * 24 * 7; // 7 Days
 const LOG_FILE_REGEX = /(domain-server|ac-monitor|ac)-.*-std(out|err).txt/;
 
-const HOME_CONTENT_URL = "http://cachefly.highfidelity.com/home-tutorial-release-5572.tar.gz";
+const HOME_CONTENT_URL = "http://cdn.highfidelity.com/content-sets/home-tutorial-28.tar.gz";
 
 function getBuildInfo() {
     var buildInfoPath = null;
@@ -582,7 +582,7 @@ function checkNewContent() {
     if (argv.noUpdater) {
       return;
     }
-    
+
     // Start downloading content set
     var req = request.head({
         url: HOME_CONTENT_URL
@@ -859,7 +859,7 @@ function onContentLoaded() {
 
     if (dsPath && acPath) {
         domainServer = new Process('domain-server', dsPath, ["--get-temp-name"], logPath);
-        acMonitor = new ACMonitorProcess('ac-monitor', acPath, ['-n6',
+        acMonitor = new ACMonitorProcess('ac-monitor', acPath, ['-n7',
                                                                 '--log-directory', logPath,
                                                                 '--http-status-port', httpStatusPort], httpStatusPort, logPath);
         homeServer = new ProcessGroup('home', [domainServer, acMonitor]);

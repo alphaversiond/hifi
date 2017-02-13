@@ -9,6 +9,7 @@
 //
 
 #include "LightClusters.h"
+#include "RenderUtilsLogging.h"
 
 
 #include <gpu/Context.h>
@@ -27,21 +28,21 @@
 
 enum LightClusterGridShader_MapSlot {
     DEFERRED_BUFFER_LINEAR_DEPTH_UNIT = 0,
-    DEFERRED_BUFFER_COLOR_UNIT,
-    DEFERRED_BUFFER_NORMAL_UNIT,
-    DEFERRED_BUFFER_EMISSIVE_UNIT,
-    DEFERRED_BUFFER_DEPTH_UNIT,
+    DEFERRED_BUFFER_COLOR_UNIT = 1,
+    DEFERRED_BUFFER_NORMAL_UNIT = 2,
+    DEFERRED_BUFFER_EMISSIVE_UNIT = 3,
+    DEFERRED_BUFFER_DEPTH_UNIT = 4,
 };
 
 enum LightClusterGridShader_BufferSlot {
     LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT = 0,
-    DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT,
-    CAMERA_CORRECTION_BUFFER_SLOT,
+    DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT =1,
+    CAMERA_CORRECTION_BUFFER_SLOT = 2,
     LIGHT_GPU_SLOT = render::ShapePipeline::Slot::LIGHT,
-    LIGHT_INDEX_GPU_SLOT,
+    LIGHT_INDEX_GPU_SLOT = 5,
 
-    LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT,
-    LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT,
+    LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT = 6,
+    LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT = 7,
 };
 
 FrustumGrid::FrustumGrid(const FrustumGrid& source) :
@@ -279,6 +280,7 @@ uint32_t scanLightVolumeSphere(FrustumGrid& grid, const FrustumGrid::Planes plan
 
     // FInd the light origin cluster
     auto centerCluster = grid.frustumGrid_eyeToClusterPos(glm::vec3(eyePosRadius));
+
     int center_z = centerCluster.z;
     int center_y = centerCluster.y;
 
@@ -326,7 +328,7 @@ uint32_t scanLightVolumeSphere(FrustumGrid& grid, const FrustumGrid::Planes plan
                     clusterGrid[index].emplace_back(lightId);
                     numClustersTouched++;
                 } else {
-                    qDebug() << "WARNING: LightClusters::scanLightVolumeSphere invalid index found ? numClusters = " << clusterGrid.size() << " index = " << index << " found from cluster xyz = " << x << " " << y << " " << z;
+                    qCDebug(renderutils) << "WARNING: LightClusters::scanLightVolumeSphere invalid index found ? numClusters = " << clusterGrid.size() << " index = " << index << " found from cluster xyz = " << x << " " << y << " " << z;
                 }
             }
         }

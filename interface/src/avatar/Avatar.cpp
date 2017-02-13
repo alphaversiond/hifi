@@ -44,6 +44,7 @@
 #include "Util.h"
 #include "world.h"
 #include "InterfaceLogging.h"
+#include "SceneScriptingInterface.h"
 #include "SoftAttachmentModel.h"
 #include <Rig.h>
 
@@ -61,7 +62,7 @@ const glm::vec3 HAND_TO_PALM_OFFSET(0.0f, 0.12f, 0.08f);
 
 namespace render {
     template <> const ItemKey payloadGetKey(const AvatarSharedPointer& avatar) {
-        return ItemKey::Builder::opaqueShape();
+        return ItemKey::Builder::opaqueShape().withTypeMeta();
     }
     template <> const Item::Bound payloadGetBound(const AvatarSharedPointer& avatar) {
         return static_pointer_cast<Avatar>(avatar)->getBounds();
@@ -72,6 +73,15 @@ namespace render {
             PROFILE_RANGE_BATCH(*args->_batch, "renderAvatarPayload");
             avatarPtr->render(args, qApp->getCamera()->getPosition());
         }
+    }
+    template <> uint32_t metaFetchMetaSubItems(const AvatarSharedPointer& avatar, ItemIDs& subItems) {
+        auto avatarPtr = static_pointer_cast<Avatar>(avatar);
+        if (avatarPtr->getSkeletonModel()) {
+            auto metaSubItems = avatarPtr->getSkeletonModel()->fetchRenderItemIDs();
+            subItems.insert(subItems.end(), metaSubItems.begin(), metaSubItems.end());
+            return (uint32_t) metaSubItems.size();
+        }
+        return 0;
     }
 }
 
@@ -104,6 +114,7 @@ Avatar::Avatar(RigPointer rig) :
     _nameRectGeometryID = geometryCache->allocateID();
     _leftPointerGeometryID = geometryCache->allocateID();
     _rightPointerGeometryID = geometryCache->allocateID();
+    _lastRenderUpdateTime = usecTimestampNow();
 }
 
 Avatar::~Avatar() {
@@ -164,26 +175,37 @@ AABox Avatar::getBounds() const {
 }
 
 void Avatar::animateScaleChanges(float deltaTime) {
-    float currentScale = getUniformScale();
-    auto desiredScale = getDomainLimitedScale();
-    if (currentScale != desiredScale) {
+    if (_isAnimatingScale) {
+        float currentScale = getUniformScale();
+        float desiredScale = getDomainLimitedScale();
+
         // use exponential decay toward the domain limit clamped scale
         const float SCALE_ANIMATION_TIMESCALE = 0.5f;
         float blendFactor = glm::clamp(deltaTime / SCALE_ANIMATION_TIMESCALE, 0.0f, 1.0f);
         float animatedScale = (1.0f - blendFactor) * currentScale + blendFactor * desiredScale;
 
         // snap to the end when we get close enough
-        const float MIN_RELATIVE_SCALE_ERROR = 0.03f;
-        if (fabsf(desiredScale - currentScale) / desiredScale < MIN_RELATIVE_SCALE_ERROR) {
+        const float MIN_RELATIVE_ERROR = 0.03f;
+        float relativeError = fabsf(desiredScale - currentScale) / desiredScale;
+        if (relativeError < MIN_RELATIVE_ERROR) {
             animatedScale = desiredScale;
+            _isAnimatingScale = false;
         }
-
         setScale(glm::vec3(animatedScale)); // avatar scale is uniform
+
+        // TODO: rebuilding the shape constantly is somehwat expensive.
+        // We should only rebuild after significant change.
         rebuildCollisionShape();
     }
 }
 
+void Avatar::setTargetScale(float targetScale) {
+    AvatarData::setTargetScale(targetScale);
+    _isAnimatingScale = true;
+}
+
 void Avatar::updateAvatarEntities() {
+    PerformanceTimer perfTimer("attachments");
     // - if queueEditEntityMessage sees clientOnly flag it does _myAvatar->updateAvatarEntity()
     // - updateAvatarEntity saves the bytes and sets _avatarEntityDataLocallyEdited
     // - MyAvatar::update notices _avatarEntityDataLocallyEdited and calls sendIdentityPacket
@@ -261,13 +283,16 @@ void Avatar::updateAvatarEntities() {
         }
 
         AvatarEntityIDs recentlyDettachedAvatarEntities = getAndClearRecentlyDetachedIDs();
-        _avatarEntitiesLock.withReadLock([&] {
-            foreach (auto entityID, recentlyDettachedAvatarEntities) {
-                if (!_avatarEntityData.contains(entityID)) {
-                    entityTree->deleteEntity(entityID, true, true);
+        if (!recentlyDettachedAvatarEntities.empty()) {
+            // only lock this thread when absolutely necessary
+            _avatarEntitiesLock.withReadLock([&] {
+                foreach (auto entityID, recentlyDettachedAvatarEntities) {
+                    if (!_avatarEntityData.contains(entityID)) {
+                        entityTree->deleteEntity(entityID, true, true);
+                    }
                 }
-            }
-        });
+            });
+        }
     });
 
     if (success) {
@@ -275,50 +300,33 @@ void Avatar::updateAvatarEntities() {
     }
 }
 
+bool Avatar::shouldDie() const {
+    const qint64 AVATAR_SILENCE_THRESHOLD_USECS = 5 * USECS_PER_SECOND;
+    return _owningAvatarMixer.isNull() || getUsecsSinceLastUpdate() > AVATAR_SILENCE_THRESHOLD_USECS;
+}
+
+void Avatar::simulate(float deltaTime, bool inView) {
+    PROFILE_RANGE(simulation, "simulate");
+
+    _simulationRate.increment();
+    if (inView) {
+        _simulationInViewRate.increment();
+    }
 
 
-void Avatar::simulate(float deltaTime) {
     PerformanceTimer perfTimer("simulate");
-
-    if (!isDead() && !_motionState) {
-        DependencyManager::get<AvatarManager>()->addAvatarToSimulation(this);
-    }
-    animateScaleChanges(deltaTime);
-
-    // update the shouldAnimate flag to match whether or not we will render the avatar.
-    const float MINIMUM_VISIBILITY_FOR_ON = 0.4f;
-    const float MAXIMUM_VISIBILITY_FOR_OFF = 0.6f;
-    ViewFrustum viewFrustum;
-    qApp->copyViewFrustum(viewFrustum);
-    float visibility = calculateRenderAccuracy(viewFrustum.getPosition(),
-            getBounds(), DependencyManager::get<LODManager>()->getOctreeSizeScale());
-    if (!_shouldAnimate) {
-        if (visibility > MINIMUM_VISIBILITY_FOR_ON) {
-            _shouldAnimate = true;
-            qCDebug(interfaceapp) << "Restoring" << (isMyAvatar() ? "myself" : getSessionUUID()) << "for visibility" << visibility;
-        }
-    } else if (visibility < MAXIMUM_VISIBILITY_FOR_OFF) {
-        _shouldAnimate = false;
-        qCDebug(interfaceapp) << "Optimizing" << (isMyAvatar() ? "myself" : getSessionUUID()) << "for visibility" << visibility;
-    }
-
-    // simple frustum check
-    float boundingRadius = getBoundingRadius();
-    qApp->copyDisplayViewFrustum(viewFrustum);
-    bool avatarPositionInView = viewFrustum.sphereIntersectsFrustum(getPosition(), boundingRadius);
-    bool avatarMeshInView = viewFrustum.boxIntersectsFrustum(_skeletonModel->getRenderableMeshBound());
-
-    if (_shouldAnimate && !_shouldSkipRender && (avatarPositionInView || avatarMeshInView)) {
-        {
-            PerformanceTimer perfTimer("skeleton");
+    {
+        PROFILE_RANGE(simulation, "updateJoints");
+        if (inView && _hasNewJointData) {
             _skeletonModel->getRig()->copyJointsFromJointData(_jointData);
-            _skeletonModel->simulate(deltaTime, _hasNewJointRotations || _hasNewJointTranslations);
+            _jointDataSimulationRate.increment();
+
+            _skeletonModel->simulate(deltaTime, true);
+            _skeletonModelSimulationRate.increment();
+
             locationChanged(); // joints changed, so if there are any children, update them.
-            _hasNewJointRotations = false;
-            _hasNewJointTranslations = false;
-        }
-        {
-            PerformanceTimer perfTimer("head");
+            _hasNewJointData = false;
+
             glm::vec3 headPosition = getPosition();
             if (!_skeletonModel->getHeadPosition(headPosition)) {
                 headPosition = getPosition();
@@ -326,12 +334,12 @@ void Avatar::simulate(float deltaTime) {
             Head* head = getHead();
             head->setPosition(headPosition);
             head->setScale(getUniformScale());
-            head->simulate(deltaTime, false, !_shouldAnimate);
+            head->simulate(deltaTime, false);
+        } else {
+            // a non-full update is still required so that the position, rotation, scale and bounds of the skeletonModel are updated.
+            _skeletonModel->simulate(deltaTime, false);
+            _skeletonModelSimulationRate.increment();
         }
-    } else {
-        // a non-full update is still required so that the position, rotation, scale and bounds of the skeletonModel are updated.
-        getHead()->setPosition(getPosition());
-        _skeletonModel->simulate(deltaTime, false);
     }
 
     // update animation for display name fade in/out
@@ -351,11 +359,28 @@ void Avatar::simulate(float deltaTime) {
         _displayNameAlpha = abs(_displayNameAlpha - _displayNameTargetAlpha) < 0.01f ? _displayNameTargetAlpha : _displayNameAlpha;
     }
 
-    measureMotionDerivatives(deltaTime);
+    {
+        PROFILE_RANGE(simulation, "misc");
+        measureMotionDerivatives(deltaTime);
+        simulateAttachments(deltaTime);
+        updatePalms();
+        updateAvatarEntities();
+    }
+}
 
-    simulateAttachments(deltaTime);
-    updatePalms();
-    updateAvatarEntities();
+float Avatar::getSimulationRate(const QString& rateName) const {
+    if (rateName == "") {
+        return _simulationRate.rate();
+    } else if (rateName == "avatar") {
+        return _simulationRate.rate();
+    } else if (rateName == "avatarInView") {
+        return _simulationInViewRate.rate();
+    } else if (rateName == "skeletonModel") {
+        return _skeletonModelSimulationRate.rate();
+    } else if (rateName == "jointData") {
+        return _jointDataSimulationRate.rate();
+    }
+    return 0.0f;
 }
 
 bool Avatar::isLookingAtMe(AvatarSharedPointer avatar) const {
@@ -379,6 +404,7 @@ void Avatar::applyPositionDelta(const glm::vec3& delta) {
 }
 
 void Avatar::measureMotionDerivatives(float deltaTime) {
+    PerformanceTimer perfTimer("derivatives");
     // linear
     float invDeltaTime = 1.0f / deltaTime;
     // Floating point error prevents us from computing velocity in a naive way
@@ -428,6 +454,7 @@ bool Avatar::addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene>
         attachmentModel->addToScene(scene, pendingChanges);
     }
 
+    _inScene = true;
     return true;
 }
 
@@ -438,6 +465,7 @@ void Avatar::removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::S
     for (auto& attachmentModel : _attachmentModels) {
         attachmentModel->removeFromScene(scene, pendingChanges);
     }
+    _inScene = false;
 }
 
 void Avatar::updateRenderItem(render::PendingChanges& pendingChanges) {
@@ -645,6 +673,7 @@ bool Avatar::shouldRenderHead(const RenderArgs* renderArgs) const {
 
 // virtual
 void Avatar::simulateAttachments(float deltaTime) {
+    PerformanceTimer perfTimer("attachments");
     for (int i = 0; i < (int)_attachmentModels.size(); i++) {
         const AttachmentData& attachment = _attachmentData.at(i);
         auto& model = _attachmentModels.at(i);
@@ -695,7 +724,7 @@ glm::vec3 Avatar::getDisplayNamePosition() const {
     glm::vec3 bodyUpDirection = getBodyUpDirection();
     DEBUG_VALUE("bodyUpDirection =", bodyUpDirection);
 
-    if (getSkeletonModel()->getNeckPosition(namePosition)) {
+    if (_skeletonModel->getNeckPosition(namePosition)) {
         float headHeight = getHeadHeight();
         DEBUG_VALUE("namePosition =", namePosition);
         DEBUG_VALUE("headHeight =", headHeight);
@@ -889,6 +918,16 @@ glm::quat Avatar::getAbsoluteJointRotationInObjectFrame(int index) const {
             Transform controllerRightHandTransform = Transform(getControllerRightHandMatrix());
             return controllerRightHandTransform.getRotation();
         }
+        case CAMERA_MATRIX_INDEX: {
+            glm::quat rotation;
+            if (_skeletonModel && _skeletonModel->isActive()) {
+                int headJointIndex = _skeletonModel->getFBXGeometry().headJointIndex;
+                if (headJointIndex >= 0) {
+                    _skeletonModel->getAbsoluteJointRotationInRigFrame(headJointIndex, rotation);
+                }
+            }
+            return Quaternions::Y_180 * rotation * Quaternions::Y_180;
+        }
         default: {
             glm::quat rotation;
             _skeletonModel->getAbsoluteJointRotationInRigFrame(index, rotation);
@@ -914,6 +953,16 @@ glm::vec3 Avatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
         case CONTROLLER_RIGHTHAND_INDEX: {
             Transform controllerRightHandTransform = Transform(getControllerRightHandMatrix());
             return controllerRightHandTransform.getTranslation();
+        }
+        case CAMERA_MATRIX_INDEX: {
+            glm::vec3 translation;
+            if (_skeletonModel && _skeletonModel->isActive()) {
+                int headJointIndex = _skeletonModel->getFBXGeometry().headJointIndex;
+                if (headJointIndex >= 0) {
+                    _skeletonModel->getAbsoluteJointTranslationInRigFrame(headJointIndex, translation);
+                }
+            }
+            return Quaternions::Y_180 * translation * Quaternions::Y_180;
         }
         default: {
             glm::vec3 translation;
@@ -987,7 +1036,7 @@ void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
 void Avatar::setModelURLFinished(bool success) {
     if (!success && _skeletonModelURL != AvatarData::defaultFullAvatarModelUrl()) {
-        qDebug() << "Using default after failing to load Avatar model: " << _skeletonModelURL;
+        qCWarning(interfaceapp) << "Using default after failing to load Avatar model: " << _skeletonModelURL;
         // call _skeletonModel.setURL, but leave our copy of _skeletonModelURL alone.  This is so that
         // we don't redo this every time we receive an identity packet from the avatar with the bad url.
         QMetaObject::invokeMethod(_skeletonModel.get(), "setURL",
@@ -997,10 +1046,14 @@ void Avatar::setModelURLFinished(bool success) {
 
 
 // create new model, can return an instance of a SoftAttachmentModel rather then Model
-static std::shared_ptr<Model> allocateAttachmentModel(bool isSoft, RigPointer rigOverride) {
+static std::shared_ptr<Model> allocateAttachmentModel(bool isSoft, RigPointer rigOverride, bool isCauterized) {
     if (isSoft) {
         // cast to std::shared_ptr<Model>
-        return std::dynamic_pointer_cast<Model>(std::make_shared<SoftAttachmentModel>(std::make_shared<Rig>(), nullptr, rigOverride));
+        std::shared_ptr<SoftAttachmentModel> softModel = std::make_shared<SoftAttachmentModel>(std::make_shared<Rig>(), nullptr, rigOverride);
+        if (isCauterized) {
+            softModel->flagAsCauterized();
+        }
+        return std::dynamic_pointer_cast<Model>(softModel);
     } else {
         return std::make_shared<Model>(std::make_shared<Rig>());
     }
@@ -1026,12 +1079,12 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     for (int i = 0; i < attachmentData.size(); i++) {
         if (i == (int)_attachmentModels.size()) {
             // if number of attachments has been increased, we need to allocate a new model
-            _attachmentModels.push_back(allocateAttachmentModel(attachmentData[i].isSoft, _skeletonModel->getRig()));
+            _attachmentModels.push_back(allocateAttachmentModel(attachmentData[i].isSoft, _skeletonModel->getRig(), isMyAvatar()));
         }
         else if (i < oldAttachmentData.size() && oldAttachmentData[i].isSoft != attachmentData[i].isSoft) {
             // if the attachment has changed type, we need to re-allocate a new one.
             _attachmentsToRemove.push_back(_attachmentModels[i]);
-            _attachmentModels[i] = allocateAttachmentModel(attachmentData[i].isSoft, _skeletonModel->getRig());
+            _attachmentModels[i] = allocateAttachmentModel(attachmentData[i].isSoft, _skeletonModel->getRig(), isMyAvatar());
         }
         _attachmentModels[i]->setURL(attachmentData[i].modelURL);
     }
@@ -1039,6 +1092,7 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
 
 
 int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
+    PerformanceTimer perfTimer("unpack");
     if (!_initialized) {
         // now that we have data for this Avatar we are go for init
         init();
@@ -1054,7 +1108,7 @@ int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
     if (_moving && _motionState) {
         _motionState->addDirtyFlags(Simulation::DIRTY_POSITION);
     }
-    if (_moving || _hasNewJointRotations || _hasNewJointTranslations) {
+    if (_moving || _hasNewJointData) {
         locationChanged();
     }
 
@@ -1213,8 +1267,8 @@ glm::vec3 Avatar::getUncachedLeftPalmPosition() const {
         return leftPalmPosition;
     }
     // avatar didn't have a LeftHandMiddle1 joint, fall back on this:
-    getSkeletonModel()->getJointRotationInWorldFrame(getSkeletonModel()->getLeftHandJointIndex(), leftPalmRotation);
-    getSkeletonModel()->getLeftHandPosition(leftPalmPosition);
+    _skeletonModel->getJointRotationInWorldFrame(_skeletonModel->getLeftHandJointIndex(), leftPalmRotation);
+    _skeletonModel->getLeftHandPosition(leftPalmPosition);
     leftPalmPosition += HAND_TO_PALM_OFFSET * glm::inverse(leftPalmRotation);
     return leftPalmPosition;
 }
@@ -1222,7 +1276,7 @@ glm::vec3 Avatar::getUncachedLeftPalmPosition() const {
 glm::quat Avatar::getUncachedLeftPalmRotation() const {
     assert(QThread::currentThread() == thread());  // main thread access only
     glm::quat leftPalmRotation;
-    getSkeletonModel()->getJointRotationInWorldFrame(getSkeletonModel()->getLeftHandJointIndex(), leftPalmRotation);
+    _skeletonModel->getJointRotationInWorldFrame(_skeletonModel->getLeftHandJointIndex(), leftPalmRotation);
     return leftPalmRotation;
 }
 
@@ -1234,8 +1288,8 @@ glm::vec3 Avatar::getUncachedRightPalmPosition() const {
         return rightPalmPosition;
     }
     // avatar didn't have a RightHandMiddle1 joint, fall back on this:
-    getSkeletonModel()->getJointRotationInWorldFrame(getSkeletonModel()->getRightHandJointIndex(), rightPalmRotation);
-    getSkeletonModel()->getRightHandPosition(rightPalmPosition);
+    _skeletonModel->getJointRotationInWorldFrame(_skeletonModel->getRightHandJointIndex(), rightPalmRotation);
+    _skeletonModel->getRightHandPosition(rightPalmPosition);
     rightPalmPosition += HAND_TO_PALM_OFFSET * glm::inverse(rightPalmRotation);
     return rightPalmPosition;
 }
@@ -1243,7 +1297,7 @@ glm::vec3 Avatar::getUncachedRightPalmPosition() const {
 glm::quat Avatar::getUncachedRightPalmRotation() const {
     assert(QThread::currentThread() == thread());  // main thread access only
     glm::quat rightPalmRotation;
-    getSkeletonModel()->getJointRotationInWorldFrame(getSkeletonModel()->getRightHandJointIndex(), rightPalmRotation);
+    _skeletonModel->getJointRotationInWorldFrame(_skeletonModel->getRightHandJointIndex(), rightPalmRotation);
     return rightPalmRotation;
 }
 
@@ -1258,6 +1312,7 @@ void Avatar::setOrientation(const glm::quat& orientation) {
 }
 
 void Avatar::updatePalms() {
+    PerformanceTimer perfTimer("palms");
     // update thread-safe caches
     _leftPalmRotationCache.set(getUncachedLeftPalmRotation());
     _rightPalmRotationCache.set(getUncachedRightPalmRotation());
@@ -1292,5 +1347,26 @@ void Avatar::setParentJointIndex(quint16 parentJointIndex) {
         if (!success) {
             qCDebug(interfaceapp) << "Avatar::setParentJointIndex failed to reset avatar's location.";
         }
+    }
+}
+
+void Avatar::addToScene(AvatarSharedPointer myHandle) {
+    render::ScenePointer scene = qApp->getMain3DScene();
+    if (scene) {
+        render::PendingChanges pendingChanges;
+        auto nodelist = DependencyManager::get<NodeList>();
+        if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars()
+            && !nodelist->isIgnoringNode(getSessionUUID())
+            && !nodelist->isRadiusIgnoringNode(getSessionUUID())) {
+            addToScene(myHandle, scene, pendingChanges);
+        }
+        scene->enqueuePendingChanges(pendingChanges);
+    } else {
+        qCWarning(interfaceapp) << "AvatarManager::addAvatar() : Unexpected null scene, possibly during application shutdown";
+    }
+}
+void Avatar::ensureInScene(AvatarSharedPointer self) {
+    if (!_inScene) {
+        addToScene(self);
     }
 }

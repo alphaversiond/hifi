@@ -45,11 +45,33 @@ uint16_t AvatarMixerClientData::getLastBroadcastSequenceNumber(const QUuid& node
 void AvatarMixerClientData::ignoreOther(SharedNodePointer self, SharedNodePointer other) {
     if (!isRadiusIgnoring(other->getUUID())) {
         addToRadiusIgnoringSet(other->getUUID());
-        auto killPacket = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID);
+        auto killPacket = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID + sizeof(KillAvatarReason));
         killPacket->write(other->getUUID().toRfc4122());
+        if (self->isIgnoreRadiusEnabled()) {
+            killPacket->writePrimitive(KillAvatarReason::TheirAvatarEnteredYourBubble);
+        } else {
+            killPacket->writePrimitive(KillAvatarReason::YourAvatarEnteredTheirBubble);
+        }
         DependencyManager::get<NodeList>()->sendUnreliablePacket(*killPacket, *self);
         _hasReceivedFirstPacketsFrom.erase(other->getUUID());
     }
+}
+
+void AvatarMixerClientData::removeFromRadiusIgnoringSet(SharedNodePointer self, const QUuid& other) {
+    if (isRadiusIgnoring(other)) {
+        _radiusIgnoredOthers.erase(other);
+        auto exitingSpaceBubblePacket = NLPacket::create(PacketType::ExitingSpaceBubble, NUM_BYTES_RFC4122_UUID);
+        exitingSpaceBubblePacket->write(other.toRfc4122());
+        DependencyManager::get<NodeList>()->sendUnreliablePacket(*exitingSpaceBubblePacket, *self);
+    }
+}
+
+void AvatarMixerClientData::readViewFrustumPacket(const QByteArray& message) {
+    _currentViewFrustum.fromByteArray(message);
+}
+
+bool AvatarMixerClientData::otherAvatarInView(const AABox& otherAvatarBox) {
+    return _currentViewFrustum.boxIntersectsKeyhole(otherAvatarBox);
 }
 
 void AvatarMixerClientData::loadJSONStats(QJsonObject& jsonObject) const {
@@ -65,4 +87,6 @@ void AvatarMixerClientData::loadJSONStats(QJsonObject& jsonObject) const {
     jsonObject[INBOUND_AVATAR_DATA_STATS_KEY] = _avatar->getAverageBytesReceivedPerSecond() / (float) BYTES_PER_KILOBIT;
 
     jsonObject["av_data_receive_rate"] = _avatar->getReceiveRate();
+    jsonObject["recent_other_av_in_view"] = _recentOtherAvatarsInView;
+    jsonObject["recent_other_av_out_of_view"] = _recentOtherAvatarsOutOfView;
 }

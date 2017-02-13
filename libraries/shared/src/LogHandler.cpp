@@ -177,7 +177,7 @@ QString LogHandler::printMessage(LogMsgType type, const QMessageLogContext& cont
         prefixString.append(QString(" [%1]").arg(_targetName));
     }
 
-    QString logMessage = QString("%1 %2").arg(prefixString, message.split("\n").join("\n" + prefixString + " "));
+    QString logMessage = QString("%1 %2").arg(prefixString, message.split('\n').join('\n' + prefixString + " "));
     fprintf(stdout, "%s\n", qPrintable(logMessage));
     return logMessage;
 }
@@ -186,7 +186,7 @@ void LogHandler::verboseMessageHandler(QtMsgType type, const QMessageLogContext&
     getInstance().printMessage((LogMsgType) type, context, message);
 }
 
-const QString& LogHandler::addRepeatedMessageRegex(const QString& regexString) {
+void LogHandler::setupRepeatedMessageFlusher() {
     static std::once_flag once;
     std::call_once(once, [&] {
         // setup our timer to flush the verbose logs every 5 seconds
@@ -194,6 +194,11 @@ const QString& LogHandler::addRepeatedMessageRegex(const QString& regexString) {
         connect(logFlushTimer, &QTimer::timeout, this, &LogHandler::flushRepeatedMessages);
         logFlushTimer->start(VERBOSE_LOG_INTERVAL_SECONDS * 1000);
     });
+}
+
+const QString& LogHandler::addRepeatedMessageRegex(const QString& regexString) {
+    // make sure we setup the repeated message flusher, but do it on the LogHandler thread
+    QMetaObject::invokeMethod(this, "setupRepeatedMessageFlusher");
 
     QMutexLocker lock(&_mutex);
     return *_repeatedMessageRegexes.insert(regexString);

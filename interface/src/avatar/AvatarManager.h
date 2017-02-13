@@ -20,6 +20,7 @@
 #include <PhysicsEngine.h>
 #include <PIDController.h>
 #include <SimpleMovingAverage.h>
+#include <shared/RateCounter.h>
 
 #include "Avatar.h"
 #include "AvatarMotionState.h"
@@ -40,7 +41,11 @@ public:
     void init();
 
     std::shared_ptr<MyAvatar> getMyAvatar() { return _myAvatar; }
-    AvatarSharedPointer getAvatarBySessionID(const QUuid& sessionID) override;
+    AvatarSharedPointer getAvatarBySessionID(const QUuid& sessionID) const override;
+
+    int getFullySimulatedAvatars() const { return _fullySimulatedAvatars; }
+    int getPartiallySimulatedAvatars() const { return _partiallySimulatedAvatars; }
+    float getAvatarSimulationTime() const { return _avatarSimulationTime; }
 
     void updateMyAvatar(float deltaTime);
     void updateOtherAvatars(float deltaTime);
@@ -68,18 +73,22 @@ public:
     void handleOutgoingChanges(const VectorOfMotionStates& motionStates);
     void handleCollisionEvents(const CollisionEvents& collisionEvents);
 
-    void addAvatarToSimulation(Avatar* avatar);
+    Q_INVOKABLE float getAvatarDataRate(const QUuid& sessionID, const QString& rateName = QString("")) const;
+    Q_INVOKABLE float getAvatarUpdateRate(const QUuid& sessionID, const QString& rateName = QString("")) const;
+    Q_INVOKABLE float getAvatarSimulationRate(const QUuid& sessionID, const QString& rateName = QString("")) const;
 
     Q_INVOKABLE RayToAvatarIntersectionResult findRayIntersection(const PickRay& ray,
                                                                   const QScriptValue& avatarIdsToInclude = QScriptValue(),
                                                                   const QScriptValue& avatarIdsToDiscard = QScriptValue());
+
+    float getMyAvatarSendRate() const { return _myAvatarSendRate.rate(); }
 
 public slots:
     void setShouldShowReceiveStats(bool shouldShowReceiveStats) { _shouldShowReceiveStats = shouldShowReceiveStats; }
     void updateAvatarRenderStatus(bool shouldRenderAvatars);
 
 private slots:
-    virtual void removeAvatar(const QUuid& sessionUUID) override;
+    virtual void removeAvatar(const QUuid& sessionUUID, KillAvatarReason removalReason = KillAvatarReason::NoReason) override;
 
 private:
     explicit AvatarManager(QObject* parent = 0);
@@ -90,8 +99,7 @@ private:
     // virtual overrides
     virtual AvatarSharedPointer newSharedAvatar() override;
     virtual AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) override;
-
-    virtual void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar) override;
+    virtual void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason = KillAvatarReason::NoReason) override;
 
     QVector<AvatarSharedPointer> _avatarFades;
     std::shared_ptr<MyAvatar> _myAvatar;
@@ -106,6 +114,12 @@ private:
     SetOfAvatarMotionStates _motionStatesThatMightUpdate;
     SetOfMotionStates _motionStatesToAddToPhysics;
     VectorOfMotionStates _motionStatesToRemoveFromPhysics;
+
+    RateCounter<> _myAvatarSendRate;
+    int _fullySimulatedAvatars { 0 };
+    int _partiallySimulatedAvatars { 0 };
+    float _avatarSimulationTime { 0.0f };
+
 };
 
 Q_DECLARE_METATYPE(AvatarManager::LocalLight)

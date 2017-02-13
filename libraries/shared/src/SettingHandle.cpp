@@ -19,22 +19,19 @@
 const QString Settings::firstRun { "firstRun" };
 
 
-Settings::Settings() : 
-    _manager(DependencyManager::get<Setting::Manager>()), 
-    _locker(&(_manager->getLock())) 
+Settings::Settings() : _manager(DependencyManager::get<Setting::Manager>())
 {
 }
 
-Settings::~Settings() {
-    if (_prefixes.size() != 0) {
-        qFatal("Unstable Settings Prefixes:  You must call endGroup for every beginGroup and endArray for every begin*Array call");
-    }
+QString Settings::fileName() const {
+    return _manager->fileName();
 }
 
 void Settings::remove(const QString& key) {
-    if (key == "" || _manager->contains(key)) {
-        _manager->remove(key);
-    }
+    // NOTE: you can't check _manager->contains(key) here because it will return 'false'
+    // when the key is a valid child group with child keys.
+    // However, calling remove() without checking will do the right thing.
+    _manager->remove(key);
 }
 
 QStringList Settings::childGroups() const {
@@ -50,21 +47,19 @@ QStringList Settings::allKeys() const {
 }
 
 bool Settings::contains(const QString& key) const {
+    // NOTE: this will return 'false' if key is a valid child group with child keys.
     return _manager->contains(key);
 }
 
-int Settings::beginReadArray(const QString & prefix) {
-    _prefixes.push(prefix);
+int Settings::beginReadArray(const QString& prefix) {
     return _manager->beginReadArray(prefix);
 }
 
 void Settings::beginWriteArray(const QString& prefix, int size) {
-    _prefixes.push(prefix);
     _manager->beginWriteArray(prefix, size);
 }
 
 void Settings::endArray() {
-    _prefixes.pop();
     _manager->endArray();
 }
 
@@ -73,12 +68,10 @@ void Settings::setArrayIndex(int i) {
 }
 
 void Settings::beginGroup(const QString& prefix) {
-    _prefixes.push(prefix);
     _manager->beginGroup(prefix);
 }
 
 void Settings::endGroup() {
-    _prefixes.pop();
     _manager->endGroup();
 }
 

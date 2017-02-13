@@ -40,7 +40,7 @@ public:
     Q_INVOKABLE QVector<QUuid> getAvatarIdentifiers();
     Q_INVOKABLE AvatarData* getAvatar(QUuid avatarID);
 
-    virtual AvatarSharedPointer getAvatarBySessionID(const QUuid& sessionID) { return findAvatar(sessionID); }
+    virtual AvatarSharedPointer getAvatarBySessionID(const QUuid& sessionID) const { return findAvatar(sessionID); }
     int numberOfAvatarsInRange(const glm::vec3& position, float rangeMeters);
 
 signals:
@@ -57,6 +57,7 @@ private slots:
     void processAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     void processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     void processKillAvatar(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
+    void processExitingSpaceBubble(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
 
 protected:
     AvatarHashMap();
@@ -64,15 +65,15 @@ protected:
     virtual AvatarSharedPointer newSharedAvatar();
     virtual AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer);
     AvatarSharedPointer newOrExistingAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer);
-    virtual AvatarSharedPointer findAvatar(const QUuid& sessionUUID); // uses a QReadLocker on the hashLock
-    virtual void removeAvatar(const QUuid& sessionUUID);
+    virtual AvatarSharedPointer findAvatar(const QUuid& sessionUUID) const; // uses a QReadLocker on the hashLock
+    virtual void removeAvatar(const QUuid& sessionUUID, KillAvatarReason removalReason = KillAvatarReason::NoReason);
     
-    virtual void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar);
+    virtual void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason = KillAvatarReason::NoReason);
 
     AvatarHash _avatarHash;
     // "Case-based safety": Most access to the _avatarHash is on the same thread. Write access is protected by a write-lock.
     // If you read from a different thread, you must read-lock the _hashLock. (Scripted write access is not supported).
-    QReadWriteLock _hashLock;
+    mutable QReadWriteLock _hashLock;
 
 private:
     QUuid _lastOwnerSessionUUID;

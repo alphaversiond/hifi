@@ -112,6 +112,12 @@ public slots:
     Q_INVOKABLE bool canRezTmp();
 
     /**jsdoc
+    * @function Entities.canWriteAsseets
+    * @return {bool} `true` if the DomainServer will allow this Node/Avatar to write to the asset server
+    */
+    Q_INVOKABLE bool canWriteAssets();
+
+    /**jsdoc
      * Add a new entity with the specified properties. If `clientOnly` is true, the entity will
      * not be sent to the server and will only be visible/accessible on the local client.
      *
@@ -205,6 +211,9 @@ public slots:
     /// order to return an accurate result
     Q_INVOKABLE RayToEntityIntersectionResult findRayIntersectionBlocking(const PickRay& ray, bool precisionPicking = false, const QScriptValue& entityIdsToInclude = QScriptValue(), const QScriptValue& entityIdsToDiscard = QScriptValue());
 
+    Q_INVOKABLE bool reloadServerScripts(QUuid entityID);
+    Q_INVOKABLE bool getServerScriptStatus(QUuid entityID, QScriptValue callback);
+
     Q_INVOKABLE void setLightsArePickable(bool value);
     Q_INVOKABLE bool getLightsArePickable() const;
 
@@ -256,6 +265,7 @@ public slots:
     Q_INVOKABLE QStringList getJointNames(const QUuid& entityID);
     Q_INVOKABLE QVector<QUuid> getChildrenIDs(const QUuid& parentID);
     Q_INVOKABLE QVector<QUuid> getChildrenIDsOfJoint(const QUuid& parentID, int jointIndex);
+    Q_INVOKABLE bool isChildOfParent(QUuid childID, QUuid parentID);
 
     Q_INVOKABLE QUuid getKeyboardFocusEntity() const;
     Q_INVOKABLE void setKeyboardFocusEntity(QUuid id);
@@ -276,12 +286,15 @@ public slots:
 
     Q_INVOKABLE void emitScriptEvent(const EntityItemID& entityID, const QVariant& message);
 
+    Q_INVOKABLE QObject* getWebViewRoot(const QUuid& entityID);
+
 signals:
     void collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
     void canAdjustLocksChanged(bool canAdjustLocks);
     void canRezChanged(bool canRez);
     void canRezTmpChanged(bool canRez);
+    void canWriteAssetsChanged(bool canWriteAssets);
 
     void mousePressOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
     void mouseMoveOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);

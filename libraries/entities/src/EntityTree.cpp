@@ -64,7 +64,7 @@ EntityTree::~EntityTree() {
 }
 
 void EntityTree::setEntityScriptSourceWhitelist(const QString& entityScriptSourceWhitelist) { 
-    _entityScriptSourceWhitelist = entityScriptSourceWhitelist.split(',');
+    _entityScriptSourceWhitelist = entityScriptSourceWhitelist.split(',', QString::SkipEmptyParts);
 }
 
 
@@ -104,6 +104,7 @@ bool EntityTree::handlesEditPacketType(PacketType packetType) const {
         case PacketType::EntityAdd:
         case PacketType::EntityEdit:
         case PacketType::EntityErase:
+        case PacketType::EntityPhysics:
             return true;
         default:
             return false;
@@ -343,7 +344,7 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
 
     auto nodeList = DependencyManager::get<NodeList>();
     if (!nodeList) {
-        qDebug() << "EntityTree::addEntity -- can't get NodeList";
+        qCDebug(entities) << "EntityTree::addEntity -- can't get NodeList";
         return nullptr;
     }
 
@@ -390,8 +391,12 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
     return result;
 }
 
-void EntityTree::emitEntityScriptChanging(const EntityItemID& entityItemID, const bool reload) {
+void EntityTree::emitEntityScriptChanging(const EntityItemID& entityItemID, bool reload) {
     emit entityScriptChanging(entityItemID, reload);
+}
+
+void EntityTree::emitEntityServerScriptChanging(const EntityItemID& entityItemID, bool reload) {
+    emit entityServerScriptChanging(entityItemID, reload);
 }
 
 void EntityTree::notifyNewCollisionSoundURL(const QString& newURL, const EntityItemID& entityID) {
@@ -918,6 +923,70 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
     }
 }
 
+void EntityTree::initEntityEditFilterEngine(QScriptEngine* engine, std::function<bool()> entityEditFilterHadUncaughtExceptions) {
+    _entityEditFilterEngine = engine;
+    _entityEditFilterHadUncaughtExceptions = entityEditFilterHadUncaughtExceptions;
+    auto global = _entityEditFilterEngine->globalObject();
+    _entityEditFilterFunction = global.property("filter");
+    if (!_entityEditFilterFunction.isFunction()) {
+        qCDebug(entities) << "Filter function specified but not found. Will reject all edits.";
+        _entityEditFilterEngine = nullptr; // So that we don't try to call it. See filterProperties.
+    }
+    auto entitiesObject = _entityEditFilterEngine->newObject();
+    entitiesObject.setProperty("ADD_FILTER_TYPE", FilterType::Add);
+    entitiesObject.setProperty("EDIT_FILTER_TYPE", FilterType::Edit);
+    entitiesObject.setProperty("PHYSICS_FILTER_TYPE", FilterType::Physics);
+    global.setProperty("Entities", entitiesObject);
+    _hasEntityEditFilter = true;
+}
+
+bool EntityTree::filterProperties(EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, FilterType filterType) {
+    if (!_entityEditFilterEngine) {
+        propertiesOut = propertiesIn;
+        wasChanged = false; // not changed
+        if (_hasEntityEditFilter) {
+            qCDebug(entities) << "Rejecting properties because filter has not been set.";
+            return false;
+        }
+        return true; // allowed
+    }
+    auto oldProperties = propertiesIn.getDesiredProperties();
+    auto specifiedProperties = propertiesIn.getChangedProperties();
+    propertiesIn.setDesiredProperties(specifiedProperties);
+    QScriptValue inputValues = propertiesIn.copyToScriptValue(_entityEditFilterEngine, false, true, true);
+    propertiesIn.setDesiredProperties(oldProperties);
+
+    auto in = QJsonValue::fromVariant(inputValues.toVariant()); // grab json copy now, because the inputValues might be side effected by the filter.
+    QScriptValueList args;
+    args << inputValues;
+    args << filterType;
+
+    QScriptValue result = _entityEditFilterFunction.call(_nullObjectForFilter, args);
+    if (_entityEditFilterHadUncaughtExceptions()) {
+        result = QScriptValue();
+    }
+
+    bool accepted = result.isObject(); // filters should return null or false to completely reject edit or add
+    if (accepted) {
+        propertiesOut.copyFromScriptValue(result, false);
+        // Javascript objects are == only if they are the same object. To compare arbitrary values, we need to use JSON.
+        auto out = QJsonValue::fromVariant(result.toVariant());
+        wasChanged = in != out;
+    }
+
+    return accepted;
+}
+
+void EntityTree::bumpTimestamp(EntityItemProperties& properties) { //fixme put class/header
+    const quint64 LAST_EDITED_SERVERSIDE_BUMP = 1; // usec
+    // also bump up the lastEdited time of the properties so that the interface that created this edit
+    // will accept our adjustment to lifetime back into its own entity-tree.
+    if (properties.getLastEdited() == UNKNOWN_CREATED_TIME) {
+        properties.setLastEdited(usecTimestampNow());
+    }
+    properties.setLastEdited(properties.getLastEdited() + LAST_EDITED_SERVERSIDE_BUMP);
+}
+
 int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,
                                      const SharedNodePointer& senderNode) {
 
@@ -927,6 +996,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
     }
 
     int processedBytes = 0;
+    bool isAdd = false;
     // we handle these types of "edit" packets
     switch (message.getType()) {
         case PacketType::EntityErase: {
@@ -936,15 +1006,18 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
         }
 
         case PacketType::EntityAdd:
+            isAdd = true;  // fall through to next case
+        case PacketType::EntityPhysics:
         case PacketType::EntityEdit: {
             quint64 startDecode = 0, endDecode = 0;
             quint64 startLookup = 0, endLookup = 0;
             quint64 startUpdate = 0, endUpdate = 0;
             quint64 startCreate = 0, endCreate = 0;
+            quint64 startFilter = 0, endFilter = 0;
             quint64 startLogging = 0, endLogging = 0;
 
-            const quint64 LAST_EDITED_SERVERSIDE_BUMP = 1; // usec
             bool suppressDisallowedScript = false;
+            bool isPhysics = message.getType() == PacketType::EntityPhysics;
 
             _totalEditMessages++;
 
@@ -956,11 +1029,19 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                                                                                 entityItemID, properties);
             endDecode = usecTimestampNow();
 
+
             if (validEditPacket && !_entityScriptSourceWhitelist.isEmpty() && !properties.getScript().isEmpty()) {
                 bool passedWhiteList = false;
-                auto entityScript = properties.getScript();
+
+                // grab a URL representation of the entity script so we can check the host for this script
+                auto entityScriptURL = QUrl::fromUserInput(properties.getScript());
+
                 for (const auto& whiteListedPrefix : _entityScriptSourceWhitelist) {
-                    if (entityScript.startsWith(whiteListedPrefix, Qt::CaseInsensitive)) {
+                    auto whiteListURL = QUrl::fromUserInput(whiteListedPrefix);
+
+                    // check if this script URL matches the whitelist domain and, optionally, is beneath the path
+                    if (entityScriptURL.host().compare(whiteListURL.host(), Qt::CaseInsensitive) == 0 &&
+                        entityScriptURL.path().startsWith(whiteListURL.path(), Qt::CaseInsensitive)) {
                         passedWhiteList = true;
                         break;
                     }
@@ -971,7 +1052,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                     }
 
                     // If this was an add, we also want to tell the client that sent this edit that the entity was not added.
-                    if (message.getType() == PacketType::EntityAdd) {
+                    if (isAdd) {
                         QWriteLocker locker(&_recentlyDeletedEntitiesLock);
                         _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
                         validEditPacket = passedWhiteList;
@@ -981,33 +1062,45 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                 }
             }
 
-            if ((message.getType() == PacketType::EntityAdd ||
-                 (message.getType() == PacketType::EntityEdit && properties.lifetimeChanged())) &&
+            if ((isAdd || properties.lifetimeChanged()) &&
                 !senderNode->getCanRez() && senderNode->getCanRezTmp()) {
                 // this node is only allowed to rez temporary entities.  if need be, cap the lifetime.
                 if (properties.getLifetime() == ENTITY_ITEM_IMMORTAL_LIFETIME ||
                     properties.getLifetime() > _maxTmpEntityLifetime) {
                     properties.setLifetime(_maxTmpEntityLifetime);
-                    // also bump up the lastEdited time of the properties so that the interface that created this edit
-                    // will accept our adjustment to lifetime back into its own entity-tree.
-                    if (properties.getLastEdited() == UNKNOWN_CREATED_TIME) {
-                        properties.setLastEdited(usecTimestampNow());
-                    }
-                    properties.setLastEdited(properties.getLastEdited() + LAST_EDITED_SERVERSIDE_BUMP);
+                    bumpTimestamp(properties);
                 }
             }
 
             // If we got a valid edit packet, then it could be a new entity or it could be an update to
             // an existing entity... handle appropriately
             if (validEditPacket) {
+
+                startFilter = usecTimestampNow();
+                bool wasChanged = false;
+                // Having (un)lock rights bypasses the filter, unless it's a physics result.
+                FilterType filterType = isPhysics ? FilterType::Physics : (isAdd ? FilterType::Add : FilterType::Edit);
+                bool allowed = (!isPhysics && senderNode->isAllowedEditor()) || filterProperties(properties, properties, wasChanged, filterType);
+                if (!allowed) {
+                    auto timestamp = properties.getLastEdited();
+                    properties = EntityItemProperties();
+                    properties.setLastEdited(timestamp);
+                }
+                if (!allowed || wasChanged) {
+                    bumpTimestamp(properties);
+                    // For now, free ownership on any modification.
+                    properties.clearSimulationOwner();
+                }
+                endFilter = usecTimestampNow();
+
                 // search for the entity by EntityItemID
                 startLookup = usecTimestampNow();
                 EntityItemPointer existingEntity = findEntityByEntityItemID(entityItemID);
                 endLookup = usecTimestampNow();
-                if (existingEntity && message.getType() == PacketType::EntityEdit) {
+                if (existingEntity && !isAdd) {
 
                     if (suppressDisallowedScript) {
-                        properties.setLastEdited(properties.getLastEdited() + LAST_EDITED_SERVERSIDE_BUMP);
+                        bumpTimestamp(properties);
                         properties.setScript(existingEntity->getScript());
                     }
 
@@ -1031,8 +1124,16 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                     existingEntity->markAsChangedOnServer();
                     endUpdate = usecTimestampNow();
                     _totalUpdates++;
-                } else if (message.getType() == PacketType::EntityAdd) {
-                    if (senderNode->getCanRez() || senderNode->getCanRezTmp()) {
+                } else if (isAdd) {
+                    bool failedAdd = !allowed;
+                    if (!allowed) {
+                        qCDebug(entities) << "Filtered entity add. ID:" << entityItemID;
+                    } else if (!senderNode->getCanRez() && !senderNode->getCanRezTmp()) {
+                        failedAdd = true;
+                        qCDebug(entities) << "User without 'rez rights' [" << senderNode->getUUID()
+                                          << "] attempted to add an entity ID:" << entityItemID;
+
+                    } else {
                         // this is a new entity... assign a new entityID
                         properties.setCreated(properties.getLastEdited());
                         properties.setLastEditedBy(senderNode->getUUID());
@@ -1047,7 +1148,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                             startLogging = usecTimestampNow();
                             if (wantEditLogging()) {
                                 qCDebug(entities) << "User [" << senderNode->getUUID() << "] added entity. ID:"
-                                                << newEntity->getEntityItemID();
+                                                  << newEntity->getEntityItemID();
                                 qCDebug(entities) << "   properties:" << properties;
                             }
                             if (wantTerseEditLogging()) {
@@ -1057,10 +1158,14 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                             }
                             endLogging = usecTimestampNow();
 
+                        } else {
+                            failedAdd = true;
+                            qCDebug(entities) << "Add entity failed ID:" << entityItemID;
                         }
-                    } else {
-                        qCDebug(entities) << "User without 'rez rights' [" << senderNode->getUUID()
-                                          << "] attempted to add an entity.";
+                    }
+                    if (failedAdd) { // Let client know it failed, so that they don't have an entity that no one else sees.
+                        QWriteLocker locker(&_recentlyDeletedEntitiesLock);
+                        _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
                     }
                 } else {
                     static QString repeatedMessage =
@@ -1077,6 +1182,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
             _totalUpdateTime += endUpdate - startUpdate;
             _totalCreateTime += endCreate - startCreate;
             _totalLoggingTime += endLogging - startLogging;
+            _totalFilterTime += endFilter - startFilter;
 
             break;
         }
@@ -1116,10 +1222,6 @@ void EntityTree::removeNewlyCreatedHook(NewlyCreatedEntityHook* hook) {
 
 
 void EntityTree::releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncodeData) const {
-    for (auto extraData : extraEncodeData->values()) {
-        EntityTreeElementExtraEncodeData* thisExtraEncodeData = static_cast<EntityTreeElementExtraEncodeData*>(extraData);
-        delete thisExtraEncodeData;
-    }
     extraEncodeData->clear();
 }
 
@@ -1247,7 +1349,7 @@ bool EntityTree::hasEntitiesDeletedSince(quint64 sinceTime) {
     if (hasSomethingNewer) {
         int elapsed = usecTimestampNow() - considerEntitiesSince;
         int difference = considerEntitiesSince - sinceTime;
-        qDebug() << "EntityTree::hasEntitiesDeletedSince() sinceTime:" << sinceTime 
+        qCDebug(entities) << "EntityTree::hasEntitiesDeletedSince() sinceTime:" << sinceTime 
                     << "considerEntitiesSince:" << considerEntitiesSince << "elapsed:" << elapsed << "difference:" << difference;
     }
 #endif
@@ -1280,7 +1382,7 @@ void EntityTree::forgetEntitiesDeletedBefore(quint64 sinceTime) {
 // TODO: consider consolidating processEraseMessageDetails() and processEraseMessage()
 int EntityTree::processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
     #ifdef EXTRA_ERASE_DEBUGGING
-        qDebug() << "EntityTree::processEraseMessage()";
+        qCDebug(entities) << "EntityTree::processEraseMessage()";
     #endif
     withWriteLock([&] {
         message.seek(sizeof(OCTREE_PACKET_FLAGS) + sizeof(OCTREE_PACKET_SEQUENCE) + sizeof(OCTREE_PACKET_SENT_TIME));
@@ -1300,7 +1402,7 @@ int EntityTree::processEraseMessage(ReceivedMessage& message, const SharedNodePo
 
                 QUuid entityID = QUuid::fromRfc4122(message.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
                 #ifdef EXTRA_ERASE_DEBUGGING
-                    qDebug() << "    ---- EntityTree::processEraseMessage() contained ID:" << entityID;
+                    qCDebug(entities) << "    ---- EntityTree::processEraseMessage() contained ID:" << entityID;
                 #endif
 
                 EntityItemID entityItemID(entityID);
@@ -1322,7 +1424,7 @@ int EntityTree::processEraseMessage(ReceivedMessage& message, const SharedNodePo
 // TODO: consider consolidating processEraseMessageDetails() and processEraseMessage()
 int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
     #ifdef EXTRA_ERASE_DEBUGGING
-        qDebug() << "EntityTree::processEraseMessageDetails()";
+        qCDebug(entities) << "EntityTree::processEraseMessageDetails()";
     #endif
     const unsigned char* packetData = (const unsigned char*)dataByteArray.constData();
     const unsigned char* dataAt = packetData;
@@ -1351,7 +1453,7 @@ int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, cons
             processedBytes += encodedID.size();
 
             #ifdef EXTRA_ERASE_DEBUGGING
-                qDebug() << "    ---- EntityTree::processEraseMessageDetails() contains id:" << entityID;
+                qCDebug(entities) << "    ---- EntityTree::processEraseMessageDetails() contains id:" << entityID;
             #endif
 
             EntityItemID entityItemID(entityID);
@@ -1484,6 +1586,8 @@ bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extra
             return args->map->value(oldID);
         }
         EntityItemID newID = QUuid::createUuid();
+        args->map->insert(oldID, newID);
+
         EntityItemProperties properties = item->getProperties();
         EntityItemID oldParentID = properties.getParentID();
         if (oldParentID.isInvalidID()) {  // no parent
@@ -1496,6 +1600,43 @@ bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extra
                 // But do not add root offset in this case.
             } else { // Should not happen, but let's try to be helpful...
                 item->globalizeProperties(properties, "Cannot find %3 parent of %2 %1", args->root);
+            }
+        }
+
+        if (!properties.getXNNeighborID().isInvalidID()) {
+            auto neighborEntity = args->ourTree->findEntityByEntityItemID(properties.getXNNeighborID());
+            if (neighborEntity) {
+                properties.setXNNeighborID(getMapped(neighborEntity));
+            }
+        }
+        if (!properties.getXPNeighborID().isInvalidID()) {
+            auto neighborEntity = args->ourTree->findEntityByEntityItemID(properties.getXPNeighborID());
+            if (neighborEntity) {
+                properties.setXPNeighborID(getMapped(neighborEntity));
+            }
+        }
+        if (!properties.getYNNeighborID().isInvalidID()) {
+            auto neighborEntity = args->ourTree->findEntityByEntityItemID(properties.getYNNeighborID());
+            if (neighborEntity) {
+                properties.setYNNeighborID(getMapped(neighborEntity));
+            }
+        }
+        if (!properties.getYPNeighborID().isInvalidID()) {
+            auto neighborEntity = args->ourTree->findEntityByEntityItemID(properties.getYPNeighborID());
+            if (neighborEntity) {
+                properties.setYPNeighborID(getMapped(neighborEntity));
+            }
+        }
+        if (!properties.getZNNeighborID().isInvalidID()) {
+            auto neighborEntity = args->ourTree->findEntityByEntityItemID(properties.getZNNeighborID());
+            if (neighborEntity) {
+                properties.setZNNeighborID(getMapped(neighborEntity));
+            }
+        }
+        if (!properties.getZPNeighborID().isInvalidID()) {
+            auto neighborEntity = args->ourTree->findEntityByEntityItemID(properties.getZPNeighborID());
+            if (neighborEntity) {
+                properties.setZPNeighborID(getMapped(neighborEntity));
             }
         }
 
@@ -1516,7 +1657,6 @@ bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extra
                 args->otherTree->addEntity(newID, properties);
             });
         }
-        args->map->insert(oldID, newID);
         return newID;
     };
 

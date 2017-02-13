@@ -14,12 +14,15 @@
 
 #include <QtCore/QJsonArray>
 #include <QtCore/QJsonDocument>
+#include <QtNetwork/QNetworkReply>
 
 #include <HifiConfigVariantMap.h>
 #include <HTTPManager.h>
 
 #include <ReceivedMessage.h>
 #include "NodePermissions.h"
+
+#include <Node.h>
 
 const QString SETTINGS_PATHS_KEY = "paths";
 
@@ -29,6 +32,7 @@ const QString AGENT_STANDARD_PERMISSIONS_KEYPATH = "security.standard_permission
 const QString AGENT_PERMISSIONS_KEYPATH = "security.permissions";
 const QString IP_PERMISSIONS_KEYPATH = "security.ip_permissions";
 const QString MAC_PERMISSIONS_KEYPATH = "security.mac_permissions";
+const QString MACHINE_FINGERPRINT_PERMISSIONS_KEYPATH = "security.machine_fingerprint_permissions";
 const QString GROUP_PERMISSIONS_KEYPATH = "security.group_permissions";
 const QString GROUP_FORBIDDENS_KEYPATH = "security.group_forbiddens";
 
@@ -66,6 +70,10 @@ public:
     // these give access to permissions for specific MACs from the domain-server settings page
     bool hasPermissionsForMAC(const QString& macAddress) const { return _macPermissions.contains(macAddress, 0); }
     NodePermissions getPermissionsForMAC(const QString& macAddress) const;
+
+    // these give access to permissions for specific machine fingerprints from the domain-server settings page
+    bool hasPermissionsForMachineFingerprint(const QUuid& machineFingerprint) { return _machineFingerprintPermissions.contains(machineFingerprint.toString(), 0); }
+    NodePermissions getPermissionsForMachineFingerprint(const QUuid& machineFingerprint) const;
 
     // these give access to permissions for specific groups from the domain-server settings page
     bool havePermissionsForGroup(const QString& groupName, QUuid rankID) const {
@@ -110,6 +118,7 @@ public slots:
 private slots:
     void processSettingsRequestPacket(QSharedPointer<ReceivedMessage> message);
     void processNodeKickRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
+    void processUsernameFromIDRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
 
 private:
     QStringList _argumentList;
@@ -129,8 +138,6 @@ private:
 
     friend class DomainServer;
 
-    void validateDescriptorsMap();
-
     // these cause calls to metaverse's group api
     void apiGetGroupID(const QString& groupName);
     void apiGetGroupRanks(const QUuid& groupID);
@@ -148,6 +155,7 @@ private:
 
     NodePermissionsMap _ipPermissions; // permissions granted by node IP address
     NodePermissionsMap _macPermissions; // permissions granted by node MAC address
+    NodePermissionsMap _machineFingerprintPermissions; // permissions granted by Machine Fingerprint
 
     NodePermissionsMap _groupPermissions; // permissions granted by membership to specific groups
     NodePermissionsMap _groupForbiddens; // permissions denied due to membership in a specific group

@@ -9,8 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "Context.h"
+
+#include <shared/GlobalAppProperties.h>
+
 #include "Frame.h"
 #include "GPULogging.h"
+
 using namespace gpu;
 
 
@@ -77,6 +81,7 @@ FramePointer Context::endFrame() {
 }
 
 void Context::executeBatch(Batch& batch) const {
+    PROFILE_RANGE(render_gpu, __FUNCTION__);
     batch.flush();
     _backend->render(batch);
 }
@@ -90,6 +95,8 @@ void Context::consumeFrameUpdates(const FramePointer& frame) const {
 }
 
 void Context::executeFrame(const FramePointer& frame) const {
+    PROFILE_RANGE(render_gpu, __FUNCTION__);
+
     // Grab the stats at the around the frame and delta to have a consistent sampling
     ContextStats beginStats;
     getStats(beginStats);
@@ -118,6 +125,12 @@ void Context::executeFrame(const FramePointer& frame) const {
 }
 
 bool Context::makeProgram(Shader& shader, const Shader::BindingSet& bindings) {
+    // If we're running in another DLL context, we need to fetch the program callback out of the application
+    // FIXME find a way to do this without reliance on Qt app properties
+    if (!_makeProgramCallback) {
+        void* rawCallback = qApp->property(hifi::properties::gl::MAKE_PROGRAM_CALLBACK).value<void*>();
+        _makeProgramCallback = reinterpret_cast<Context::MakeProgram>(rawCallback);
+    }
     if (shader.isProgram() && _makeProgramCallback) {
         return _makeProgramCallback(shader, bindings);
     }

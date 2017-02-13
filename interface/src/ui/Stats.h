@@ -39,11 +39,18 @@ class Stats : public QQuickItem {
     // How often the display device reprojecting old frames
     STATS_PROPERTY(float, stutterrate, 0)
 
+    STATS_PROPERTY(int, appdropped, 0)
+    STATS_PROPERTY(int, longsubmits, 0)
+    STATS_PROPERTY(int, longrenders, 0)
+    STATS_PROPERTY(int, longframes, 0)
+
     STATS_PROPERTY(float, presentnewrate, 0)
     STATS_PROPERTY(float, presentdroprate, 0)
     STATS_PROPERTY(int, simrate, 0)
     STATS_PROPERTY(int, avatarSimrate, 0)
     STATS_PROPERTY(int, avatarCount, 0)
+    STATS_PROPERTY(int, fullySimulatedAvatarCount, 0)
+    STATS_PROPERTY(int, partiallySimulatedAvatarCount, 0)
     STATS_PROPERTY(int, packetInCount, 0)
     STATS_PROPERTY(int, packetOutCount, 0)
     STATS_PROPERTY(float, mbpsIn, 0)
@@ -62,6 +69,7 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, avatarMixerInPps, 0)
     STATS_PROPERTY(int, avatarMixerOutKbps, 0)
     STATS_PROPERTY(int, avatarMixerOutPps, 0)
+    STATS_PROPERTY(float, myAvatarSendRate, 0)
     STATS_PROPERTY(int, audioMixerKbps, 0)
     STATS_PROPERTY(int, audioMixerPps, 0)
     STATS_PROPERTY(int, downloads, 0)
@@ -105,6 +113,7 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, gpuFreeMemory, 0)
     STATS_PROPERTY(float, gpuFrameTime, 0)
     STATS_PROPERTY(float, batchFrameTime, 0)
+    STATS_PROPERTY(float, avatarSimulationTime, 0)
 
 public:
     static Stats* getInstance();
@@ -134,6 +143,10 @@ public slots:
     void forceUpdateStats() { updateStats(true); }
 
 signals:
+    void longsubmitsChanged();
+    void longrendersChanged();
+    void longframesChanged();
+    void appdroppedChanged();
     void framerateChanged();
     void expandedChanged();
     void timingExpandedChanged();
@@ -146,6 +159,8 @@ signals:
     void simrateChanged();
     void avatarSimrateChanged();
     void avatarCountChanged();
+    void fullySimulatedAvatarCountChanged();
+    void partiallySimulatedAvatarCountChanged();
     void packetInCountChanged();
     void packetOutCountChanged();
     void mbpsInChanged();
@@ -164,6 +179,7 @@ signals:
     void avatarMixerInPpsChanged();
     void avatarMixerOutKbpsChanged();
     void avatarMixerOutPpsChanged();
+    void myAvatarSendRateChanged();
     void audioMixerKbpsChanged();
     void audioMixerPpsChanged();
     void downloadsChanged();
@@ -205,6 +221,7 @@ signals:
     void gpuFreeMemoryChanged();
     void gpuFrameTimeChanged();
     void batchFrameTimeChanged();
+    void avatarSimulationTimeChanged();
     void rectifiedTextureCountChanged();
     void decimatedTextureCountChanged();
 

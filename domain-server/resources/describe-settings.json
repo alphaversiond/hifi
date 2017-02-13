@@ -40,7 +40,7 @@
         {
           "name": "local_port",
           "label": "Local UDP Port",
-          "help": "This is the local port your domain-server binds to for UDP connections.<br/>Depending on your router, this may need to be changed to run multiple full automatic networking domain-servers in the same network.",
+          "help": "This is the local port your domain-server binds to for UDP connections.<br/>Depending on your router, this may need to be changed to unique values for each domain-server in order to run multiple full automatic networking domain-servers in the same network. You can use the value 0 to have the domain-server select a random port, which will help in preventing port collisions.",
           "default": "40102",
           "type": "int",
           "advanced": true
@@ -141,218 +141,6 @@
               "can_set": true
             }
           ]
-        },
-        {
-          "label": "Operating Hours",
-          "help": "\"Open\" domains can be searched using their operating hours. Hours are entered in the local timezone, selected below.",
-
-          "name": "weekday_hours",
-          "caption": "Weekday Hours (Monday-Friday)",
-          "type": "table",
-          "can_add_new_rows": false,
-          "columns": [
-            {
-              "name": "open",
-              "label": "Opening Time",
-              "type": "time",
-              "default": "00:00",
-              "editable": true
-            },
-            {
-              "name": "close",
-              "label": "Closing Time",
-              "type": "time",
-              "default": "23:59",
-              "editable": true
-            }
-          ]
-        },
-        {
-          "name": "weekend_hours",
-          "label": "Weekend Hours (Saturday/Sunday)",
-          "type": "table",
-          "can_add_new_rows": false,
-          "columns": [
-            {
-              "name": "open",
-              "label": "Opening Time",
-              "type": "time",
-              "default": "00:00",
-              "editable": true
-            },
-            {
-              "name": "close",
-              "label": "Closing Time",
-              "type": "time",
-              "default": "23:59",
-              "editable": true
-            }
-          ]
-        },
-        {
-          "label": "Time Zone",
-          "name": "utc_offset",
-          "caption": "Time Zone",
-          "help": "This server's time zone. Used to define your server's operating hours.",
-          "type": "select",
-          "options": [
-            {
-              "value": "-12",
-              "label": "UTC-12:00"
-            },
-            {
-              "value": "-11",
-              "label": "UTC-11:00"
-            },
-            {
-              "value": "-10",
-              "label": "UTC-10:00"
-            },
-            {
-              "value": "-9.5",
-              "label": "UTC-09:30"
-            },
-            {
-              "value": "-9",
-              "label": "UTC-09:00"
-            },
-            {
-              "value": "-8",
-              "label": "UTC-08:00"
-            },
-            {
-              "value": "-7",
-              "label": "UTC-07:00"
-            },
-            {
-              "value": "-6",
-              "label": "UTC-06:00"
-            },
-            {
-              "value": "-5",
-              "label": "UTC-05:00"
-            },
-            {
-              "value": "-4",
-              "label": "UTC-04:00"
-            },
-            {
-              "value": "-3.5",
-              "label": "UTC-03:30"
-            },
-            {
-              "value": "-3",
-              "label": "UTC-03:00"
-            },
-            {
-              "value": "-2",
-              "label": "UTC-02:00"
-            },
-            {
-              "value": "-1",
-              "label": "UTC-01:00"
-            },
-            {
-              "value": "",
-              "label": "UTC±00:00"
-            },
-            {
-              "value": "1",
-              "label": "UTC+01:00"
-            },
-            {
-              "value": "2",
-              "label": "UTC+02:00"
-            },
-            {
-              "value": "3",
-              "label": "UTC+03:00"
-            },
-            {
-              "value": "3.5",
-              "label": "UTC+03:30"
-            },
-            {
-              "value": "4",
-              "label": "UTC+04:00"
-            },
-            {
-              "value": "4.5",
-              "label": "UTC+04:30"
-            },
-            {
-              "value": "5",
-              "label": "UTC+05:00"
-            },
-            {
-              "value": "5.5",
-              "label": "UTC+05:30"
-            },
-            {
-              "value": "5.75",
-              "label": "UTC+05:45"
-            },
-            {
-              "value": "6",
-              "label": "UTC+06:00"
-            },
-            {
-              "value": "6.5",
-              "label": "UTC+06:30"
-            },
-            {
-              "value": "7",
-              "label": "UTC+07:00"
-            },
-            {
-              "value": "8",
-              "label": "UTC+08:00"
-            },
-            {
-              "value": "8.5",
-              "label": "UTC+08:30"
-            },
-            {
-              "value": "8.75",
-              "label": "UTC+08:45"
-            },
-            {
-              "value": "9",
-              "label": "UTC+09:00"
-            },
-            {
-              "value": "9.5",
-              "label": "UTC+09:30"
-            },
-            {
-              "value": "10",
-              "label": "UTC+10:00"
-            },
-            {
-              "value": "10.5",
-              "label": "UTC+10:30"
-            },
-            {
-              "value": "11",
-              "label": "UTC+11:00"
-            },
-            {
-              "value": "12",
-              "label": "UTC+12:00"
-            },
-            {
-              "value": "12.75",
-              "label": "UTC+12:45"
-            },
-            {
-              "value": "13",
-              "label": "UTC+13:00"
-            },
-            {
-              "value": "14",
-              "label": "UTC+14:00"
-            }
-          ]
         }
       ]
     },
@@ -373,6 +161,13 @@
           "value-hidden": true
         },
         {
+            "name": "verify_http_password",
+            "label": "Verify HTTP Password",
+            "type": "password",
+            "help": "Must match the password entered above for change to be saved.",
+            "value-hidden": true
+        },
+        {
           "name": "maximum_user_capacity",
           "label": "Maximum User Capacity",
           "help": "The limit on how many users can be connected at once (0 means no limit). Avatars connected from the same machine will not count towards this limit.",
@@ -383,7 +178,7 @@
         {
           "name": "maximum_user_capacity_redirect_location",
           "label": "Redirect to Location on Maximum Capacity",
-          "help": "Is there another domain, you'd like to redirect clients to when the maximum number of avatars are connected.",
+          "help": "The location to redirect users to when the maximum number of avatars are connected.",
           "placeholder": "",
           "default": "",
           "advanced": false
@@ -900,6 +695,78 @@
               "default": false
             }
           ]
+        },
+        {
+          "name": "machine_fingerprint_permissions",
+          "type": "table",
+          "caption": "Permissions for Users with Machine Fingerprints",
+          "can_add_new_rows": true,
+          "groups": [
+            {
+              "label": "Machine Fingerprint",
+              "span": 1
+            },
+            {
+              "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide Machine Fingerprint Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether users with specific Machine Fingerprints can connect to the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether users from specific Machine Fingerprints can change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether users with specific Machine Fingerprints can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether users with specific Machine Fingerprints can create new entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether users with specific Machine Fingerprints can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether users with specific Machine Fingerprints can connect even if the domain has reached or exceeded its maximum allowed agents.</li></ul><p>Note that permissions assigned to a specific Machine Fingerprint will supersede any parameter-level permissions that might otherwise apply to that user (from groups or standard permissions above). Machine Fingerprint address permissions are overriden if the user has their own row in the users section.</p>'>?</a>",
+              "span": 7
+            }
+          ],
+
+          "columns": [
+            {
+              "name": "permissions_id",
+              "label": ""
+            },
+            {
+              "name": "id_can_connect",
+              "label": "Connect",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_adjust_locks",
+              "label": "Lock / Unlock",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_rez",
+              "label": "Rez",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_rez_tmp",
+              "label": "Rez Temporary",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_write_to_asset_server",
+              "label": "Write Assets",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_connect_past_max_capacity",
+              "label": "Ignore Max Capacity",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_kick",
+              "label": "Kick Users",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            }
+          ]
         }
       ]
     },
@@ -956,6 +823,29 @@
       ]
     },
     {
+      "name": "entity_script_server",
+      "label": "Entity Script Server (ESS)",
+      "assignment-types": [5],
+      "settings": [
+        {
+          "name": "entity_pps_per_script",
+          "label": "Entity PPS per script",
+          "help": "The number of packets per second (PPS) that can be sent to the entity server for each server entity script. This contributes to a total overall amount.<br/>Example: 1000 PPS with 5 entites gives a total PPS of 5000 that is shared among the entity scripts. A single could use 4000 PPS, leaving 1000 for the rest, for example.",
+          "default": 900,
+          "type": "int",
+          "advanced": true
+        },
+        {
+          "name": "max_total_entity_pps",
+          "label": "Maximum Total Entity PPS",
+          "help": "The maximum total packets per seconds (PPS) that can be sent to the entity server.<br/>Example: 5 scripts @ 1000 PPS per script = 5000 total PPS. A maximum total PPS of 4000 would cap this 5000 total PPS to 4000.",
+          "default": 9000,
+          "type": "int",
+          "advanced": true
+        }
+      ]
+    },
+    {
       "name": "avatars",
       "label": "Avatars",
       "assignment-types": [1, 2],
@@ -979,6 +869,29 @@
       ]
     },
     {
+      "name": "audio_threading",
+      "label": "Audio Threading",
+      "assignment-types": [0],
+      "settings": [
+        {
+          "name": "auto_threads",
+          "label": "Automatically determine thread count",
+          "type": "checkbox",
+          "help": "Allow system to determine number of threads (recommended)",
+          "default": false,
+          "advanced": true
+        },
+        {
+          "name": "num_threads",
+          "label": "Number of Threads",
+          "help": "Threads to spin up for audio mixing (if not automatically set)",
+          "placeholder": "1",
+          "default": "1",
+          "advanced": true
+        }
+      ]
+    },
+    {
       "name": "audio_env",
       "label": "Audio Environment",
       "assignment-types": [0],
@@ -994,9 +907,9 @@
         {
           "name": "noise_muting_threshold",
           "label": "Noise Muting Threshold",
-          "help": "Loudness value for noise background between 0 and 1.0 (0: mute everyone, 1.0: never mute)",
-          "placeholder": "0.003",
-          "default": "0.003",
+          "help": "Loudness value for noise background between 0 and 1.0 (0: mute everyone, 1.0: never mute). 0.003 is a typical setting to mute loud people.",
+          "placeholder": "1.0",
+          "default": "1.0",
           "advanced": false
         },
         {
@@ -1190,8 +1103,16 @@
         {
           "name": "entityScriptSourceWhitelist",
           "label": "Entity Scripts Allowed from:",
-          "help": "The domains that entity scripts are allowed from. A comma separated list of domains that entity scripts are allowed from, if someone attempts to create and entity or edit an entity to have a different domain, it will be rejected. If left blank, any domain is allowed.",
+          "help": "Comma separated list of URLs (with optional paths) that entity scripts are allowed from. If someone attempts to create and entity or edit an entity to have a different domain, it will be rejected. If left blank, any domain is allowed.",
           "placeholder": "",
+          "default": "",
+          "advanced": true
+        },
+        {
+          "name": "entityEditFilter",
+          "label": "Filter Entity Edits",
+          "help": "Check all entity edits against this filter function.",
+          "placeholder": "url whose content is like: function filter(properties) { return properties; }",
           "default": "",
           "advanced": true
         },
@@ -1375,8 +1296,8 @@
           "type": "double",
           "label": "Per-Node Bandwidth",
           "help": "Desired maximum send bandwidth (in Megabits per second) to each node",
-          "placeholder": 1.0,
-          "default": 1.0,
+          "placeholder": 5.0,
+          "default": 5.0,
           "advanced": true
         }
       ]

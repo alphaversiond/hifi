@@ -21,6 +21,10 @@
 #include <QThreadPool>
 
 #include "ModelNetworkingLogging.h"
+#include <Trace.h>
+#include <StatTracker.h>
+
+Q_LOGGING_CATEGORY(trace_resource_parse_geometry, "trace.resource.parse.geometry")
 
 class GeometryReader;
 
@@ -39,6 +43,8 @@ class GeometryMappingResource : public GeometryResource {
 public:
     GeometryMappingResource(const QUrl& url) : GeometryResource(url) {};
 
+    QString getType() const override { return "GeometryMapping"; }
+
     virtual void downloadFinished(const QByteArray& data) override;
 
 private slots:
@@ -50,6 +56,9 @@ private:
 };
 
 void GeometryMappingResource::downloadFinished(const QByteArray& data) {
+    PROFILE_ASYNC_BEGIN(resource_parse_geometry, "GeometryMappingResource::downloadFinished", _url.toString(),
+                         { { "url", _url.toString() } });
+
     auto mapping = FSTReader::readMapping(data);
 
     QString filename = mapping.value("filename").toString();
@@ -113,6 +122,7 @@ void GeometryMappingResource::onGeometryMappingLoaded(bool success) {
         disconnect(_connection); // FIXME Should not have to do this
     }
 
+    PROFILE_ASYNC_END(resource_parse_geometry, "GeometryMappingResource::downloadFinished", _url.toString());
     finishedLoading(success);
 }
 
@@ -120,8 +130,10 @@ class GeometryReader : public QRunnable {
 public:
     GeometryReader(QWeakPointer<Resource>& resource, const QUrl& url, const QVariantHash& mapping,
         const QByteArray& data) :
-        _resource(resource), _url(url), _mapping(mapping), _data(data) {}
-    virtual ~GeometryReader() = default;
+        _resource(resource), _url(url), _mapping(mapping), _data(data) {
+
+        DependencyManager::get<StatTracker>()->incrementStat("PendingProcessing");
+    }
 
     virtual void run() override;
 
@@ -133,6 +145,9 @@ private:
 };
 
 void GeometryReader::run() {
+    DependencyManager::get<StatTracker>()->decrementStat("PendingProcessing");
+    CounterStat counter("Processing");
+    PROFILE_RANGE_EX(resource_parse_geometry, "GeometryReader::run", 0xFF00FF00, 0, { { "url", _url.toString() } });
     auto originalPriority = QThread::currentThread()->priority();
     if (originalPriority == QThread::InheritPriority) {
         originalPriority = QThread::NormalPriority;
@@ -196,6 +211,8 @@ class GeometryDefinitionResource : public GeometryResource {
 public:
     GeometryDefinitionResource(const QUrl& url, const QVariantHash& mapping, const QUrl& textureBaseUrl) :
         GeometryResource(url, resolveTextureBaseUrl(url, textureBaseUrl)), _mapping(mapping) {}
+
+    QString getType() const override { return "GeometryDefinition"; }
 
     virtual void downloadFinished(const QByteArray& data) override;
 
@@ -455,7 +472,7 @@ QUrl NetworkMaterial::getTextureUrl(const QUrl& baseUrl, const FBXTexture& textu
 model::TextureMapPointer NetworkMaterial::fetchTextureMap(const QUrl& baseUrl, const FBXTexture& fbxTexture,
                                                         TextureType type, MapChannel channel) {
     const auto url = getTextureUrl(baseUrl, fbxTexture);
-    const auto texture = DependencyManager::get<TextureCache>()->getTexture(url, type, fbxTexture.content);
+    const auto texture = DependencyManager::get<TextureCache>()->getTexture(url, type, fbxTexture.content, fbxTexture.maxNumPixels);
     _textures[channel] = Texture { fbxTexture.name, texture };
 
     auto map = std::make_shared<model::TextureMap>();
