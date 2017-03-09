@@ -25,7 +25,7 @@ public:
     bool isSupported() const override;
     void resetSensors() override final;
     bool beginFrameRender(uint32_t frameIndex) override;
-    float getTargetFrameRate() const override { return 90; }
+    float getTargetFrameRate() const override { return 60; }
     glm::uvec2 getRecommendedUiSize() const override final;
     void internalPresent() override;
 

@@ -115,9 +115,15 @@ const QImage TextureUsage::process2DImageColor(const QImage& srcImage, bool& val
     const uint8 OPAQUE_ALPHA = 255;
     const uint8 TRANSPARENT_ALPHA = 0;
     if (image.hasAlphaChannel()) {
+#ifndef ANDROID
         if (image.format() != QImage::Format_ARGB32) {
             image = image.convertToFormat(QImage::Format_ARGB32);
         }
+#else
+        if (image.format() != QImage::Format_RGBA8888) {
+            image = image.convertToFormat(QImage::Format_RGBA8888);
+        }
+#endif
 
         // Figure out if we can use a mask for alpha or not
         int numOpaques = 0;
@@ -158,7 +164,7 @@ const QImage& image, bool isLinear, bool doCompress) {
         gpu::Semantic gpuSemantic;
         gpu::Semantic mipSemantic;
         if (isLinear) {
-            mipSemantic = gpu::BGRA;
+            mipSemantic = gpu::RGBA; //  gpu::BGRA;
             if (doCompress) {
                 gpuSemantic = gpu::COMPRESSED_RGBA;
             } else {

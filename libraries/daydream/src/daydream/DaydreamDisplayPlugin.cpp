@@ -69,6 +69,16 @@ void DaydreamDisplayPlugin::internalPresent() {
     frame.Unbind();
     frame.Submit(gvrState->_viewport_list, head_view);
 
+    static int submitFrameCounter = 0;
+        static long tsSec = 0L;
+        long currentSec = static_cast<long int> (std::time(nullptr));
+        if (tsSec != currentSec) {
+            qDebug() << "[RENDER-METRIC] Render rate: " << submitFrameCounter << " fps";
+            submitFrameCounter = 0;    
+            tsSec = currentSec;
+        }
+        submitFrameCounter++;
+
     swapBuffers();
 }
 

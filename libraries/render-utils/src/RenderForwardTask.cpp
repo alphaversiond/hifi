@@ -45,14 +45,25 @@ RenderForwardTask::RenderForwardTask(RenderFetchCullSortTask::Output items) {
     const auto background = items[5];
 
     const auto framebuffer = addJob<PrepareFramebuffer>("PrepareFramebuffer");
-
     addJob<Draw>("DrawOpaques", opaques, shapePlumber);
+    
     addJob<Stencil>("Stencil");
     addJob<DrawBackground>("DrawBackground", background);
-
+    
     // Bounds do not draw on stencil buffer, so they must come last
     addJob<DrawBounds>("DrawBounds", opaques);
-
+    const auto lightingModel = addJob<MakeLightingModel>("LightingModel");
+    
+    // Overlays
+    const auto overlayOpaquesInputs = DrawOverlay3D::Inputs(overlayOpaques, lightingModel).hasVarying();
+    const auto overlayTransparentsInputs = DrawOverlay3D::Inputs(overlayTransparents, lightingModel).hasVarying();
+    addJob<DrawOverlay3D>("DrawOverlay3DOpaque", overlayOpaquesInputs, true);
+    addJob<DrawOverlay3D>("DrawOverlay3DTransparent", overlayTransparentsInputs, false);
+    
+    // Render transparent objects forward in LightingBuffer
+    const auto transparentsInputs = DrawDeferred::Inputs(transparents, lightingModel).hasVarying();
+    addJob<DrawTransparentDeferred>("DrawTransparentDeferred", transparentsInputs, shapePlumber);
+    
     // Blit!
     addJob<Blit>("Blit", framebuffer);
 }
@@ -118,6 +129,33 @@ void Draw::run(const SceneContextPointer& sceneContext, const RenderContextPoint
         renderStateSortShapes(sceneContext, renderContext, _shapePlumber, items, -1);
     });
     args->_batch = nullptr;
+}
+
+void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Inputs& inputs) {
+    PROFILE_RANGE_EX(render, "DrawTransparentDeferred", 0xff555500, (uint64_t)1)
+    assert(renderContext->args);
+    assert(renderContext->args->hasViewFrustum());
+
+    const auto& inItems = inputs.get0();
+    const auto& lightingModel = inputs.get1();
+    RenderArgs* args = renderContext->args;
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        args->_batch = &batch;
+        
+        // Setup camera, projection and viewport for all items
+        batch.setViewportTransform(args->_viewport);
+        batch.setStateScissorRect(args->_viewport);
+        glm::mat4 projMat;
+        Transform viewMat;
+        args->getViewFrustum().evalProjectionMatrix(projMat);
+        args->getViewFrustum().evalViewTransform(viewMat);
+        batch.setProjectionTransform(projMat);
+        batch.setViewTransform(viewMat);
+        // Setup lighting model for all items;
+        batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
+        renderShapes(sceneContext, renderContext, _shapePlumber, inItems, -1);//_maxDrawn);
+        args->_batch = nullptr;
+    });
 }
 
 const gpu::PipelinePointer Stencil::getPipeline() {
