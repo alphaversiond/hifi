@@ -206,7 +206,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
                 case Batch::COMMAND_setViewportTransform:
                 case Batch::COMMAND_setViewTransform:
                 case Batch::COMMAND_setProjectionTransform: {
-                    PROFILE_RANGE_EX(render, QString::fromStdString(commandNames[(int)(*command)]), 0xffeeaaff, 1)
+                    ANDROID_PROFILE_COMMAND(render, (int)(*command), 0xffeeaaff, 1)
                     CommandCall call = _commandCalls[(*command)];
                     (this->*(call))(batch, *offset);
                     break;
@@ -257,14 +257,14 @@ void GLBackend::renderPassDraw(const Batch& batch) {
                 updateInput();
                 updateTransform(batch);
                 updatePipeline();
-                {PROFILE_RANGE_EX(render, QString::fromStdString(commandNames[(int)(*command)]), 0xff0000ff, 1)
+                {ANDROID_PROFILE_COMMAND(render, (int)(*command), 0xff0000ff, 1)
                 CommandCall call = _commandCalls[(*command)];
                 (this->*(call))(batch, *offset);
                 }
                 break;
             }
             default: {
-                PROFILE_RANGE_EX(render, QString::fromStdString(commandNames[(int)(*command)]), 0xffff00ff, 1)
+                ANDROID_PROFILE_COMMAND(render, (int)(*command), 0xffff00ff, 1)
                 CommandCall call = _commandCalls[(*command)];
                 (this->*(call))(batch, *offset);
                 break;
