@@ -65,9 +65,13 @@ bool GLBackend::makeProgram(Shader& shader, const Shader::BindingSet& slotBindin
     return GLShader::makeProgram(getBackend(), shader, slotBindings);
 }
 
+std::array<std::string, 45> commandNames = { 
+        {std::string("draw"),std::string("drawIndexed"),std::string("drawInstanced"),std::string("drawIndexedInstanced"),std::string("multiDrawIndirect"),std::string("multiDrawIndexedIndirect"),std::string("setInputFormat"),std::string("setInputBuffer"),std::string("setIndexBuffer"),std::string("setIndirectBuffer"),std::string("setModelTransform"),std::string("setViewTransform"),std::string("setProjectionTransform"),std::string("setViewportTransform"),std::string("setDepthRangeTransform"),std::string("setPipeline"),std::string("setStateBlendFactor"),std::string("setStateScissorRect"),std::string("setUniformBuffer"),std::string("setResourceTexture"),std::string("setFramebuffer"),std::string("clearFramebuffer"),std::string("blit"),std::string("generateTextureMips"),std::string("beginQuery"),std::string("endQuery"),std::string("getQuery"),std::string("resetStages"),std::string("runLambda"),std::string("startNamedCall"),std::string("stopNamedCall"),std::string("glUniform1i"),std::string("glUniform1f"),std::string("glUniform2f"),std::string("glUniform3f"),std::string("glUniform4f"),std::string("glUniform3fv"),std::string("glUniform4fv"),std::string("glUniform4iv"),std::string("glUniformMatrix3fv"),std::string("glUniformMatrix4fv"),std::string("glColor4f"),std::string("pushProfileRange"),std::string("popProfileRange"),std::string("NUM_COMMANDS")}
+};
+
 GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] = 
 {
-    (&::gpu::gl::GLBackend::do_draw),
+    (&::gpu::gl::GLBackend::do_draw), 
     (&::gpu::gl::GLBackend::do_drawIndexed),
     (&::gpu::gl::GLBackend::do_drawInstanced),
     (&::gpu::gl::GLBackend::do_drawIndexedInstanced),
@@ -174,7 +178,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
 
     _inRenderTransferPass = true;
     { // Sync all the buffers
-        PROFILE_RANGE(render_gpu_gl, "syncGPUBuffer");
+        PROFILE_RANGE_EX(render, "syncGPUBuffer", 0xffaaffaa, 1)
 
         for (auto& cached : batch._buffers._items) {
             if (cached._data) {
@@ -184,7 +188,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
     }
 
     { // Sync all the buffers
-        PROFILE_RANGE(render_gpu_gl, "syncCPUTransform");
+        PROFILE_RANGE_EX(render, "syncCPUTransform", 0xffaaaaff, 1)
         _transform._cameras.clear();
         _transform._cameraOffsets.clear();
 
@@ -202,6 +206,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
                 case Batch::COMMAND_setViewportTransform:
                 case Batch::COMMAND_setViewTransform:
                 case Batch::COMMAND_setProjectionTransform: {
+                    PROFILE_RANGE_EX(render, QString::fromStdString(commandNames[(int)(*command)]), 0xffeeaaff, 1)
                     CommandCall call = _commandCalls[(*command)];
                     (this->*(call))(batch, *offset);
                     break;
@@ -216,7 +221,8 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
     }
 
     { // Sync the transform buffers
-        PROFILE_RANGE(render_gpu_gl, "syncGPUTransform");
+        //PROFILE_RANGE(render_gpu_gl, "transferTransformState");
+        PROFILE_RANGE_EX(render, "transferTransformState", 0xff0000ff, 1)
         transferTransformState(batch);
     }
 
@@ -251,12 +257,14 @@ void GLBackend::renderPassDraw(const Batch& batch) {
                 updateInput();
                 updateTransform(batch);
                 updatePipeline();
-                
+                {PROFILE_RANGE_EX(render, QString::fromStdString(commandNames[(int)(*command)]), 0xff0000ff, 1)
                 CommandCall call = _commandCalls[(*command)];
                 (this->*(call))(batch, *offset);
+                }
                 break;
             }
             default: {
+                PROFILE_RANGE_EX(render, QString::fromStdString(commandNames[(int)(*command)]), 0xffff00ff, 1)
                 CommandCall call = _commandCalls[(*command)];
                 (this->*(call))(batch, *offset);
                 break;
@@ -278,12 +286,14 @@ void GLBackend::render(const Batch& batch) {
     }
     
     {
-        PROFILE_RANGE(render_gpu_gl, "Transfer");
+        //PROFILE_RANGE(render_gpu_gl, "Transfer");
+        PROFILE_RANGE_EX(render, "Transfer", 0xff0000ff, 1)
         renderPassTransfer(batch);
     }
 
     {
-        PROFILE_RANGE(render_gpu_gl, _stereo._enable ? "Render Stereo" : "Render");
+        //PROFILE_RANGE(render_gpu_gl, _stereo._enable ? "Render Stereo" : "Render");
+        PROFILE_RANGE_EX(render, "RenderPassDraw", 0xff00ddff, 1)
         renderPassDraw(batch);
     }
 

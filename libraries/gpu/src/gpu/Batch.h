@@ -331,6 +331,7 @@ public:
 
         NUM_COMMANDS,
     };
+
     typedef std::vector<Command> Commands;
     typedef std::vector<size_t> CommandOffsets;
 

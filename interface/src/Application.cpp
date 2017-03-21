@@ -572,18 +572,20 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _lastFaceTrackerUpdate(0)
 {
 #ifdef ANDROID
-    	QFile scriptsDest(defaultScriptsLocation().toString());
-    	if (!scriptsDest.exists()) {
-	        qDebug() << "Copying scripts dir";
-	        copyDirDeep("assets:/scripts", defaultScriptsLocation().toLocalFile());
-	}
-
-    	qDebug() << "Resources path " << PathUtils::resourcesPath();
-    	QFile resourcesDest(PathUtils::resourcesPath());
-    	if (!resourcesDest.exists()) {
-        	qDebug() << "Copying resources dir";
-        	copyDirDeep("assets:/resources", PathUtils::resourcesPath());
-    	}
+    QLoggingCategory::setFilterRules("trace.*=false\ntrace.render=true\ntrace.render_gpu_gl=true\ntrace.render.details=true\ntrace.render_gpu_gl.details=true\ntrace.render_gpu=true\ntrace.render_gpu.details=true\ntrace.render_detail=true");
+    //QLoggingCategory::setFilterRules("trace.*=false\ntrace.render=true\ntrace.render_gpu_gl=true");
+    QFile scriptsDest(defaultScriptsLocation().toString());
+    if (!scriptsDest.exists()) {
+        qDebug() << "Copying scripts dir";
+        copyDirDeep("assets:/scripts", defaultScriptsLocation().toLocalFile());
+    }
+    qDebug() << "Resources path " << PathUtils::resourcesPath();
+    QFile resourcesDest(PathUtils::resourcesPath());
+    if (!resourcesDest.exists()) {
+        qDebug() << "Copying resources dir";
+        copyDirDeep("assets:/resources", PathUtils::resourcesPath());
+    }
+    DependencyManager::get<tracing::Tracer>()->startTracing();
 #else
         auto steamClient = PluginManager::getInstance()->getSteamClientPlugin();
     setProperty(hifi::properties::STEAM, (steamClient && steamClient->isRunning()));
@@ -1277,6 +1279,24 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     static glm::mat4 lastHMDHeadPose = getHMDSensorPose();
     static controller::Pose lastLeftHandPose = myAvatar->getLeftHandPose();
     static controller::Pose lastRightHandPose = myAvatar->getRightHandPose();
+
+#ifdef ANDROID
+    QTimer* saveProfilingTimer = new QTimer(this);
+    saveProfilingTimer->setInterval(30 * 1000);
+    connect(saveProfilingTimer, &QTimer::timeout, this, [this]() {
+        auto tracer = DependencyManager::get<tracing::Tracer>();
+        static int cnt=0;
+        if (cnt < 1) {
+        qDebug() << "[PROFILING] Tracer " << tracer;
+        cnt++;
+        auto outputFile =  QString("/storage/emulated/0/profile_%1.json.gz").arg(cnt);
+        qDebug() << "[PROFILING] serialize profiling";
+        tracer->serialize(outputFile);
+        qDebug() << "[PROFILING] serialize profiling end " << outputFile;
+        }
+    });
+    saveProfilingTimer->start();
+#endif
 
     // Periodically send fps as a user activity event
     QTimer* sendStatsTimer = new QTimer(this);

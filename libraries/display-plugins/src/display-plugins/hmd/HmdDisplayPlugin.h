@@ -56,12 +56,15 @@ protected:
     bool internalActivate() override;
     void internalDeactivate() override;
     void compositeOverlay() override;
+    void compositeOverlay(gpu::Batch& batch);
+
     void compositePointer() override;
     void internalPresent() override;
     void customizeContext() override;
     void uncustomizeContext() override;
     void updateFrameData() override;
     void compositeExtra() override;
+    void compositeExtra(gpu::Batch& batch);
 
     struct HandLaserInfo {
         HandLaserMode mode { HandLaserMode::None };
@@ -160,5 +163,6 @@ private:
         void build();
         void updatePipeline();
         void render(HmdDisplayPlugin& plugin);
+        void render(HmdDisplayPlugin& plugin, gpu::Batch& batch);
     } _overlayRenderer;
 };

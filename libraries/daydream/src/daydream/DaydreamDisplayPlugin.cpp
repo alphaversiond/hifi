@@ -14,11 +14,17 @@
 #include <gpu/Frame.h>
 #include <CursorManager.h>
 
+#include <gpu/Context.h>
+
 #ifdef ANDROID
 #include <QtOpenGL/QGLWidget>
 #endif
 
 const QString DaydreamDisplayPlugin::NAME("Daydream");
+
+DaydreamDisplayPlugin::DaydreamDisplayPlugin() :
+    _frame { gvr::Frame(NULL) } {
+}
 
 glm::uvec2 DaydreamDisplayPlugin::getRecommendedUiSize() const {
     auto window = _container->getPrimaryWidget();
@@ -35,40 +41,66 @@ void DaydreamDisplayPlugin::resetSensors() {
     _currentRenderFrameInfo.renderPose = glm::mat4(); // identity
 }
 
+void DaydreamDisplayPlugin::compositeLayers() {
+    // updateCompositeFramebuffer();
+
+    gpu::Batch compBatch;
+    compBatch.enableStereo(false);
+    compBatch.setViewportTransform(ivec4(uvec2(), getRecommendedRenderSize()));
+    compBatch.setStateScissorRect(ivec4(uvec2(), getRecommendedRenderSize()));
+    {
+        PROFILE_RANGE_EX(render, "compositeScene", 0xff0077ff, (uint64_t)presentCount())
+        compositeScene(compBatch);
+    }
+
+    {
+        PROFILE_RANGE_EX(render, "compositeOverlay", 0xff0077ff, (uint64_t)presentCount())
+        compositeOverlay(compBatch);
+    }
+    auto compositorHelper = DependencyManager::get<CompositorHelper>();
+    if (compositorHelper->getReticleVisible()) {
+        PROFILE_RANGE_EX(render, "compositePointer", 0xff0077ff, (uint64_t)presentCount())
+        compositePointer(compBatch);
+    }
+
+    {
+        PROFILE_RANGE_EX(render, "compositeExtra", 0xff0077ff, (uint64_t)presentCount())
+        compositeExtra(compBatch);
+    }
+    {
+        PROFILE_RANGE_EX(render, "compositeExecuteBatch", 0xff0077ff, (uint64_t)presentCount())
+        _gpuContext->executeBatch(compBatch);
+    }
+}
+
+void DaydreamDisplayPlugin::compositeScene(gpu::Batch& batch) {
+    //batch.resetViewTransform();
+    //batch.setProjectionTransform(mat4());
+    batch.setPipeline(_simplePipeline);
+    batch.setResourceTexture(0, _currentFrame->framebuffer->getRenderBuffer(0));
+    batch.draw(gpu::TRIANGLE_STRIP, 4);
+}
+
+void DaydreamDisplayPlugin::prepareFrameBuffer() {
+    GvrState *gvrState = GvrState::getInstance();
+    _frame = gvrState->_swapchain->AcquireFrame();
+    _frame.BindBuffer(0);
+}
+
 void DaydreamDisplayPlugin::internalPresent() {
     PROFILE_RANGE_EX(render, __FUNCTION__, 0xff00ff00, (uint64_t)presentCount())
 
  // Composite together the scene, overlay and mouse cursor
-    hmdPresent();
-
+    //hmdPresent();
     GvrState *gvrState = GvrState::getInstance();
-    gvr::Frame frame = gvrState->_swapchain->AcquireFrame();
-    frame.BindBuffer(0);
-
-    render([&](gpu::Batch& batch) {
-        batch.enableStereo(false);
-        batch.resetViewTransform();
-           //batch.setFramebuffer(gpu::FramebufferPointer()); // was commented to have no distortion
-        //ivec4 viewport(0,0, 1440, 2560 );//gvrState->_framebuf_size.width, gvrState->_framebuf_size.height);
-           ivec4 viewport(0,0,gvrState->_framebuf_size.width, gvrState->_framebuf_size.height);
-        batch.setViewportTransform(viewport);
-        batch.setStateScissorRect(viewport);
-        batch.setResourceTexture(0, _compositeFramebuffer->getRenderBuffer(0));
-//        if (!_presentPipeline) {
-//            qDebug() << "OpenGLDisplayPlugin setting null _presentPipeline ";
-//        }
-
-        batch.setPipeline(_presentPipeline);
-        batch.draw(gpu::TRIANGLE_STRIP, 4);
-    });
-
     gvr::ClockTimePoint pred_time = gvr::GvrApi::GetTimePointNow();
     pred_time.monotonic_system_time_nanos += 50000000; // 50ms
 
     gvr::Mat4f head_view = gvrState->_gvr_api->GetHeadSpaceFromStartSpaceRotation(pred_time);
-    frame.Unbind();
-    frame.Submit(gvrState->_viewport_list, head_view);
-
+    _frame.Unbind();
+    {PROFILE_RANGE_EX(render, "gvrFrameSubmit", 0xff33ff22, (uint64_t)presentCount())
+    _frame.Submit(gvrState->_viewport_list, head_view);
+    }
     static int submitFrameCounter = 0;
         static long tsSec = 0L;
         long currentSec = static_cast<long int> (std::time(nullptr));
@@ -287,5 +319,6 @@ void DaydreamDisplayPlugin::resetEyeProjections(GvrState *gvrState) {
 }
 
 void DaydreamDisplayPlugin::compositePointer() {}
+void DaydreamDisplayPlugin::compositePointer(gpu::Batch& batch) {}
 
 

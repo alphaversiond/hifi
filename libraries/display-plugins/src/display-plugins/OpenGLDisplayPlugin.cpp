@@ -423,7 +423,9 @@ void OpenGLDisplayPlugin::uncustomizeContext() {
     _presentPipeline.reset();
     _cursorPipeline.reset();
     _overlayPipeline.reset();
+#ifndef ANDROID
     _compositeFramebuffer.reset();
+#endif
     withPresentThreadLock([&] {
         _currentFrame.reset();
         _lastFrame = nullptr;
@@ -506,7 +508,9 @@ void OpenGLDisplayPlugin::updateFrameData() {
 void OpenGLDisplayPlugin::compositeOverlay() {
     render([&](gpu::Batch& batch){
         batch.enableStereo(false);
+#ifndef ANDROID
         batch.setFramebuffer(_compositeFramebuffer);
+#endif
         batch.setPipeline(_overlayPipeline);
         batch.setResourceTexture(0, _currentFrame->overlay);
         if (isStereo()) {
@@ -515,7 +519,11 @@ void OpenGLDisplayPlugin::compositeOverlay() {
                 batch.draw(gpu::TRIANGLE_STRIP, 4);
             });
         } else {
+#ifndef ANDROID
             batch.setViewportTransform(ivec4(uvec2(0), _compositeFramebuffer->getSize()));
+#else
+            batch.setViewportTransform(ivec4(uvec2(0), getRecommendedRenderSize()));
+#endif
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         }
     });
@@ -528,7 +536,9 @@ void OpenGLDisplayPlugin::compositePointer() {
     render([&](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.setProjectionTransform(mat4());
+#ifndef ANDROID
         batch.setFramebuffer(_compositeFramebuffer);
+#endif
         batch.setPipeline(_cursorPipeline);
         batch.setResourceTexture(0, cursorData.texture);
         batch.resetViewTransform();
@@ -539,7 +549,11 @@ void OpenGLDisplayPlugin::compositePointer() {
                 batch.draw(gpu::TRIANGLE_STRIP, 4);
             });
         } else {
+#ifndef ANDROID
             batch.setViewportTransform(ivec4(uvec2(0), _compositeFramebuffer->getSize()));
+#else
+            batch.setViewportTransform(ivec4(uvec2(0), getRecommendedRenderSize()));
+#endif
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         }
     });
@@ -548,9 +562,14 @@ void OpenGLDisplayPlugin::compositePointer() {
 void OpenGLDisplayPlugin::compositeScene() {
     render([&](gpu::Batch& batch) {
         batch.enableStereo(false);
+#ifndef ANDROID
         batch.setFramebuffer(_compositeFramebuffer);
         batch.setViewportTransform(ivec4(uvec2(), _compositeFramebuffer->getSize()));
         batch.setStateScissorRect(ivec4(uvec2(), _compositeFramebuffer->getSize()));
+#else
+        batch.setViewportTransform(ivec4(uvec2(), getRecommendedRenderSize()));
+        batch.setStateScissorRect(ivec4(uvec2(), getRecommendedRenderSize()));
+#endif
         batch.resetViewTransform();
         batch.setProjectionTransform(mat4());
         batch.setPipeline(_simplePipeline);
@@ -583,13 +602,17 @@ void OpenGLDisplayPlugin::compositeLayers() {
     }
 }
 
+void OpenGLDisplayPlugin::prepareFrameBuffer() {}
+
 void OpenGLDisplayPlugin::internalPresent() {
     render([&](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.resetViewTransform();
         batch.setFramebuffer(gpu::FramebufferPointer());
         batch.setViewportTransform(ivec4(uvec2(0), getSurfacePixels()));
+#ifndef ANDROID
         batch.setResourceTexture(0, _compositeFramebuffer->getRenderBuffer(0));
+#endif
         batch.setPipeline(_presentPipeline);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
     });
@@ -619,6 +642,11 @@ void OpenGLDisplayPlugin::present() {
             // Execute the frame rendering commands
             PROFILE_RANGE_EX(render, "execute", 0xff00ff00, (uint64_t)presentCount())
             _gpuContext->executeFrame(_currentFrame);
+        }
+
+        {
+            PROFILE_RANGE_EX(render, "prepareFrameBuffer", 0xff00ffff, (uint64_t)presentCount())
+            prepareFrameBuffer();
         }
 
         // Write all layers to a local framebuffer
@@ -656,7 +684,9 @@ float OpenGLDisplayPlugin::renderRate() const {
 
 void OpenGLDisplayPlugin::swapBuffers() {
     static auto context = _container->getPrimaryWidget()->context();
+    {PROFILE_RANGE_EX(render, "swapBuffers", 0xff33ff22, (uint64_t)presentCount())
     context->swapBuffers();
+    }
 }
 
 void OpenGLDisplayPlugin::withMainThreadContext(std::function<void()> f) const {
@@ -666,7 +696,11 @@ void OpenGLDisplayPlugin::withMainThreadContext(std::function<void()> f) const {
 }
 
 QImage OpenGLDisplayPlugin::getScreenshot(float aspectRatio) const {
+#ifndef ANDROID
     auto size = _compositeFramebuffer->getSize();
+#else
+    auto size = getRecommendedRenderSize();
+#endif
     if (isHmd()) {
         size.x /= 2;
     }
@@ -684,7 +718,11 @@ QImage OpenGLDisplayPlugin::getScreenshot(float aspectRatio) const {
     auto glBackend = const_cast<OpenGLDisplayPlugin&>(*this).getGLBackend();
     QImage screenshot(bestSize.x, bestSize.y, QImage::Format_ARGB32);
     withMainThreadContext([&] {
+#ifndef ANDROID
         glBackend->downloadFramebuffer(_compositeFramebuffer, ivec4(corner, bestSize), screenshot);
+#else
+        // Implement a variant for gvr android
+#endif
     });
     return screenshot.mirrored(false, true);
 }
@@ -728,7 +766,11 @@ bool OpenGLDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
 }
 
 ivec4 OpenGLDisplayPlugin::eyeViewport(Eye eye) const {
+#ifndef ANDROID
     uvec2 vpSize = _compositeFramebuffer->getSize();
+#else
+    uvec2 vpSize = getRecommendedRenderSize();
+#endif
     vpSize.x /= 2;
     uvec2 vpPos;
     if (eye == Eye::Right) {
@@ -762,8 +804,10 @@ OpenGLDisplayPlugin::~OpenGLDisplayPlugin() {
 }
 
 void OpenGLDisplayPlugin::updateCompositeFramebuffer() {
+#ifndef ANDROID
     auto renderSize = getRecommendedRenderSize();
     if (!_compositeFramebuffer || _compositeFramebuffer->getSize() != renderSize) {
         _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("OpenGLDisplayPlugin::composite", gpu::Element::COLOR_RGBA_32, renderSize.x, renderSize.y));
     }
+#endif
 }
