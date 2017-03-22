@@ -32,10 +32,25 @@ void GLBackend::do_setProjectionTransform(const Batch& batch, size_t paramOffset
 void GLBackend::do_setViewportTransform(const Batch& batch, size_t paramOffset) {
     memcpy(&_transform._viewport, batch.readData(batch._params[paramOffset]._uint), sizeof(Vec4i));
 
+#ifdef GPU_STEREO_DRAWCALL_INSTANCED
+    {
+        ivec4& vp = _transform._viewport;
+        glViewport(vp.x, vp.y, vp.z, vp.w);
+
+        // Where we assign the GL viewport
+        if (_stereo._enable) {
+            vp.z /= 2;
+            if (_stereo._pass) {
+                vp.x += vp.z;
+            }
+        }
+    }
+#else
     if (!_inRenderTransferPass && !isStereo()) {
         ivec4& vp = _transform._viewport;
         glViewport(vp.x, vp.y, vp.z, vp.w);
     }
+#endif
 
     // The Viewport is tagged invalid because the CameraTransformUBO is not up to date and will need update on next drawcall
     _transform._invalidViewport = true;
@@ -157,18 +172,14 @@ void GLBackend::updateTransform(const Batch& batch) {
 
     auto& drawCallInfoBuffer = batch.getDrawCallInfoBuffer();
     if (batch._currentNamedCall.empty()) {
-        //qDebug() << "GLBackend::updateTransform empty";
         (void)CHECK_GL_ERROR();
-        //qDebug() << "GLBackend::updateTransform empty1";
         auto& drawCallInfo = drawCallInfoBuffer[_currentDraw];
         glDisableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO); // Make sure attrib array is disabled
-        //qDebug() << "GLBackend::updateTransform glDisableVertexAttribArray done";
         (void)CHECK_GL_ERROR();
         GLint current_vao, current_vbo, maxVertexAtribs;
         glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &current_vao);
         glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &current_vbo);
         glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &maxVertexAtribs);
-        //qDebug() << "GLBackend::updateTransform glDisableVertexAttribArray currentvao " << current_vao << " current vbo " << current_vbo << " GL_MAX_VERTEX_ATTRIBS " <<  maxVertexAtribs;
         glVertexAttribI4i(gpu::Stream::DRAW_CALL_INFO, drawCallInfo.index, drawCallInfo.unused, 0, 0);
 
         //int values[] = {drawCallInfo.index, drawCallInfo.unused};

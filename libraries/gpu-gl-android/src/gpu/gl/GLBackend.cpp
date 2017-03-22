@@ -317,7 +317,15 @@ void GLBackend::setupStereoSide(int side) {
     vp.z /= 2;
     glViewport(vp.x + side * vp.z, vp.y, vp.z, vp.w);
 
+#ifdef GPU_STEREO_CAMERA_BUFFER
+#ifdef GPU_STEREO_DRAWCALL_DOUBLED
+    //glVertexAttribI1i(14, side);
+    glVertexAttribI4i(14, side, 0, 0, 0);
+
+#endif
+#else
     _transform.bindCurrentCamera(side);
+#endif
 }
 
 void GLBackend::do_resetStages(const Batch& batch, size_t paramOffset) {
