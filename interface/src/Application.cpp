@@ -1282,7 +1282,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
 #ifdef ANDROID
     QTimer* saveProfilingTimer = new QTimer(this);
-    saveProfilingTimer->setInterval(30 * 1000);
+    saveProfilingTimer->setInterval(20 * 1000);
     connect(saveProfilingTimer, &QTimer::timeout, this, [this]() {
         auto tracer = DependencyManager::get<tracing::Tracer>();
         static int cnt=0;

@@ -51,7 +51,7 @@ RenderForwardTask::RenderForwardTask(RenderFetchCullSortTask::Output items) {
     addJob<DrawBackground>("DrawBackground", background);
     
     // Bounds do not draw on stencil buffer, so they must come last
-    addJob<DrawBounds>("DrawBounds", opaques);
+    //addJob<DrawBounds>("DrawBounds", opaques);
     const auto lightingModel = addJob<MakeLightingModel>("LightingModel");
     
     // Overlays

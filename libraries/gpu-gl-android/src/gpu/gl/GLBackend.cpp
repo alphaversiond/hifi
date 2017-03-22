@@ -178,7 +178,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
 
     _inRenderTransferPass = true;
     { // Sync all the buffers
-        PROFILE_RANGE_EX(render, "syncGPUBuffer", 0xffaaffaa, 1)
+        ANDROID_PROFILE(render, "syncGPUBuffer", 0xffaaffaa, 1)
 
         for (auto& cached : batch._buffers._items) {
             if (cached._data) {
@@ -188,7 +188,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
     }
 
     { // Sync all the buffers
-        PROFILE_RANGE_EX(render, "syncCPUTransform", 0xffaaaaff, 1)
+        ANDROID_PROFILE(render, "syncCPUTransform", 0xffaaaaff, 1)
         _transform._cameras.clear();
         _transform._cameraOffsets.clear();
 
@@ -222,7 +222,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
 
     { // Sync the transform buffers
         //PROFILE_RANGE(render_gpu_gl, "transferTransformState");
-        PROFILE_RANGE_EX(render, "transferTransformState", 0xff0000ff, 1)
+        ANDROID_PROFILE(render, "transferTransformState", 0xff0000ff, 1)
         transferTransformState(batch);
     }
 
@@ -277,6 +277,7 @@ void GLBackend::renderPassDraw(const Batch& batch) {
 }
 
 void GLBackend::render(const Batch& batch) {
+    ANDROID_PROFILE(render, "GLBackendRender", 0xffff00ff, 1)
     _transform._skybox = _stereo._skybox = batch.isSkyboxEnabled();
     // Allow the batch to override the rendering stereo settings
     // for things like full framebuffer copy operations (deferred lighting passes)
@@ -287,13 +288,13 @@ void GLBackend::render(const Batch& batch) {
     
     {
         //PROFILE_RANGE(render_gpu_gl, "Transfer");
-        PROFILE_RANGE_EX(render, "Transfer", 0xff0000ff, 1)
+        ANDROID_PROFILE(render, "Transfer", 0xff0000ff, 1)
         renderPassTransfer(batch);
     }
 
     {
         //PROFILE_RANGE(render_gpu_gl, _stereo._enable ? "Render Stereo" : "Render");
-        PROFILE_RANGE_EX(render, "RenderPassDraw", 0xff00ddff, 1)
+        ANDROID_PROFILE(render, "RenderPassDraw", 0xff00ddff, 1)
         renderPassDraw(batch);
     }
 
