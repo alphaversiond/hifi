@@ -29,7 +29,7 @@
 #define ANDROID_INTENSIVE_INSTRUMENTATION 1
 
 #ifdef ANDROID_INTENSIVE_INSTRUMENTATION
-#define ANDROID_PROFILE_COMMAND(category, commandIndex, argbColor, payload, ...) PROFILE_RANGE_EX(category, QString::fromStdString(commandNames[commandIndex]), argbColor, payload, ##__VA_ARGS__);
+#define ANDROID_PROFILE_COMMAND(category, commandIndex, argbColor, payload, ...) PROFILE_RANGE_EX(category, commandNames[commandIndex], argbColor, payload, ##__VA_ARGS__);
 #define ANDROID_PROFILE(category, name, argbColor, payload, ...) PROFILE_RANGE_EX(category, name, argbColor, payload, ##__VA_ARGS__);
 #else 
 #define ANDROID_PROFILE_COMMAND(category, commandIndex, argbColor, payload, ...)
