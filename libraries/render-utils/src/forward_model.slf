@@ -18,6 +18,9 @@
 
 <@include model/Material.slh@>
 
+<@include gpu/Transform.slh@>
+<$declareStandardCameraTransform()$>
+
 <@include MaterialTextures.slh@>
 <$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, _SCRIBE_NULL, EMISSIVE, _SCRIBE_NULL)$>
 
@@ -69,7 +72,7 @@ void main(void) {
     vec4 color = vec4(evalSkyboxGlobalColor(
         cam._viewInverse,
         1.0,
-        occlusionTex,
+        0.0,
         fragPosition,
         fragNormal,
         albedo,
