@@ -123,7 +123,7 @@ void Draw::run(const SceneContextPointer& sceneContext, const RenderContextPoint
         args->getViewFrustum().evalViewTransform(viewMat);
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
-        batch.setModelTransform(Transform());
+        //batch.setModelTransform(Transform());
 
         // Render items
         renderStateSortShapes(sceneContext, renderContext, _shapePlumber, items, -1);
