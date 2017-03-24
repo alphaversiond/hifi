@@ -116,16 +116,23 @@ void Overlays::renderHUD(RenderArgs* renderArgs) {
     mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, -1000, 1000);
 
 
-    foreach(Overlay::Pointer thisOverlay, _overlaysHUD) {
-    
-        // Reset all batch pipeline settings between overlay
+   // Reset all batch pipeline settings between overlay
         geometryCache->useSimpleDrawPipeline(batch);
         batch.setResourceTexture(0, textureCache->getWhiteTexture()); // FIXME - do we really need to do this??
         batch.setProjectionTransform(legacyProjection);
         batch.setModelTransform(Transform());
         batch.resetViewTransform();
 
-        thisOverlay->render(renderArgs);
+   foreach(Overlay::Pointer thisOverlay, _overlaysHUD) {
+    
+        // Reset all batch pipeline settings between overlay
+    /*    geometryCache->useSimpleDrawPipeline(batch);
+        batch.setResourceTexture(0, textureCache->getWhiteTexture()); // FIXME - do we really need to do this??
+        batch.setProjectionTransform(legacyProjection);
+        batch.setModelTransform(Transform());
+        batch.resetViewTransform();
+
+*/        thisOverlay->render(renderArgs);
     }
 }
 

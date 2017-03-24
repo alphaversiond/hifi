@@ -84,12 +84,12 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
         batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLOR0 | gpu::Framebuffer::BUFFER_DEPTH, color, depth, stencil);
 
         // Now render the overlay components together into a single texture
-        renderDomainConnectionStatusBorder(renderArgs); // renders the connected domain line
-        renderAudioScope(renderArgs); // audio scope in the very back - NOTE: this is the debug audio scope, not the VU meter
-        renderRearView(renderArgs); // renders the mirror view selfie
+        //renderDomainConnectionStatusBorder(renderArgs); // renders the connected domain line
+        //renderAudioScope(renderArgs); // audio scope in the very back - NOTE: this is the debug audio scope, not the VU meter
+        //renderRearView(renderArgs); // renders the mirror view selfie
         renderOverlays(renderArgs); // renders Scripts Overlay and AudioScope
         renderQmlUi(renderArgs); // renders a unit quad with the QML UI texture, and the text overlays from scripts
-        renderStatsAndLogs(renderArgs);  // currently renders nothing
+      //  renderStatsAndLogs(renderArgs);  // currently renders nothing
     });
 
     renderArgs->_batch = nullptr; // so future users of renderArgs don't try to use our batch
