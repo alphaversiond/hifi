@@ -15,9 +15,7 @@ struct Material {
     vec4 _emissiveOpacity;
     vec4 _albedoRoughness;
     vec4 _fresnelMetallic;
-    //vec4 _scatteringSpare2Key;
-    vec3 _scatteringSpare2;
-    int _matkey;
+    vec4 _scatteringSpare2Key;
 };
 
 uniform materialBuffer {
@@ -39,9 +37,9 @@ float getMaterialMetallic(Material m) { return m._fresnelMetallic.a; }
 
 float getMaterialShininess(Material m) { return 1.0 - getMaterialRoughness(m); }
 
-float getMaterialScattering(Material m) { return m._scatteringSpare2.x; }
+float getMaterialScattering(Material m) { return m._scatteringSpare2Key.x; }
 
-int getMaterialKey(Material m) { return m._matkey; }
+int getMaterialKey(Material m) { return int(m._scatteringSpare2Key.w); }
 
 const int EMISSIVE_VAL_BIT              = 0x00000001;
 const int UNLIT_VAL_BIT                 = 0x00000002;
