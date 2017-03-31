@@ -11,7 +11,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-<! <@include DeferredBufferWrite.slh@> !>
+<! <@include ForwardBufferWrite.slh@> !>
 
 <@include DeferredGlobalLight.slh@>
 <$declareEvalSkyboxGlobalColor()$>
@@ -85,18 +85,6 @@ void main(void) {
     color.rgb += emissive * isEmissiveEnabled();
 
     _fragColor = color;
-/*
-    
-   // float scattering = getMaterialScattering(mat);
-    packDeferredFragment(
-        normalize(_normal.xyz), 
-        opacity,
-        albedo,
-        roughness,
-        getMaterialMetallic(mat),
-        emissive,
-        occlusionTex,
-        scattering);
-*/
+
     
 }
