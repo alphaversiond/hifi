@@ -164,7 +164,11 @@ void GLESBackend::GLESTexture::syncSampler() const {
     glTexParameteri(_target, GL_TEXTURE_BASE_LEVEL, (uint16)sampler.getMipOffset());
     glTexParameterf(_target, GL_TEXTURE_MIN_LOD, (float)sampler.getMinMip());
     glTexParameterf(_target, GL_TEXTURE_MAX_LOD, (sampler.getMaxMip() == Sampler::MAX_MIP_LEVEL ? 1000.f : sampler.getMaxMip()));
-    glTexParameterf(_target, GL_TEXTURE_MAX_ANISOTROPY_EXT, sampler.getMaxAnisotropy());
+    (void)CHECK_GL_ERROR();
+    //qDebug() << "[GPU-GL-GLBackend] syncSampler 12 " << _target << "," << sampler.getMaxAnisotropy();
+    //glTexParameterf(_target, GL_TEXTURE_MAX_ANISOTROPY_EXT, sampler.getMaxAnisotropy());
+    //(void)CHECK_GL_ERROR();
+    //qDebug() << "[GPU-GL-GLBackend] syncSampler end";
 
 }
 
