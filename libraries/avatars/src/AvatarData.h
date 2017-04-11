@@ -471,8 +471,9 @@ public:
 
     static void parseAvatarIdentityPacket(const QByteArray& data, Identity& identityOut);
 
-    // returns true if identity has changed, false otherwise.
-    bool processAvatarIdentity(const Identity& identity);
+    // identityChanged returns true if identity has changed, false otherwise.
+    // displayNameChanged returns true if displayName has changed, false otherwise.
+    void processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged);
 
     QByteArray identityByteArray();
 
@@ -765,5 +766,6 @@ const int CONTROLLER_RIGHTHAND_INDEX = 65533; // -3
 const int CONTROLLER_LEFTHAND_INDEX = 65532; // -4
 const int CAMERA_RELATIVE_CONTROLLER_RIGHTHAND_INDEX = 65531; // -5
 const int CAMERA_RELATIVE_CONTROLLER_LEFTHAND_INDEX = 65530; // -6
+const int CAMERA_MATRIX_INDEX = 65529; // -7
 
 #endif // hifi_AvatarData_h

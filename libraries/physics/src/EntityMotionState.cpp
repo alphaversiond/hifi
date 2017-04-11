@@ -203,7 +203,11 @@ void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
         BT_PROFILE("kinematicIntegration");
         // This is physical kinematic motion which steps strictly by the subframe count
         // of the physics simulation and uses full gravity for acceleration.
-        _entity->setAcceleration(_entity->getGravity());
+        if (_entity->hasAncestorOfType(NestableType::Avatar)) {
+            _entity->setAcceleration(glm::vec3(0.0f));
+        } else {
+            _entity->setAcceleration(_entity->getGravity());
+        }
         uint32_t thisStep = ObjectMotionState::getWorldSimulationStep();
         float dt = (thisStep - _lastKinematicStep) * PHYSICS_ENGINE_FIXED_SUBSTEP;
         _entity->stepKinematicMotion(dt);
@@ -582,6 +586,8 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         _nextOwnershipBid = now + USECS_BETWEEN_OWNERSHIP_BIDS;
         // copy _outgoingPriority into pendingPriority...
         _entity->setPendingOwnershipPriority(_outgoingPriority, now);
+        // don't forget to remember that we have made a bid
+        _entity->rememberHasSimulationOwnershipBid();
         // ...then reset _outgoingPriority in preparation for the next frame
         _outgoingPriority = 0;
     } else if (_outgoingPriority != _entity->getSimulationPriority()) {
