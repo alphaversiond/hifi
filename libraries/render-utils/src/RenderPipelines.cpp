@@ -40,6 +40,7 @@
 #include "forward_model_normal_map_frag.h"
 #include "forward_model_normal_specular_map_frag.h"
 #include "forward_model_specular_map_frag.h"
+//#include "forward_model_translucent_frag.h"
 
 #include "model_lightmap_frag.h"
 #include "model_lightmap_normal_map_frag.h"
@@ -271,6 +272,9 @@ void initForwardPipelines(render::ShapePlumber& plumber) {
     addPipeline(
         Key::Builder().withSkinned().withTangents().withSpecular(),
         skinModelNormalMapVertex, modelNormalSpecularMapPixel);
+    addPipeline(
+         Key::Builder().withSkinned().withTranslucent().withTangents(),
+         skinModelNormalMapVertex, modelPixel); // modelPixel lo agregue yo
 }
 
 void addPlumberPipeline(ShapePlumber& plumber,

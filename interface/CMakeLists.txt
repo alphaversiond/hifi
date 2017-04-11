@@ -182,7 +182,7 @@ if (WIN32)
 endif()
 
 if (NOT ANDROID)
-  set(NON_ANDROID_LIBRARIES steamworks-wrapper)
+  #set(NON_ANDROID_LIBRARIES steamworks-wrapper)
 else()
   set(ANDROID_LIBRARIES daydream)
 endif ()

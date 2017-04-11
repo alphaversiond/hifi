@@ -6528,6 +6528,7 @@ void Application::notifyPacketVersionMismatch() {
 }
 
 void Application::checkSkeleton() const {
+
     if (getMyAvatar()->getSkeletonModel()->isActive() && !getMyAvatar()->getSkeletonModel()->hasSkeleton()) {
         qCDebug(interfaceapp) << "MyAvatar model has no skeleton";
 
@@ -6536,6 +6537,7 @@ void Application::checkSkeleton() const {
 
         getMyAvatar()->useFullAvatarURL(AvatarData::defaultFullAvatarModelUrl(), DEFAULT_FULL_AVATAR_MODEL_NAME);
     } else {
+
         _physicsEngine->setCharacterController(getMyAvatar()->getCharacterController());
     }
 }
