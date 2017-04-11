@@ -282,6 +282,9 @@ void initForwardPipelines(render::ShapePlumber& plumber) {
     addPipeline(
     Key::Builder().withSkinned().withTranslucent().withTangents(),
     skinModelNormalMapVertex, modelTranslucentPixel);
+    addPipeline(
+    Key::Builder().withSkinned().withTranslucent(),
+    skinModelVertex, modelTranslucentPixel);
 }
 
 

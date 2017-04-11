@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  material_opaque_unlit.frag
+//  forward_model_unlit.frag
 //  fragment shader
 //
 //  Created by Sam Gateau on 5/5/2016.

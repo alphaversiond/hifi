@@ -75,7 +75,7 @@ vec3 albedo, vec3 fresnel, float metallic, float roughness
     color += ambientDiffuse;
     color += ambientSpecular;
 
-/*
+
     // Directional
     vec3 directionalDiffuse;
     vec3 directionalSpecular;
@@ -85,7 +85,7 @@ vec3 albedo, vec3 fresnel, float metallic, float roughness
 <@endif@> );
     color += directionalDiffuse;
     color += directionalSpecular;
-*/
+
     return color;
 }
 
@@ -182,14 +182,13 @@ vec3 evalGlobalLightingAlphaBlended(mat4 invViewMat, float shadowAttenuation, fl
     color += ambientDiffuse;
     color += ambientSpecular / opacity;
 
-/*
     // Directional
     vec3 directionalDiffuse;
     vec3 directionalSpecular;
     evalLightingDirectional(directionalDiffuse, directionalSpecular, lightDirection, lightIrradiance, fragEyeDir, fragNormal, roughness, metallic, fresnel, albedo, shadowAttenuation);
     color += directionalDiffuse;
     color += directionalSpecular / opacity;
-*/
+
     return color;
 }
 

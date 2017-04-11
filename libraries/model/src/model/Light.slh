@@ -27,7 +27,7 @@ vec3 getLightDirection(Light l) { return lightVolume_getDirection(l.volume); }
 
 vec3 getLightColor(Light l) { return lightIrradiance_getColor(l.irradiance); }
 float getLightIntensity(Light l) { return lightIrradiance_getIntensity(l.irradiance); }
-vec3 getLightIrradiance(Light l) { return lightIrradiance_getIrradiance(l.irradiance); }
+vec3 getLightIrradiance(Light l) { return vec3(1.0); /*return lightIrradiance_getIrradiance(l.irradiance);*/ }
 
 // AMbient lighting needs extra info provided from a different Buffer
 <@include model/SphericalHarmonics.shared.slh@>
@@ -40,7 +40,7 @@ struct LightAmbient {
 SphericalHarmonics getLightAmbientSphere(LightAmbient l) { return l._ambientSphere; }
 
 
-float getLightAmbientIntensity(LightAmbient l) { return l._ambient.x; }
+float getLightAmbientIntensity(LightAmbient l) { return 1.0; /*return l._ambient.x;*/ }
 bool getLightHasAmbientMap(LightAmbient l) { return l._ambient.y > 0.0; }
 float getLightAmbientMapNumMips(LightAmbient l) { return l._ambient.y; }
 
