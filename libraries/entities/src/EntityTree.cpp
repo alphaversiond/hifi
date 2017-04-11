@@ -922,6 +922,64 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
     }
 }
 
+void EntityTree::initEntityEditFilterEngine(QScriptEngine* engine, std::function<bool()> entityEditFilterHadUncaughtExceptions) {
+    _entityEditFilterEngine = engine;
+    _entityEditFilterHadUncaughtExceptions = entityEditFilterHadUncaughtExceptions;
+    auto global = _entityEditFilterEngine->globalObject();
+    _entityEditFilterFunction = global.property("filter");
+    if (!_entityEditFilterFunction.isFunction()) {
+        qCDebug(entities) << "Filter function specified but not found. Will reject all edits.";
+        _entityEditFilterEngine = nullptr; // So that we don't try to call it. See filterProperties.
+    }
+    _hasEntityEditFilter = true;
+}
+
+bool EntityTree::filterProperties(EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged) {
+    if (!_entityEditFilterEngine) {
+        propertiesOut = propertiesIn;
+        wasChanged = false; // not changed
+        if (_hasEntityEditFilter) {
+            qCDebug(entities) << "Rejecting properties because filter has not been set.";
+            return false;
+        }
+        return true; // allowed
+    }
+    auto oldProperties = propertiesIn.getDesiredProperties();
+    auto specifiedProperties = propertiesIn.getChangedProperties();
+    propertiesIn.setDesiredProperties(specifiedProperties);
+    QScriptValue inputValues = propertiesIn.copyToScriptValue(_entityEditFilterEngine, false, true, true);
+    propertiesIn.setDesiredProperties(oldProperties);
+
+    auto in = QJsonValue::fromVariant(inputValues.toVariant()); // grab json copy now, because the inputValues might be side effected by the filter.
+    QScriptValueList args;
+    args << inputValues;
+
+    QScriptValue result = _entityEditFilterFunction.call(_nullObjectForFilter, args);
+    if (_entityEditFilterHadUncaughtExceptions()) {
+        result = QScriptValue();
+    }
+
+    bool accepted = result.isObject(); // filters should return null or false to completely reject edit or add
+    if (accepted) {
+        propertiesOut.copyFromScriptValue(result, false);
+        // Javascript objects are == only if they are the same object. To compare arbitrary values, we need to use JSON.
+        auto out = QJsonValue::fromVariant(result.toVariant());
+        wasChanged = in != out;
+    }
+
+    return accepted;
+}
+
+void EntityTree::bumpTimestamp(EntityItemProperties& properties) { //fixme put class/header
+    const quint64 LAST_EDITED_SERVERSIDE_BUMP = 1; // usec
+    // also bump up the lastEdited time of the properties so that the interface that created this edit
+    // will accept our adjustment to lifetime back into its own entity-tree.
+    if (properties.getLastEdited() == UNKNOWN_CREATED_TIME) {
+        properties.setLastEdited(usecTimestampNow());
+    }
+    properties.setLastEdited(properties.getLastEdited() + LAST_EDITED_SERVERSIDE_BUMP);
+}
+
 int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,
                                      const SharedNodePointer& senderNode) {
 
@@ -945,9 +1003,9 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
             quint64 startLookup = 0, endLookup = 0;
             quint64 startUpdate = 0, endUpdate = 0;
             quint64 startCreate = 0, endCreate = 0;
+            quint64 startFilter = 0, endFilter = 0;
             quint64 startLogging = 0, endLogging = 0;
 
-            const quint64 LAST_EDITED_SERVERSIDE_BUMP = 1; // usec
             bool suppressDisallowedScript = false;
 
             _totalEditMessages++;
@@ -999,18 +1057,28 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                 if (properties.getLifetime() == ENTITY_ITEM_IMMORTAL_LIFETIME ||
                     properties.getLifetime() > _maxTmpEntityLifetime) {
                     properties.setLifetime(_maxTmpEntityLifetime);
-                    // also bump up the lastEdited time of the properties so that the interface that created this edit
-                    // will accept our adjustment to lifetime back into its own entity-tree.
-                    if (properties.getLastEdited() == UNKNOWN_CREATED_TIME) {
-                        properties.setLastEdited(usecTimestampNow());
-                    }
-                    properties.setLastEdited(properties.getLastEdited() + LAST_EDITED_SERVERSIDE_BUMP);
+                    bumpTimestamp(properties);
                 }
             }
 
             // If we got a valid edit packet, then it could be a new entity or it could be an update to
             // an existing entity... handle appropriately
             if (validEditPacket) {
+
+                startFilter = usecTimestampNow();
+                bool wasChanged = false;
+                // Having (un)lock rights bypasses the filter.
+                bool allowed = senderNode->isAllowedEditor() || filterProperties(properties, properties, wasChanged);
+                if (!allowed) {
+                    properties = EntityItemProperties();
+                }
+                if (!allowed || wasChanged) {
+                    bumpTimestamp(properties);
+                    // For now, free ownership on any modification.
+                    properties.clearSimulationOwner();
+                }
+                endFilter = usecTimestampNow();
+
                 // search for the entity by EntityItemID
                 startLookup = usecTimestampNow();
                 EntityItemPointer existingEntity = findEntityByEntityItemID(entityItemID);
@@ -1018,7 +1086,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                 if (existingEntity && message.getType() == PacketType::EntityEdit) {
 
                     if (suppressDisallowedScript) {
-                        properties.setLastEdited(properties.getLastEdited() + LAST_EDITED_SERVERSIDE_BUMP);
+                        bumpTimestamp(properties);
                         properties.setScript(existingEntity->getScript());
                     }
 
@@ -1088,6 +1156,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
             _totalUpdateTime += endUpdate - startUpdate;
             _totalCreateTime += endCreate - startCreate;
             _totalLoggingTime += endLogging - startLogging;
+            _totalFilterTime += endFilter - startFilter;
 
             break;
         }
@@ -1491,6 +1560,8 @@ bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extra
             return args->map->value(oldID);
         }
         EntityItemID newID = QUuid::createUuid();
+        args->map->insert(oldID, newID);
+
         EntityItemProperties properties = item->getProperties();
         EntityItemID oldParentID = properties.getParentID();
         if (oldParentID.isInvalidID()) {  // no parent
@@ -1503,6 +1574,43 @@ bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extra
                 // But do not add root offset in this case.
             } else { // Should not happen, but let's try to be helpful...
                 item->globalizeProperties(properties, "Cannot find %3 parent of %2 %1", args->root);
+            }
+        }
+
+        if (!properties.getXNNeighborID().isInvalidID()) {
+            auto neighborEntity = args->ourTree->findEntityByEntityItemID(properties.getXNNeighborID());
+            if (neighborEntity) {
+                properties.setXNNeighborID(getMapped(neighborEntity));
+            }
+        }
+        if (!properties.getXPNeighborID().isInvalidID()) {
+            auto neighborEntity = args->ourTree->findEntityByEntityItemID(properties.getXPNeighborID());
+            if (neighborEntity) {
+                properties.setXPNeighborID(getMapped(neighborEntity));
+            }
+        }
+        if (!properties.getYNNeighborID().isInvalidID()) {
+            auto neighborEntity = args->ourTree->findEntityByEntityItemID(properties.getYNNeighborID());
+            if (neighborEntity) {
+                properties.setYNNeighborID(getMapped(neighborEntity));
+            }
+        }
+        if (!properties.getYPNeighborID().isInvalidID()) {
+            auto neighborEntity = args->ourTree->findEntityByEntityItemID(properties.getYPNeighborID());
+            if (neighborEntity) {
+                properties.setYPNeighborID(getMapped(neighborEntity));
+            }
+        }
+        if (!properties.getZNNeighborID().isInvalidID()) {
+            auto neighborEntity = args->ourTree->findEntityByEntityItemID(properties.getZNNeighborID());
+            if (neighborEntity) {
+                properties.setZNNeighborID(getMapped(neighborEntity));
+            }
+        }
+        if (!properties.getZPNeighborID().isInvalidID()) {
+            auto neighborEntity = args->ourTree->findEntityByEntityItemID(properties.getZPNeighborID());
+            if (neighborEntity) {
+                properties.setZPNeighborID(getMapped(neighborEntity));
             }
         }
 
@@ -1523,7 +1631,6 @@ bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extra
                 args->otherTree->addEntity(newID, properties);
             });
         }
-        args->map->insert(oldID, newID);
         return newID;
     };
 
