@@ -62,6 +62,7 @@
 #include "scripting/DialogsManagerScriptingInterface.h"
 #include "ui/ApplicationOverlay.h"
 #include "ui/BandwidthDialog.h"
+#include "ui/EntityScriptServerLogDialog.h"
 #include "ui/LodToolsDialog.h"
 #include "ui/LogDialog.h"
 #include "ui/OctreeStatsDialog.h"
@@ -316,6 +317,7 @@ public slots:
     Q_INVOKABLE void loadDialog();
     Q_INVOKABLE void loadScriptURLDialog() const;
     void toggleLogDialog();
+    void toggleEntityScriptServerLogDialog();
     void toggleRunningScriptsWidget() const;
     Q_INVOKABLE void showAssetServerWidget(QString filePath = "");
 
@@ -568,6 +570,7 @@ private:
     NodeToOctreeSceneStats _octreeServerSceneStats;
     ControllerScriptingInterface* _controllerScriptingInterface{ nullptr };
     QPointer<LogDialog> _logDialog;
+    QPointer<EntityScriptServerLogDialog> _entityScriptServerLogDialog;
 
     FileLogger* _logger;
 

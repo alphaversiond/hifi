@@ -43,6 +43,7 @@
 
 #include <QtMultimedia/QMediaPlayer>
 
+#include <QFontDatabase>
 #include <QProcessEnvironment>
 #include <QTemporaryDir>
 
@@ -64,6 +65,7 @@
 #include <DebugDraw.h>
 #include <DeferredLightingEffect.h>
 #include <EntityScriptClient.h>
+#include <EntityScriptServerLogClient.h>
 #include <EntityScriptingInterface.h>
 #include <ErrorDialog.h>
 #include <FileScriptingInterface.h>
@@ -180,7 +182,6 @@
 #include "FrameTimingsScriptingInterface.h"
 #include <GPUIdent.h>
 #include <gl/GLHelpers.h>
-#include <EntityScriptClient.h>
 
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
@@ -527,6 +528,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<CompositorHelper>();
     DependencyManager::set<OffscreenQmlSurfaceCache>();
     DependencyManager::set<EntityScriptClient>();
+    DependencyManager::set<EntityScriptServerLogClient>();
     return previousSessionCrashed;
 }
 
@@ -5744,6 +5746,9 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
     scriptEngine->registerGlobalObject("Recording", recordingInterface.data());
 
+    auto entityScriptServerLog = DependencyManager::get<EntityScriptServerLogClient>();
+    scriptEngine->registerGlobalObject("EntityScriptServerLog", entityScriptServerLog.data());
+
     // connect this script engines printedMessage signal to the global ScriptEngines these various messages
     connect(scriptEngine, &ScriptEngine::printedMessage, DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onPrintedMessage);
     connect(scriptEngine, &ScriptEngine::errorMessage, DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onErrorMessage);
@@ -6504,6 +6509,17 @@ void Application::toggleLogDialog() {
     }
 }
 
+void Application::toggleEntityScriptServerLogDialog() {
+    if (! _entityScriptServerLogDialog) {
+        _entityScriptServerLogDialog = new EntityScriptServerLogDialog(nullptr);
+    }
+
+    if (_entityScriptServerLogDialog->isVisible()) {
+        _entityScriptServerLogDialog->hide();
+    } else {
+        _entityScriptServerLogDialog->show();
+    }
+}
 
 void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio) {
     postLambdaEvent([notify, includeAnimated, aspectRatio, this] {

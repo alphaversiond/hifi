@@ -111,7 +111,8 @@ public:
         EntityScriptGetStatusReply,
         ReloadEntityServerScript,
         EntityPhysics,
-        LAST_PACKET_TYPE = EntityPhysics
+        EntityServerScriptLog,
+        LAST_PACKET_TYPE = EntityServerScriptLog
     };
 };
 
@@ -260,6 +261,10 @@ enum class AudioVersion : PacketVersion {
     SpaceBubbleChanges,
     HasPersonalMute,
     HighDynamicRangeVolume,
+};
+
+enum class MessageDataVersion : PacketVersion {
+    TextOrBinaryData = 18
 };
 
 #endif // hifi_PacketHeaders_h
