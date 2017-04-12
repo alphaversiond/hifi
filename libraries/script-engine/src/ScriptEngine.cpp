@@ -1406,6 +1406,16 @@ void ScriptEngine::forwardHandlerCall(const EntityItemID& entityID, const QStrin
     }
 }
 
+int ScriptEngine::getNumRunningEntityScripts() const {
+    int sum = 0;
+    for (auto& st : _entityScripts) {
+        if (st.status == RUNNING) {
+            ++sum;
+        }
+    }
+    return sum;
+}
+
 bool ScriptEngine::getEntityScriptDetails(const EntityItemID& entityID, EntityScriptDetails &details) const {
     auto it = _entityScripts.constFind(entityID);
     if (it == _entityScripts.constEnd()) {
@@ -1469,6 +1479,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         newDetails.status = ERROR_LOADING_SCRIPT;
         newDetails.errorInfo = "Failed to load script";
         _entityScripts[entityID] = newDetails;
+        emit entityScriptDetailsUpdated();
         return;
     }
 
@@ -1480,6 +1491,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         newDetails.status = ERROR_RUNNING_SCRIPT;
         newDetails.errorInfo = "Bad syntax";
         _entityScripts[entityID] = newDetails;
+        emit entityScriptDetailsUpdated();
         return; // done processing script
     }
 
@@ -1510,6 +1522,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         newDetails.status = ERROR_RUNNING_SCRIPT;
         newDetails.errorInfo = exceptionMessage;
         _entityScripts[entityID] = newDetails;
+        emit entityScriptDetailsUpdated();
 
         return;
     }
@@ -1536,6 +1549,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         newDetails.status = ERROR_RUNNING_SCRIPT;
         newDetails.errorInfo = "Could not find constructor";
         _entityScripts[entityID] = newDetails;
+        emit entityScriptDetailsUpdated();
 
         return; // done processing script
     }
@@ -1557,6 +1571,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
     newDetails.lastModified = lastModified;
     newDetails.definingSandboxURL = sandboxURL;
     _entityScripts[entityID] = newDetails;
+    emit entityScriptDetailsUpdated();
 
     if (isURL) {
         setParentURL("");
@@ -1588,6 +1603,7 @@ void ScriptEngine::unloadEntityScript(const EntityItemID& entityID) {
         }
         _entityScripts.remove(entityID);
         stopAllTimersForEntityScript(entityID);
+        emit entityScriptDetailsUpdated();
     }
 }
 
@@ -1609,6 +1625,7 @@ void ScriptEngine::unloadAllEntityScripts() {
         }
     }
     _entityScripts.clear();
+    emit entityScriptDetailsUpdated();
 
 #ifdef DEBUG_ENGINE_STATE
     qCDebug(scriptengine) << "---- CURRENT STATE OF ENGINE: --------------------------";
