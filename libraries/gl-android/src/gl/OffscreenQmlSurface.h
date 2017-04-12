@@ -15,8 +15,8 @@
 #include <functional>
 
 #include <QtCore/QJsonObject>
-#include <QTimer>
-#include <QUrl>
+#include <QtCore/QTimer>
+#include <QtCore/QUrl>
 
 #include <GLMHelpers.h>
 #include <ThreadHelpers.h>
@@ -107,6 +107,11 @@ signals:
     void scriptEventReceived(const QVariant& message);
     void webEventReceived(const QVariant& message);
 
+    // qml event bridge
+public slots:
+    void sendToQml(const QVariant& message);
+signals:
+    void fromQml(QVariant message);
 
 protected:
     bool filterEnabled(QObject* originalDestination, QEvent* event) const;
