@@ -723,6 +723,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         sourceBuffer += sizeof(AvatarDataPacket::AvatarGlobalPosition);
         int numBytesRead = sourceBuffer - startSection;
         _globalPositionRate.increment(numBytesRead);
+        _globalPositionUpdateRate.increment();
 
         // if we don't have a parent, make sure to also set our local position
         if (!hasParent()) {
@@ -751,6 +752,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         sourceBuffer += sizeof(AvatarDataPacket::AvatarBoundingBox);
         int numBytesRead = sourceBuffer - startSection;
         _avatarBoundingBoxRate.increment(numBytesRead);
+        _avatarBoundingBoxUpdateRate.increment();
     }
 
     if (hasAvatarOrientation) {
@@ -766,6 +768,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         }
         int numBytesRead = sourceBuffer - startSection;
         _avatarOrientationRate.increment(numBytesRead);
+        _avatarOrientationUpdateRate.increment();
     }
 
     if (hasAvatarScale) {
@@ -785,6 +788,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         sourceBuffer += sizeof(AvatarDataPacket::AvatarScale);
         int numBytesRead = sourceBuffer - startSection;
         _avatarScaleRate.increment(numBytesRead);
+        _avatarScaleUpdateRate.increment();
     }
 
     if (hasLookAtPosition) {
@@ -803,6 +807,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         sourceBuffer += sizeof(AvatarDataPacket::LookAtPosition);
         int numBytesRead = sourceBuffer - startSection;
         _lookAtPositionRate.increment(numBytesRead);
+        _lookAtPositionUpdateRate.increment();
     }
 
     if (hasAudioLoudness) {
@@ -823,6 +828,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         _headData->setAudioLoudness(audioLoudness);
         int numBytesRead = sourceBuffer - startSection;
         _audioLoudnessRate.increment(numBytesRead);
+        _audioLoudnessUpdateRate.increment();
     }
 
     if (hasSensorToWorldMatrix) {
@@ -843,6 +849,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         sourceBuffer += sizeof(AvatarDataPacket::SensorToWorldMatrix);
         int numBytesRead = sourceBuffer - startSection;
         _sensorToWorldRate.increment(numBytesRead);
+        _sensorToWorldUpdateRate.increment();
     }
 
     if (hasAdditionalFlags) {
@@ -886,6 +893,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         }
         int numBytesRead = sourceBuffer - startSection;
         _additionalFlagsRate.increment(numBytesRead);
+        _additionalFlagsUpdateRate.increment();
     }
 
     // FIXME -- make sure to handle the existance of a parent vs a change in the parent...
@@ -908,7 +916,9 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
         int numBytesRead = sourceBuffer - startSection;
         _parentInfoRate.increment(numBytesRead);
-    } else {
+        _parentInfoUpdateRate.increment();
+    }
+    else {
         // FIXME - this aint totally right, for switching to parent/no-parent
         _parentID = QUuid();
     }
@@ -930,6 +940,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         sourceBuffer += sizeof(AvatarDataPacket::AvatarLocalPosition);
         int numBytesRead = sourceBuffer - startSection;
         _localPositionRate.increment(numBytesRead);
+        _localPositionUpdateRate.increment();
     }
 
     if (hasFaceTrackerInfo) {
@@ -952,6 +963,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         sourceBuffer += coefficientsSize;
         int numBytesRead = sourceBuffer - startSection;
         _faceTrackerRate.increment(numBytesRead);
+        _faceTrackerUpdateRate.increment();
     }
 
     if (hasJointData) {
@@ -1044,17 +1056,19 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
         int numBytesRead = sourceBuffer - startSection;
         _jointDataRate.increment(numBytesRead);
+        _jointDataUpdateRate.increment();
     }
 
     int numBytesRead = sourceBuffer - startPosition;
     _averageBytesReceived.updateAverage(numBytesRead);
 
     _parseBufferRate.increment(numBytesRead);
+    _parseBufferUpdateRate.increment();
 
     return numBytesRead;
 }
 
-float AvatarData::getDataRate(const QString& rateName) {
+float AvatarData::getDataRate(const QString& rateName) const {
     if (rateName == "") {
         return _parseBufferRate.rate() / BYTES_PER_KILOBIT;
     } else if (rateName == "globalPosition") {
@@ -1109,6 +1123,36 @@ float AvatarData::getDataRate(const QString& rateName) {
     return 0.0f;
 }
 
+float AvatarData::getUpdateRate(const QString& rateName) const {
+    if (rateName == "") {
+        return _parseBufferUpdateRate.rate();
+    } else if (rateName == "globalPosition") {
+        return _globalPositionUpdateRate.rate();
+    } else if (rateName == "localPosition") {
+        return _localPositionUpdateRate.rate();
+    } else if (rateName == "avatarBoundingBox") {
+        return _avatarBoundingBoxUpdateRate.rate();
+    } else if (rateName == "avatarOrientation") {
+        return _avatarOrientationUpdateRate.rate();
+    } else if (rateName == "avatarScale") {
+        return _avatarScaleUpdateRate.rate();
+    } else if (rateName == "lookAtPosition") {
+        return _lookAtPositionUpdateRate.rate();
+    } else if (rateName == "audioLoudness") {
+        return _audioLoudnessUpdateRate.rate();
+    } else if (rateName == "sensorToWorkMatrix") {
+        return _sensorToWorldUpdateRate.rate();
+    } else if (rateName == "additionalFlags") {
+        return _additionalFlagsUpdateRate.rate();
+    } else if (rateName == "parentInfo") {
+        return _parentInfoUpdateRate.rate();
+    } else if (rateName == "faceTracker") {
+        return _faceTrackerUpdateRate.rate();
+    } else if (rateName == "jointData") {
+        return _jointDataUpdateRate.rate();
+    }
+    return 0.0f;
+}
 
 int AvatarData::getAverageBytesReceivedPerSecond() const {
     return lrint(_averageBytesReceived.getAverageSampleValuePerSecond());
