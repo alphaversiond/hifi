@@ -17,6 +17,7 @@ function pushAll(dest, orig) {
         dest.push(orig[k]);
     }
 }
+
 if (!App.isAndroid()) {
     pushAll(DEFAULT_SCRIPTS, [
         "system/progress.js",
@@ -27,7 +28,7 @@ if (!App.isAndroid()) {
         "system/bubble.js",
         "system/snapshot.js",
         "system/help.js",
-        "system/pal.js", //"system/mod.js", // older UX, if you prefer
+        "system/pal.js", // "system/mod.js", // older UX, if you prefer
         "system/goto.js",
         "system/marketplaces/marketplaces.js",
         "system/edit.js",
@@ -74,6 +75,7 @@ if (!App.isAndroid()) {
     ]);
 }
 
+
 // add a menu item for debugging
 var MENU_CATEGORY = "Developer";
 var MENU_ITEM = "Debug defaultScripts.js";
@@ -88,9 +90,6 @@ if (previousSetting === '' || previousSetting === false || previousSetting === '
 if (previousSetting === true || previousSetting === 'true') {
     previousSetting = true;
 }
-
-
-
 
 if (Menu.menuExists(MENU_CATEGORY) && !Menu.menuItemExists(MENU_CATEGORY, MENU_ITEM)) {
     Menu.addMenuItem({
@@ -113,6 +112,7 @@ function runDefaultsSeparately() {
         Script.load(DEFAULT_SCRIPTS[i]);
     }
 }
+
 // start all scripts
 if (Menu.isOptionChecked(MENU_ITEM)) {
     // we're debugging individual default scripts
@@ -124,32 +124,16 @@ if (Menu.isOptionChecked(MENU_ITEM)) {
 }
 
 function menuItemEvent(menuItem) {
-    if (menuItem == MENU_ITEM) {
 
-       var isChecked = Menu.isOptionChecked(MENU_ITEM);
+
+    if (menuItem === MENU_ITEM) {
+        var isChecked = Menu.isOptionChecked(MENU_ITEM);
         if (isChecked === true) {
             Settings.setValue(SETTINGS_KEY, true);
         } else if (isChecked === false) {
             Settings.setValue(SETTINGS_KEY, false);
         }
-         Window.alert('You must reload all scripts for this to take effect.')
-    }
-
-
-}
-
-
-
-function stopLoadedScripts() {
-        // remove debug script loads
-    var runningScripts = ScriptDiscoveryService.getRunning();
-    for (var i in runningScripts) {
-        var scriptName = runningScripts[i].name;
-        for (var j in DEFAULT_SCRIPTS) {
-            if (DEFAULT_SCRIPTS[j].slice(-scriptName.length) === scriptName) {
-                ScriptDiscoveryService.stopScript(runningScripts[i].url);
-            }
-        }
+        Menu.triggerOption("Reload All Scripts");
     }
 }
 
@@ -160,7 +144,6 @@ function removeMenuItem() {
 }
 
 Script.scriptEnding.connect(function() {
-    stopLoadedScripts();
     removeMenuItem();
 });
 

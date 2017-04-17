@@ -176,6 +176,7 @@
 #include "ui/StandAloneJSConsole.h"
 #include "ui/Stats.h"
 #include "ui/UpdateDialog.h"
+#include "ui/overlays/Overlays.h"
 #include "Util.h"
 #include "InterfaceParentFinder.h"
 
@@ -536,7 +537,7 @@ bool setupEssentials(int& argc, char** argv) {
 // to take care of highlighting keyboard focused items, rather than
 // continuing to overburden Application.cpp
 std::shared_ptr<Cube3DOverlay> _keyboardFocusHighlight{ nullptr };
-int _keyboardFocusHighlightID{ -1 };
+OverlayID _keyboardFocusHighlightID{ UNKNOWN_OVERLAY_ID };
 
 
 // FIXME hack access to the internal share context for the Chromium helper
@@ -1249,6 +1250,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         if (entity && entity->wantsKeyboardFocus()) {
             setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
             setKeyboardFocusEntity(entityItemID);
+        } else {
+            setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
         }
     });
 
@@ -1266,12 +1269,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Keyboard focus handling for Web overlays.
     auto overlays = &(qApp->getOverlays());
 
-    connect(overlays, &Overlays::mousePressOnOverlay, [=](unsigned int overlayID, const PointerEvent& event) {
+    connect(overlays, &Overlays::mousePressOnOverlay, [=](OverlayID overlayID, const PointerEvent& event) {
         setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
         setKeyboardFocusOverlay(overlayID);
     });
 
-    connect(overlays, &Overlays::overlayDeleted, [=](unsigned int overlayID) {
+    connect(overlays, &Overlays::overlayDeleted, [=](OverlayID overlayID) {
         if (overlayID == _keyboardFocusedOverlay.get()) {
             setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
         }
@@ -1726,9 +1729,9 @@ void Application::cleanupBeforeQuit() {
     _applicationStateDevice.reset();
 
     {
-        if (_keyboardFocusHighlightID > 0) {
+        if (_keyboardFocusHighlightID != UNKNOWN_OVERLAY_ID) {
             getOverlays().deleteOverlay(_keyboardFocusHighlightID);
-            _keyboardFocusHighlightID = -1;
+            _keyboardFocusHighlightID = UNKNOWN_OVERLAY_ID;
         }
         _keyboardFocusHighlight = nullptr;
     }
@@ -3291,7 +3294,7 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
         buttons, event->modifiers());
 
     if (compositor.getReticleVisible() || !isHMDMode() || !compositor.getReticleOverDesktop() ||
-        getOverlays().getOverlayAtPoint(glm::vec2(transformedPos.x(), transformedPos.y()))) {
+        getOverlays().getOverlayAtPoint(glm::vec2(transformedPos.x(), transformedPos.y())) != UNKNOWN_OVERLAY_ID) {
         getOverlays().mouseMoveEvent(&mappedEvent);
         getEntities()->mouseMoveEvent(&mappedEvent);
     }
@@ -4323,7 +4326,7 @@ void Application::rotationModeChanged() const {
 
 void Application::setKeyboardFocusHighlight(const glm::vec3& position, const glm::quat& rotation, const glm::vec3& dimensions) {
     // Create focus
-    if (_keyboardFocusHighlightID < 0 || !getOverlays().isAddedOverlay(_keyboardFocusHighlightID)) {
+    if (_keyboardFocusHighlightID == UNKNOWN_OVERLAY_ID || !getOverlays().isAddedOverlay(_keyboardFocusHighlightID)) {
         _keyboardFocusHighlight = std::make_shared<Cube3DOverlay>();
         _keyboardFocusHighlight->setAlpha(1.0f);
         _keyboardFocusHighlight->setBorderSize(1.0f);
@@ -4385,11 +4388,11 @@ void Application::setKeyboardFocusEntity(EntityItemID entityItemID) {
     }
 }
 
-unsigned int Application::getKeyboardFocusOverlay() {
+OverlayID Application::getKeyboardFocusOverlay() {
     return _keyboardFocusedOverlay.get();
 }
 
-void Application::setKeyboardFocusOverlay(unsigned int overlayID) {
+void Application::setKeyboardFocusOverlay(OverlayID overlayID) {
     if (overlayID != _keyboardFocusedOverlay.get()) {
         _keyboardFocusedOverlay.set(overlayID);
 
@@ -5767,6 +5770,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     auto entityScriptServerLog = DependencyManager::get<EntityScriptServerLogClient>();
     scriptEngine->registerGlobalObject("EntityScriptServerLog", entityScriptServerLog.data());
 
+    qScriptRegisterMetaType(scriptEngine, OverlayIDtoScriptValue, OverlayIDfromScriptValue);
+
     // connect this script engines printedMessage signal to the global ScriptEngines these various messages
     connect(scriptEngine, &ScriptEngine::printedMessage, DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onPrintedMessage);
     connect(scriptEngine, &ScriptEngine::errorMessage, DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onErrorMessage);
@@ -7126,4 +7131,14 @@ void Application::toggleMuteAudio() {
     auto menu = Menu::getInstance();
     menu->setIsOptionChecked(MenuOption::MuteAudio, !menu->isOptionChecked(MenuOption::MuteAudio));
 
+}
+
+OverlayID Application::getTabletScreenID() const {
+    auto HMD = DependencyManager::get<HMDScriptingInterface>();
+    return HMD->getCurrentTabletScreenID();
+}
+
+OverlayID Application::getTabletHomeButtonID() const {
+    auto HMD = DependencyManager::get<HMDScriptingInterface>();
+    return HMD->getCurrentHomeButtonUUID();
 }
