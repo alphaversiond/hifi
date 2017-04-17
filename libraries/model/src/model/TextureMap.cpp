@@ -387,14 +387,12 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
 
     gpu::Texture* theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {
-
         gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB);
         gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB);
 
         theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
         theTexture->setSource(srcImageName);
         theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
-        generateMips(theTexture, image, formatMip, true);
     }
 
     return theTexture;
