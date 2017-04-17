@@ -388,6 +388,8 @@ public slots:
 
     void addAssetToWorldMessageClose();
 
+    Q_INVOKABLE void toggleMuteAudio();
+
 private slots:
     void showDesktop();
     void clearDomainOctreeDetails();

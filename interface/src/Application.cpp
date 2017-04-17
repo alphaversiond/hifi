@@ -7082,9 +7082,15 @@ void Application::updateThreadPoolCount() const {
 }
 
 QScriptValue Application::isAndroid(QScriptContext* context, QScriptEngine* engine) {
-#ifdef ANDROID
-            return QScriptValue(engine, true);
-#else
-            return QScriptValue(engine, false);
-#endif
+    #ifdef ANDROID
+        return QScriptValue(engine, true);
+    #else
+        return QScriptValue(engine, false);
+    #endif
+}
+
+void Application::toggleMuteAudio() {
+    auto menu = Menu::getInstance();
+    menu->setIsOptionChecked(MenuOption::MuteAudio, !menu->isOptionChecked(MenuOption::MuteAudio));
+
 }

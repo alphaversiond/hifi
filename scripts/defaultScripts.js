@@ -21,7 +21,7 @@ if (!App.isAndroid()) {
     pushAll(DEFAULT_SCRIPTS, [
         "system/progress.js",
         "system/away.js",
-        "system/mute.js",
+        "system/audio.js",
         "system/hmd.js",
         "system/menu.js",
         "system/bubble.js",
@@ -74,7 +74,6 @@ if (!App.isAndroid()) {
     ]);
 }
 
-
 // add a menu item for debugging
 var MENU_CATEGORY = "Developer";
 var MENU_ITEM = "Debug defaultScripts.js";
@@ -118,7 +117,6 @@ function runDefaultsSeparately() {
 if (Menu.isOptionChecked(MENU_ITEM)) {
     // we're debugging individual default scripts
     // so we load each into its own ScriptEngine instance
-    debuggingDefaultScripts = true;
     runDefaultsSeparately();
 } else {
     // include all default scripts into this ScriptEngine
@@ -128,7 +126,7 @@ if (Menu.isOptionChecked(MENU_ITEM)) {
 function menuItemEvent(menuItem) {
     if (menuItem == MENU_ITEM) {
 
-        isChecked = Menu.isOptionChecked(MENU_ITEM);
+       var isChecked = Menu.isOptionChecked(MENU_ITEM);
         if (isChecked === true) {
             Settings.setValue(SETTINGS_KEY, true);
         } else if (isChecked === false) {
