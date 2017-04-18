@@ -345,7 +345,9 @@ void AnimDebugDraw::update() {
         numVerts += (int)markerMap.size() * VERTICES_PER_BONE;
         auto myAvatarMarkerMap = DebugDraw::getInstance().getMyAvatarMarkerMap();
         numVerts += (int)myAvatarMarkerMap.size() * VERTICES_PER_BONE;
-        numVerts += (int)DebugDraw::getInstance().getRays().size() * VERTICES_PER_RAY;
+        auto rays = DebugDraw::getInstance().getRays();
+        DebugDraw::getInstance().clearRays();
+        numVerts += (int)rays.size() * VERTICES_PER_RAY;
 
         // allocate verts!
         std::vector<AnimDebugDrawData::Vertex> vertices;
@@ -397,10 +399,9 @@ void AnimDebugDraw::update() {
         }
 
         // draw rays from shared DebugDraw singleton
-        for (auto& iter : DebugDraw::getInstance().getRays()) {
+        for (auto& iter : rays) {
             addLine(std::get<0>(iter), std::get<1>(iter), std::get<2>(iter), v);
         }
-        DebugDraw::getInstance().clearRays();
 
         data._vertexBuffer->resize(sizeof(AnimDebugDrawData::Vertex) * numVerts);
         data._vertexBuffer->setSubData<AnimDebugDrawData::Vertex>(0, vertices);
