@@ -2289,6 +2289,11 @@ void Application::paintGL() {
     // Final framebuffer that will be handled to the display-plugin
     auto finalFramebuffer = framebufferCache->getFramebuffer();
 
+    for (auto e : getMyAvatar()->getSkeletonModel()->getRenderItems().keys()) {
+        qDebug() << "[DEBUG-AVATAR] " << e << "," << getMyAvatar()->getSkeletonModel()->getRenderItems().value(e)->getShapeKey();
+    }
+
+
     {
         PROFILE_RANGE(render, "/mainRender");
         PerformanceTimer perfTimer("mainRender");
