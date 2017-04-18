@@ -4455,12 +4455,6 @@ void Application::updateDialogs(float deltaTime) const {
     PerformanceWarning warn(showWarnings, "Application::updateDialogs()");
     auto dialogsManager = DependencyManager::get<DialogsManager>();
 
-    // Update bandwidth dialog, if any
-    BandwidthDialog* bandwidthDialog = dialogsManager->getBandwidthDialog();
-    if (bandwidthDialog) {
-        bandwidthDialog->update();
-    }
-
     QPointer<OctreeStatsDialog> octreeStatsDialog = dialogsManager->getOctreeStatsDialog();
     if (octreeStatsDialog) {
         octreeStatsDialog->update();
