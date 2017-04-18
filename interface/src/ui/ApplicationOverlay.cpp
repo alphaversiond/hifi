@@ -58,7 +58,7 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "ApplicationOverlay::displayOverlay()");
 
     buildFramebufferObject();
-    
+
     if (!_overlayFramebuffer) {
         return; // we can't do anything without our frame buffer.
     }
@@ -144,14 +144,14 @@ void ApplicationOverlay::renderOverlays(RenderArgs* renderArgs) {
     gpu::Batch& batch = *renderArgs->_batch;
     auto geometryCache = DependencyManager::get<GeometryCache>();
     geometryCache->useSimpleDrawPipeline(batch);
-    auto textureCache = DependencyManager::get<TextureCache>();
-    batch.setResourceTexture(0, textureCache->getWhiteTexture());
-    int width = renderArgs->_viewport.z;
-    int height = renderArgs->_viewport.w;
-    mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, ORTHO_NEAR_CLIP, ORTHO_FAR_CLIP);
-    batch.setProjectionTransform(legacyProjection);
-    batch.setModelTransform(Transform());
-    batch.resetViewTransform();
+    //auto textureCache = DependencyManager::get<TextureCache>();
+    //batch.setResourceTexture(0, textureCache->getWhiteTexture());
+    //int width = renderArgs->_viewport.z;
+    //int height = renderArgs->_viewport.w;
+    //mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, ORTHO_NEAR_CLIP, ORTHO_FAR_CLIP);
+    //batch.setProjectionTransform(legacyProjection);
+    //batch.setModelTransform(Transform());
+    //batch.resetViewTransform();
 
     // Render all of the Script based "HUD" aka 2D overlays.
     // note: we call them HUD, as opposed to 2D, only because there are some cases of 3D HUD overlays, like the
