@@ -45,14 +45,17 @@ RenderForwardTask::RenderForwardTask(RenderFetchCullSortTask::Output items) {
     const auto spatialSelection = items[RenderFetchCullSortTask::SPATIAL_SELECTION];
 
     const auto framebuffer = addJob<PrepareFramebuffer>("PrepareFramebuffer");
-    addJob<Draw>("DrawOpaques", opaques, shapePlumber);
+
+    const auto lightingModel = addJob<MakeLightingModel>("LightingModel");
+
+    const auto opaqueInputs = DrawDeferred::Inputs(opaques, lightingModel).hasVarying();
+    addJob<Draw>("DrawOpaques", opaqueInputs, shapePlumber);
     
     addJob<Stencil>("Stencil");
     addJob<DrawBackground>("DrawBackground", background);
     
     // Bounds do not draw on stencil buffer, so they must come last
-    addJob<DrawBounds>("DrawBounds", opaques);
-    const auto lightingModel = addJob<MakeLightingModel>("LightingModel");
+    //addJob<DrawBounds>("DrawBounds", opaques);
     
     // Overlays
     const auto overlayOpaquesInputs = DrawOverlay3D::Inputs(overlayOpaques, lightingModel).hasVarying();
@@ -110,8 +113,11 @@ void PrepareFramebuffer::run(const SceneContextPointer& sceneContext, const Rend
 }
 
 void Draw::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
-        const Inputs& items) {
+        const Inputs& inputs) {
     RenderArgs* args = renderContext->args;
+
+    const auto& inItems = inputs.get0();
+    const auto& lightingModel = inputs.get1();
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
@@ -123,10 +129,13 @@ void Draw::run(const SceneContextPointer& sceneContext, const RenderContextPoint
         args->getViewFrustum().evalViewTransform(viewMat);
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
-        batch.setModelTransform(Transform());
+        //batch.setModelTransform(Transform());
+
+        // Setup lighting model for all items;
+        batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
 
         // Render items
-        renderStateSortShapes(sceneContext, renderContext, _shapePlumber, items, -1);
+        renderStateSortShapes(sceneContext, renderContext, _shapePlumber, inItems, -1);
     });
     args->_batch = nullptr;
 }

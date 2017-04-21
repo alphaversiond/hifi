@@ -26,6 +26,31 @@
 
 #include "GLShared.h"
 
+
+// Different versions for the stereo drawcall
+// Current preferred is  "instanced" which draw the shape twice but instanced and rely on clipping plane to draw left/right side only
+//#define GPU_STEREO_TECHNIQUE_DOUBLED_SMARTER
+//#define GPU_STEREO_TECHNIQUE_INSTANCED
+
+#ifdef GPU_STEREO_TECHNIQUE_DOUBLED_SMARTER
+#define GPU_STEREO_DRAWCALL_DOUBLED
+#define GPU_STEREO_CAMERA_BUFFER
+#endif
+
+#ifdef GPU_STEREO_TECHNIQUE_INSTANCED
+#define GPU_STEREO_DRAWCALL_INSTANCED
+#define GPU_STEREO_CAMERA_BUFFER
+#endif
+
+#define ANDROID_INTENSIVE_INSTRUMENTATION 1
+
+#ifdef ANDROID_INTENSIVE_INSTRUMENTATION
+#define ANDROID_PROFILE_COMMAND(category, commandIndex, argbColor, payload, ...) PROFILE_RANGE_EX(category, commandNames[commandIndex], argbColor, payload, ##__VA_ARGS__);
+#define ANDROID_PROFILE(category, name, argbColor, payload, ...) PROFILE_RANGE_EX(category, name, argbColor, payload, ##__VA_ARGS__);
+#else 
+#define ANDROID_PROFILE_COMMAND(category, commandIndex, argbColor, payload, ...)
+#define ANDROID_PROFILE(category, name, argbColor, payload, ...)
+#endif
 namespace gpu { namespace gl {
 
 class GLBackend : public Backend, public std::enable_shared_from_this<GLBackend> {

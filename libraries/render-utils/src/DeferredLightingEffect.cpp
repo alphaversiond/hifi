@@ -99,15 +99,16 @@ void DeferredLightingEffect::init() {
     _directionalAmbientSphereLightLocations = std::make_shared<LightLocations>();
     _directionalSkyboxLightLocations = std::make_shared<LightLocations>();
 
-    _directionalLightShadowLocations = std::make_shared<LightLocations>();
-    _directionalAmbientSphereLightShadowLocations = std::make_shared<LightLocations>();
-    _directionalSkyboxLightShadowLocations = std::make_shared<LightLocations>();
+//    _directionalLightShadowLocations = std::make_shared<LightLocations>();
+//    _directionalAmbientSphereLightShadowLocations = std::make_shared<LightLocations>();
+//    _directionalSkyboxLightShadowLocations = std::make_shared<LightLocations>();
 
-    _localLightLocations = std::make_shared<LightLocations>();
-    _localLightOutlineLocations = std::make_shared<LightLocations>();
-    _pointLightLocations = std::make_shared<LightLocations>();
-    _spotLightLocations = std::make_shared<LightLocations>();
+//    _localLightLocations = std::make_shared<LightLocations>();
+//    _localLightOutlineLocations = std::make_shared<LightLocations>();
+//    _pointLightLocations = std::make_shared<LightLocations>();
+//    _spotLightLocations = std::make_shared<LightLocations>();
 
+/*
     loadLightProgram(deferred_light_vert, directional_light_frag, false, _directionalLight, _directionalLightLocations);
     loadLightProgram(deferred_light_vert, directional_ambient_light_frag, false, _directionalAmbientSphereLight, _directionalAmbientSphereLightLocations);
     loadLightProgram(deferred_light_vert, directional_skybox_light_frag, false, _directionalSkyboxLight, _directionalSkyboxLightLocations);
@@ -123,7 +124,7 @@ void DeferredLightingEffect::init() {
     loadLightVolumeProgram(deferred_light_point_vert, no_light_frag, true, _pointLightFront, _pointLightLocations);
     loadLightVolumeProgram(deferred_light_spot_vert, no_light_frag, false, _spotLightBack, _spotLightLocations);
     loadLightVolumeProgram(deferred_light_spot_vert, no_light_frag, true, _spotLightFront, _spotLightLocations);
-
+*/
     // Light Stage and clusters
     _lightStage = std::make_shared<LightStage>();
     
@@ -217,7 +218,7 @@ void DeferredLightingEffect::unsetKeyLightBatch(gpu::Batch& batch, int lightBuff
         batch.setResourceTexture(skyboxCubemapUnit, nullptr);
     }
 }
-
+/*
 static gpu::ShaderPointer makeLightProgram(const char* vertSource, const char* fragSource, LightLocationsPtr& locations) {
     auto VS = gpu::Shader::createVertex(std::string(vertSource));
     auto PS = gpu::Shader::createPixel(std::string(fragSource));
@@ -267,10 +268,10 @@ static gpu::ShaderPointer makeLightProgram(const char* vertSource, const char* f
     locations->shadowTransformBuffer = program->getBuffers().findLocation("shadowTransformBuffer");
 
     return program;
-}
-
+}*/
+/*
 static void loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& pipeline, LightLocationsPtr& locations) {
-
+    qDebug() << "[LIGHT] loadLightProgram";
     gpu::ShaderPointer program = makeLightProgram(vertSource, fragSource, locations);
 
     auto state = std::make_shared<gpu::State>();
@@ -299,8 +300,8 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     pipeline = gpu::Pipeline::create(program, state);
 
 }
-
-
+*/
+/*
 static void loadLightVolumeProgram(const char* vertSource, const char* fragSource, bool front, gpu::PipelinePointer& pipeline, LightLocationsPtr& locations) {
     gpu::ShaderPointer program = makeLightProgram(vertSource, fragSource, locations);
 
@@ -332,7 +333,7 @@ static void loadLightVolumeProgram(const char* vertSource, const char* fragSourc
     pipeline = gpu::Pipeline::create(program, state);
 
 }
-
+*/
 void DeferredLightingEffect::setGlobalLight(const model::LightPointer& light) {
     auto globalLight = _allocatedLights.front();
     globalLight->setDirection(light->getDirection());
@@ -669,7 +670,7 @@ void RenderDeferredSetup::run(const render::SceneContextPointer& sceneContext, c
         
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
-        deferredLightingEffect->unsetKeyLightBatch(batch, locations->lightBufferUnit, locations->ambientBufferUnit, SKYBOX_MAP_UNIT);
+        //deferredLightingEffect->unsetKeyLightBatch(batch, locations->lightBufferUnit, locations->ambientBufferUnit, SKYBOX_MAP_UNIT);
 
 
         batch.setResourceTexture(SHADOW_MAP_UNIT, nullptr);

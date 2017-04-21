@@ -103,6 +103,8 @@ protected:
     // Plugin specific functionality to send the composed scene to the output window or device
     virtual void internalPresent();
 
+    virtual void prepareFrameBuffer();
+
     virtual void updateFrameData();
 
     void withMainThreadContext(std::function<void()> f) const;
@@ -123,7 +125,9 @@ protected:
 
     gpu::FramePointer _currentFrame;
     gpu::Frame* _lastFrame { nullptr };
+#ifndef ANDROID
     gpu::FramebufferPointer _compositeFramebuffer;
+#endif
     gpu::PipelinePointer _overlayPipeline;
     gpu::PipelinePointer _simplePipeline;
     gpu::PipelinePointer _presentPipeline;

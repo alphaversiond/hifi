@@ -65,9 +65,13 @@ bool GLBackend::makeProgram(Shader& shader, const Shader::BindingSet& slotBindin
     return GLShader::makeProgram(getBackend(), shader, slotBindings);
 }
 
+std::array<QString, 45> commandNames = { 
+        {QString("draw"),QString("drawIndexed"),QString("drawInstanced"),QString("drawIndexedInstanced"),QString("multiDrawIndirect"),QString("multiDrawIndexedIndirect"),QString("setInputFormat"),QString("setInputBuffer"),QString("setIndexBuffer"),QString("setIndirectBuffer"),QString("setModelTransform"),QString("setViewTransform"),QString("setProjectionTransform"),QString("setViewportTransform"),QString("setDepthRangeTransform"),QString("setPipeline"),QString("setStateBlendFactor"),QString("setStateScissorRect"),QString("setUniformBuffer"),QString("setResourceTexture"),QString("setFramebuffer"),QString("clearFramebuffer"),QString("blit"),QString("generateTextureMips"),QString("beginQuery"),QString("endQuery"),QString("getQuery"),QString("resetStages"),QString("runLambda"),QString("startNamedCall"),QString("stopNamedCall"),QString("glUniform1i"),QString("glUniform1f"),QString("glUniform2f"),QString("glUniform3f"),QString("glUniform4f"),QString("glUniform3fv"),QString("glUniform4fv"),QString("glUniform4iv"),QString("glUniformMatrix3fv"),QString("glUniformMatrix4fv"),QString("glColor4f"),QString("pushProfileRange"),QString("popProfileRange"),QString("NUM_COMMANDS")}
+};
+
 GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] = 
 {
-    (&::gpu::gl::GLBackend::do_draw),
+    (&::gpu::gl::GLBackend::do_draw), 
     (&::gpu::gl::GLBackend::do_drawIndexed),
     (&::gpu::gl::GLBackend::do_drawInstanced),
     (&::gpu::gl::GLBackend::do_drawIndexedInstanced),
@@ -174,7 +178,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
 
     _inRenderTransferPass = true;
     { // Sync all the buffers
-        PROFILE_RANGE(render_gpu_gl, "syncGPUBuffer");
+        ANDROID_PROFILE(render, "syncGPUBuffer", 0xffaaffaa, 1)
 
         for (auto& cached : batch._buffers._items) {
             if (cached._data) {
@@ -184,7 +188,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
     }
 
     { // Sync all the buffers
-        PROFILE_RANGE(render_gpu_gl, "syncCPUTransform");
+        ANDROID_PROFILE(render, "syncCPUTransform", 0xffaaaaff, 1)
         _transform._cameras.clear();
         _transform._cameraOffsets.clear();
 
@@ -202,6 +206,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
                 case Batch::COMMAND_setViewportTransform:
                 case Batch::COMMAND_setViewTransform:
                 case Batch::COMMAND_setProjectionTransform: {
+                    ANDROID_PROFILE_COMMAND(render, (int)(*command), 0xffeeaaff, 1)
                     CommandCall call = _commandCalls[(*command)];
                     (this->*(call))(batch, *offset);
                     break;
@@ -216,7 +221,8 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
     }
 
     { // Sync the transform buffers
-        PROFILE_RANGE(render_gpu_gl, "syncGPUTransform");
+        //PROFILE_RANGE(render_gpu_gl, "transferTransformState");
+        ANDROID_PROFILE(render, "transferTransformState", 0xff0000ff, 1)
         transferTransformState(batch);
     }
 
@@ -251,12 +257,14 @@ void GLBackend::renderPassDraw(const Batch& batch) {
                 updateInput();
                 updateTransform(batch);
                 updatePipeline();
-                
+                {ANDROID_PROFILE_COMMAND(render, (int)(*command), 0xff0000ff, 1)
                 CommandCall call = _commandCalls[(*command)];
                 (this->*(call))(batch, *offset);
+                }
                 break;
             }
             default: {
+                ANDROID_PROFILE_COMMAND(render, (int)(*command), 0xffff00ff, 1)
                 CommandCall call = _commandCalls[(*command)];
                 (this->*(call))(batch, *offset);
                 break;
@@ -269,6 +277,7 @@ void GLBackend::renderPassDraw(const Batch& batch) {
 }
 
 void GLBackend::render(const Batch& batch) {
+    ANDROID_PROFILE(render, "GLBackendRender", 0xffff00ff, 1)
     _transform._skybox = _stereo._skybox = batch.isSkyboxEnabled();
     // Allow the batch to override the rendering stereo settings
     // for things like full framebuffer copy operations (deferred lighting passes)
@@ -278,12 +287,14 @@ void GLBackend::render(const Batch& batch) {
     }
     
     {
-        PROFILE_RANGE(render_gpu_gl, "Transfer");
+        //PROFILE_RANGE(render_gpu_gl, "Transfer");
+        ANDROID_PROFILE(render, "Transfer", 0xff0000ff, 1)
         renderPassTransfer(batch);
     }
 
     {
-        PROFILE_RANGE(render_gpu_gl, _stereo._enable ? "Render Stereo" : "Render");
+        //PROFILE_RANGE(render_gpu_gl, _stereo._enable ? "Render Stereo" : "Render");
+        ANDROID_PROFILE(render, "RenderPassDraw", 0xff00ddff, 1)
         renderPassDraw(batch);
     }
 
@@ -307,7 +318,15 @@ void GLBackend::setupStereoSide(int side) {
     vp.z /= 2;
     glViewport(vp.x + side * vp.z, vp.y, vp.z, vp.w);
 
+#ifdef GPU_STEREO_CAMERA_BUFFER
+#ifdef GPU_STEREO_DRAWCALL_DOUBLED
+    //glVertexAttribI1i(14, side);
+    glVertexAttribI4i(14, side, 0, 0, 0);
+
+#endif
+#else
     _transform.bindCurrentCamera(side);
+#endif
 }
 
 void GLBackend::do_resetStages(const Batch& batch, size_t paramOffset) {

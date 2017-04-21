@@ -40,7 +40,7 @@
 #include "forward_model_normal_map_frag.h"
 #include "forward_model_normal_specular_map_frag.h"
 #include "forward_model_specular_map_frag.h"
-//#include "forward_model_translucent_frag.h"
+#include "forward_model_translucent_frag.h"
 
 #include "model_lightmap_frag.h"
 #include "model_lightmap_normal_map_frag.h"
@@ -271,6 +271,7 @@ void initForwardPipelines(render::ShapePlumber& plumber) {
     auto modelNormalMapPixel = gpu::Shader::createPixel(std::string(forward_model_normal_map_frag));
     auto modelSpecularMapPixel = gpu::Shader::createPixel(std::string(forward_model_specular_map_frag));
     auto modelNormalSpecularMapPixel = gpu::Shader::createPixel(std::string(forward_model_normal_specular_map_frag));
+    auto modelTranslucentPixel = gpu::Shader::createPixel(std::string(forward_model_translucent_frag));
 
     using Key = render::ShapeKey;
     auto addPipeline = std::bind(&addPlumberPipeline, std::ref(plumber), _1, _2, _3);
@@ -305,7 +306,19 @@ void initForwardPipelines(render::ShapePlumber& plumber) {
         skinModelNormalMapVertex, modelNormalSpecularMapPixel);
     addPipeline(
          Key::Builder().withMaterial().withSkinned().withTranslucent().withTangents(),
-         skinModelNormalMapVertex, modelPixel); // modelPixel lo agregue yo
+         skinModelNormalMapVertex, modelTranslucentPixel);
+    addPipeline(
+        Key::Builder().withTranslucent(),
+        modelVertex, modelTranslucentPixel);
+    addPipeline(
+        Key::Builder().withTranslucent().withTangents(),
+        modelNormalMapVertex, modelTranslucentPixel);
+    addPipeline(
+        Key::Builder().withSkinned().withTranslucent().withTangents(),
+        skinModelNormalMapVertex, modelTranslucentPixel);
+    addPipeline(
+        Key::Builder().withSkinned().withTranslucent(),
+        skinModelVertex, modelTranslucentPixel);
 }
 
 void addPlumberPipeline(ShapePlumber& plumber,
@@ -346,7 +359,7 @@ void addPlumberPipeline(ShapePlumber& plumber,
         }
 
         plumber.addPipeline(builder.build(), program, state,
-                key.isTranslucent() ? &lightBatchSetter : &batchSetter);
+                /*key.isTranslucent() ?*/ &lightBatchSetter /*: &batchSetter*/);
     }
 }
 

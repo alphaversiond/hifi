@@ -17,6 +17,7 @@ class DaydreamDisplayPlugin : public HmdDisplayPlugin {
     using Parent = HmdDisplayPlugin;
 
 public:
+    DaydreamDisplayPlugin();
     const QString getName() const override { return NAME; }
     grouping getGrouping() const override { return DEVELOPER; }
 
@@ -28,6 +29,7 @@ public:
     float getTargetFrameRate() const override { return 60; }
     glm::uvec2 getRecommendedUiSize() const override final;
     void internalPresent() override;
+    void prepareFrameBuffer() override;
 
 protected:
     void updatePresentPose() override;
@@ -35,11 +37,17 @@ protected:
     bool isHmdMounted() const override { return true; }
     void customizeContext() override;
     bool internalActivate() override;
+    void compositeLayers() override;
     void compositePointer() override;
+
+    void compositePointer(gpu::Batch& batch);
+    void compositeScene(gpu::Batch& batch);
+
 private:
     static const QString NAME;
     float getLeftCenterPixel() const;
     ivec4 getViewportForSourceSize(const uvec2& size) const;
     void resetEyeProjections(GvrState *);
+    gvr::Frame _frame;
 };
 

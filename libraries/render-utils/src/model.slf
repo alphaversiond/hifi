@@ -56,5 +56,4 @@ void main(void) {
         emissive,
         occlusionTex,
         scattering);
-    _fragColor0 = vec4(albedo, 1.0);
 }

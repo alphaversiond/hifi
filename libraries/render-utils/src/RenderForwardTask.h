@@ -37,12 +37,12 @@ private:
 
 class Draw {
 public:
-    using Inputs = render::ItemBounds;
+    using Inputs = render::VaryingSet2 <render::ItemBounds, LightingModelPointer>;
     using JobModel = render::Job::ModelI<Draw, Inputs>;
 
     Draw(const render::ShapePlumberPointer& shapePlumber) : _shapePlumber(shapePlumber) {}
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
-            const Inputs& items);
+            const Inputs& inputs);
 
 private:
     render::ShapePlumberPointer _shapePlumber;
