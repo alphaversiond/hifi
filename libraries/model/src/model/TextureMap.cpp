@@ -146,11 +146,15 @@ const QImage TextureUsage::process2DImageColor(const QImage& srcImage, bool& val
         }
         validAlpha = (numOpaques != NUM_PIXELS);
     }
-
+#ifndef ANDROID
+    if (image.format() != QImage::Format_ARGB32) {
+        image = image.convertToFormat(QImage::Format_ARGB32);
+    }
+#else
     if (!validAlpha && image.format() != QImage::Format_RGB888) {
         image = image.convertToFormat(QImage::Format_RGB888);
     }
-
+#endif
     return image;
 }
 
@@ -166,7 +170,11 @@ const QImage& image, bool isLinear, bool doCompress) {
         gpu::Semantic gpuSemantic;
         gpu::Semantic mipSemantic;
         if (isLinear) {
-            mipSemantic = gpu::RGBA; //  gpu::BGRA;
+	    #ifndef ANDROID
+		mipSemantic = gpu::BGRA;
+	    #else
+            	mipSemantic = gpu::RGBA; 
+	    #endif
             if (doCompress) {
                 gpuSemantic = gpu::COMPRESSED_RGBA;
             } else {
@@ -205,7 +213,11 @@ const QImage& image, bool isLinear, bool doCompress) {
     }
 }
 
-#define CPU_MIPMAPS 1
+#ifndef ANDROID
+    #define CPU_MIPMAPS 1
+#else
+    #define CPU_MIPMAPS 0
+#endif
 
 void generateMips(gpu::Texture* texture, QImage& image, gpu::Element formatMip, bool fastResize) {
 #if CPU_MIPMAPS
@@ -295,16 +307,26 @@ gpu::Texture* TextureUsage::createLightmapTextureFromImage(const QImage& srcImag
 gpu::Texture* TextureUsage::createNormalTextureFromNormalImage(const QImage& srcImage, const std::string& srcImageName) {
     PROFILE_RANGE(resource_parse, "createNormalTextureFromNormalImage");
     QImage image = processSourceImage(srcImage, false);
-
+#ifndef ANDROID
+    // Make sure the normal map source image is RGBA32
+    if (image.format() != QImage::Format_RGBA8888) {
+        image = image.convertToFormat(QImage::Format_RGBA8888);
+    }
+#else
     if (image.format() != QImage::Format_RGB888) {
         image = image.convertToFormat(QImage::Format_RGB888);
     }
+#endif
 
     gpu::Texture* theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {
-
+    #ifndef ANDROID
+        gpu::Element formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
+        gpu::Element formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
+    #else
         gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB);
         gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB);
+    #endif
 
         theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
         theTexture->setSource(srcImageName);
@@ -380,7 +402,11 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
             glm::normalize(v);
     
             // convert to rgb from the value obtained computing the filter
-            QRgb qRgbValue = qRgb(mapComponent(v.x), mapComponent(v.y), mapComponent(v.z));
+	    #ifndef ANDROID
+	       QRgb qRgbValue = qRgba(mapComponent(v.x), mapComponent(v.y), mapComponent(v.z), 1.0);
+	    #else
+               QRgb qRgbValue = qRgb(mapComponent(v.x), mapComponent(v.y), mapComponent(v.z));
+	    #endif
             result.setPixel(i, j, qRgbValue);
         }
     }
@@ -406,9 +432,16 @@ gpu::Texture* TextureUsage::createRoughnessTextureFromImage(const QImage& srcIma
             image = image.convertToFormat(QImage::Format_RGB888);
         }
     } else {
-        if (image.format() != QImage::Format_ARGB32) {
+	#ifndef ANDROID
+	 if (image.format() != QImage::Format_RGBA8888) {
+            image = image.convertToFormat(QImage::Format_RGBA8888);
+         }
+        #else
+	 if (image.format() != QImage::Format_ARGB32) {
             image = image.convertToFormat(QImage::Format_ARGB32);
-        }
+          }
+        #endif
+         
     }
 
     image = image.convertToFormat(QImage::Format_Grayscale8);
@@ -441,9 +474,15 @@ gpu::Texture* TextureUsage::createRoughnessTextureFromGlossImage(const QImage& s
             image = image.convertToFormat(QImage::Format_RGB888);
         }
     } else {
-        if (image.format() != QImage::Format_ARGB32) {
+	#ifndef ANDROID
+          if (image.format() != QImage::Format_RGBA8888) {
+            image = image.convertToFormat(QImage::Format_RGBA8888);
+          }
+	#else
+          if (image.format() != QImage::Format_ARGB32) {
             image = image.convertToFormat(QImage::Format_ARGB32);
-        }
+          }
+        #endif
     }
 
     // Gloss turned into Rough
@@ -480,9 +519,15 @@ gpu::Texture* TextureUsage::createMetallicTextureFromImage(const QImage& srcImag
             image = image.convertToFormat(QImage::Format_RGB888);
         }
     } else {
-        if (image.format() != QImage::Format_ARGB32) {
-            image = image.convertToFormat(QImage::Format_ARGB32);
-        }
+	#ifndef ANDROID
+          if (image.format() != QImage::Format_RGBA8888) {
+            image = image.convertToFormat(QImage::Format_RGBA8888);
+          }
+        #else
+	   if (image.format() != QImage::Format_ARGB32) {
+              image = image.convertToFormat(QImage::Format_ARGB32);
+          }
+	#endif
     }
 
     image = image.convertToFormat(QImage::Format_Grayscale8);
@@ -770,9 +815,15 @@ gpu::Texture* TextureUsage::processCubeTextureColorFromImage(const QImage& srcIm
     gpu::Texture* theTexture = nullptr;
     if ((srcImage.width() > 0) && (srcImage.height() > 0)) {
         QImage image = processSourceImage(srcImage, true);
-        if (image.format() != QImage::Format_RGB888) {
+	#ifndef ANDROID
+	  if (image.format() != QImage::Format_ARGB32) {
+            image = image.convertToFormat(QImage::Format_ARGB32);
+          }
+	#else
+          if (image.format() != QImage::Format_RGB888) {
             image = image.convertToFormat(QImage::Format_RGB888);
-        }
+          }
+        #endif
 
         gpu::Element formatGPU;
         gpu::Element formatMip;
