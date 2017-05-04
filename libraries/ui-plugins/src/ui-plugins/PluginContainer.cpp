@@ -91,9 +91,14 @@ void PluginContainer::setIsOptionChecked(const QString& path, bool checked) {
 // make it useless for stereoscopic modes.
 void PluginContainer::setFullscreen(const QScreen* target, bool hideMenu) {
     auto _window = getPrimaryWindow();
+#ifndef ANDROID
     if (!_window->isFullScreen()) {
         _savedGeometry = _window->geometry();
     }
+#else
+    // Always use the window geometry in Android's case
+    _savedGeometry = _window->geometry();
+#endif
     if (nullptr == target) {
         // FIXME target the screen where the window currently is
         target = qApp->primaryScreen();
