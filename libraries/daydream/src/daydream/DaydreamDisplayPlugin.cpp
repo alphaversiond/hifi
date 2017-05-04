@@ -169,7 +169,16 @@ bool DaydreamDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     GvrState *gvrState = GvrState::getInstance();
     glm::quat orientation = toGlm(gvrState->_controller_state.GetOrientation());
     
-    
+    gvr::ClockTimePoint pred_time = gvr::GvrApi::GetTimePointNow();
+    pred_time.monotonic_system_time_nanos += 50000000; // 50ms
+
+    gvr::Mat4f head_view =
+    gvrState->_gvr_api->GetHeadSpaceFromStartSpaceRotation(pred_time);
+
+    glm::mat4 glmHeadView = glm::inverse(glm::make_mat4(&(MatrixToGLArray(head_view)[0])));
+    _currentRenderFrameInfo.renderPose = glmHeadView;
+    _currentRenderFrameInfo.presentPose = _currentRenderFrameInfo.renderPose;
+
     auto correctedLeftPose = daydreamControllerPoseToHandPose(true, orientation);
     auto correctedRightPose = daydreamControllerPoseToHandPose(false, orientation);
     
@@ -246,10 +255,10 @@ bool DaydreamDisplayPlugin::internalActivate() {
 
     resetEyeProjections(gvrState);
 
-    _ipd = 0.0327499993f * 2.0f;
+    _ipd = 0.03195 * 2.0f;
 
-    _eyeOffsets[0][3] = vec4{ -0.0327499993, 0.0, 0.0149999997, 1.0 };
-    _eyeOffsets[1][3] = vec4{ 0.0327499993, 0.0, 0.0149999997, 1.0 };
+    _eyeOffsets[0][3] = vec4{ -0.03195, 0.0, 0.0, 1.0 };
+    _eyeOffsets[1][3] = vec4{ 0.03195, 0.0, 0.0, 1.0 };
 
     _renderTargetSize = glm::vec2(gvrState->_framebuf_size.width ,  gvrState->_framebuf_size.height);
 
@@ -290,7 +299,7 @@ void DaydreamDisplayPlugin::resetEyeProjections(GvrState *gvrState) {
     gvr::BufferViewport scratch_viewport(gvrState->_gvr_api->CreateBufferViewport());
 
     gvrState->_viewport_list.GetBufferViewport(0, &scratch_viewport);
-    gvr::Mat4f proj_matrix = PerspectiveMatrixFromView(scratch_viewport.GetSourceFov(), 0.1, 1000.0);
+    gvr::Mat4f proj_matrix = PerspectiveMatrixFromView(scratch_viewport.GetSourceFov(), 0.08, 16384.0);
 
     gvr::Mat4f mvp = MatrixMul(proj_matrix, left_eye_view);
     std::array<float, 16> mvpArr = MatrixToGLArray(mvp);
@@ -301,8 +310,12 @@ void DaydreamDisplayPlugin::resetEyeProjections(GvrState *gvrState) {
     _eyeProjections[0][3] = vec4{mvpArr[12],mvpArr[13],mvpArr[14],mvpArr[15]};
 
     gvrState->_viewport_list.GetBufferViewport(1, &scratch_viewport);
-    
-    proj_matrix = PerspectiveMatrixFromView(scratch_viewport.GetSourceFov(), 0.1, 1000.0);
+
+//    const float DEFAULT_NEAR_CLIP = 0.08f;
+//const float DEFAULT_FAR_CLIP = 16384.0f;
+
+    //qDebug() << "[SKYBOX-DEBUG] scratch_viewport.GetSourceFov() " << scratch_viewport.GetSourceFov();
+    proj_matrix = PerspectiveMatrixFromView(scratch_viewport.GetSourceFov(), 0.08, 16384.0);
     mvp = MatrixMul(proj_matrix, right_eye_view);
     mvpArr = MatrixToGLArray(mvp);
 
