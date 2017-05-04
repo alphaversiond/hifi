@@ -588,7 +588,7 @@ bool EntityTree::findNearPointOperation(OctreeElementPointer element, void* extr
 bool findRayIntersectionOp(OctreeElementPointer element, void* extraData) {
     RayArgs* args = static_cast<RayArgs*>(extraData);
     bool keepSearching = true;
-    EntityTreeElementPointer entityTreeElementPointer = std::dynamic_pointer_cast<EntityTreeElement>(element);
+    EntityTreeElementPointer entityTreeElementPointer = std::static_pointer_cast<EntityTreeElement>(element);
     if (entityTreeElementPointer->findRayIntersection(args->origin, args->direction, keepSearching,
         args->element, args->distance, args->face, args->surfaceNormal, args->entityIdsToInclude,
         args->entityIdsToDiscard, args->visibleOnly, args->collidableOnly, args->intersectedObject, args->precisionPicking)) {

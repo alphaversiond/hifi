@@ -24,8 +24,8 @@ OriginalDesktop.Desktop {
     }
 
     // The tool window, one instance
-    property alias toolWindow: toolWindow
-    ToolWindow { id: toolWindow }
+    /*property alias toolWindow: toolWindow
+    ToolWindow { id: toolWindow }*/
 
     property var browserProfile: HFWebEngineProfile {
         id: webviewProfile

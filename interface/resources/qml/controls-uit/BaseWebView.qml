@@ -9,8 +9,8 @@
 //
 
 import QtQuick 2.5
-import QtWebEngine 1.2
-import HFWebEngineProfile 1.0
+//import QtWebEngine 1.2
+//import HFWebEngineProfile 1.0
 
 WebEngineView {
     id: root
@@ -27,13 +27,13 @@ WebEngineView {
 
     onLoadingChanged: {
         // Required to support clicking on "hifi://" links
-        if (WebEngineView.LoadStartedStatus == loadRequest.status) {
-            var url = loadRequest.url.toString();
-            if (urlHandler.canHandleUrl(url)) {
-                if (urlHandler.handleUrl(url)) {
-                    root.stop();
-                }
-            }
-        }
+       // if (WebEngineView.LoadStartedStatus == loadRequest.status) {
+       //     var url = loadRequest.url.toString();
+       //     if (urlHandler.canHandleUrl(url)) {
+       //         if (urlHandler.handleUrl(url)) {
+       //             root.stop();
+       //         }
+       //     }
+       // }
     }
 }

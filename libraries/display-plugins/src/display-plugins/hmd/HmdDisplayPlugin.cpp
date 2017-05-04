@@ -1,4 +1,4 @@
-﻿//
+//
 //  Created by Bradley Austin Davis on 2016/02/15
 //  Copyright 2016 High Fidelity, Inc.
 //
@@ -151,7 +151,9 @@ void HmdDisplayPlugin::uncustomizeContext() {
     render([&](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.resetViewTransform();
+#ifndef ANDROID
         batch.setFramebuffer(_compositeFramebuffer);
+#endif
         batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(0));
     });
     _overlayRenderer = OverlayRenderer();
@@ -279,7 +281,9 @@ void HmdDisplayPlugin::internalPresent() {
             batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(0));
             batch.setStateScissorRect(scissor); // was viewport
             batch.setViewportTransform(viewport);
+#ifndef ANDROID
             batch.setResourceTexture(0, _compositeFramebuffer->getRenderBuffer(0));
+#endif
             batch.setPipeline(_presentPipeline);
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         });
@@ -604,6 +608,36 @@ void HmdDisplayPlugin::OverlayRenderer::updatePipeline() {
     }
 }
 
+void HmdDisplayPlugin::compositeOverlay(gpu::Batch& batch) {
+    if (!_currentFrame || !_currentFrame->overlay) {
+        return;
+    }
+
+    _overlayRenderer.render(*this, batch);
+}
+
+void HmdDisplayPlugin::OverlayRenderer::render(HmdDisplayPlugin& plugin, gpu::Batch& batch) {
+    updatePipeline();
+    for_each_eye([&](Eye eye){
+        uniforms.mvp = mvps[eye];
+        uniformBuffers[eye]->setSubData(0, uniforms);
+    });
+        batch.setPipeline(pipeline);
+        batch.setInputFormat(format);
+        gpu::BufferView posView(vertices, VERTEX_OFFSET, vertices->getSize(), VERTEX_STRIDE, format->getAttributes().at(gpu::Stream::POSITION)._element);
+        gpu::BufferView uvView(vertices, TEXTURE_OFFSET, vertices->getSize(), VERTEX_STRIDE, format->getAttributes().at(gpu::Stream::TEXCOORD)._element);
+        batch.setInputBuffer(gpu::Stream::POSITION, posView);
+        batch.setInputBuffer(gpu::Stream::TEXCOORD, uvView);
+        batch.setIndexBuffer(gpu::UINT16, indices, 0);
+        batch.setResourceTexture(0, plugin._currentFrame->overlay);
+        // FIXME use stereo information input to set both MVPs in the uniforms
+        for_each_eye([&](Eye eye) {
+            batch.setUniformBuffer(uniformsLocation, uniformBuffers[eye]);
+            batch.setViewportTransform(plugin.eyeViewport(eye));
+            batch.drawIndexed(gpu::TRIANGLES, indexCount);
+        });
+}
+
 void HmdDisplayPlugin::OverlayRenderer::render(HmdDisplayPlugin& plugin) {
     updatePipeline();
     for_each_eye([&](Eye eye){
@@ -612,7 +646,9 @@ void HmdDisplayPlugin::OverlayRenderer::render(HmdDisplayPlugin& plugin) {
     });
     plugin.render([&](gpu::Batch& batch) {
         batch.enableStereo(false);
+#ifndef ANDROID
         batch.setFramebuffer(plugin._compositeFramebuffer);
+#endif
         batch.setPipeline(pipeline);
         batch.setInputFormat(format);
         gpu::BufferView posView(vertices, VERTEX_OFFSET, vertices->getSize(), VERTEX_STRIDE, format->getAttributes().at(gpu::Stream::POSITION)._element);
@@ -639,7 +675,9 @@ void HmdDisplayPlugin::compositePointer() {
     render([&](gpu::Batch& batch) {
         // FIXME use standard gpu stereo rendering for this.
         batch.enableStereo(false);
+#ifndef ANDROID
         batch.setFramebuffer(_compositeFramebuffer);
+#endif
         batch.setPipeline(_cursorPipeline);
         batch.setResourceTexture(0, cursorData.texture);
         batch.resetViewTransform();
@@ -707,7 +745,9 @@ void HmdDisplayPlugin::compositeExtra() {
     }
     
     render([&](gpu::Batch& batch) {
+#ifndef ANDROID
         batch.setFramebuffer(_compositeFramebuffer);
+#endif
         batch.setModelTransform(Transform());
         batch.setViewportTransform(ivec4(uvec2(0), _renderTargetSize));
         batch.setViewTransform(_currentPresentFrameInfo.presentPose, false);
@@ -738,6 +778,49 @@ void HmdDisplayPlugin::compositeExtra() {
             batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
         }
     });
+}
+
+void HmdDisplayPlugin::compositeExtra(gpu::Batch& batch) {
+    // If neither hand laser is activated, exit
+    if (!_presentHandLasers[0].valid() && !_presentHandLasers[1].valid() && !_presentExtraLaser.valid()) {
+        return;
+    }
+
+    if (_presentHandPoses[0] == IDENTITY_MATRIX && _presentHandPoses[1] == IDENTITY_MATRIX && !_presentExtraLaser.valid()) {
+        return;
+    }
+    
+
+        batch.setModelTransform(Transform());
+        batch.setViewportTransform(ivec4(uvec2(0), _renderTargetSize));
+        batch.setViewTransform(_currentPresentFrameInfo.presentPose, false);
+        // Compile the shaders
+        batch.setPipeline(_glowLinePipeline);
+
+
+        bilateral::for_each_side([&](bilateral::Side side){
+            auto index = bilateral::index(side);
+            if (_presentHandPoses[index] == IDENTITY_MATRIX) {
+                return;
+            }
+            const auto& laser = _presentHandLasers[index];
+            if (laser.valid()) {
+                const auto& points = _presentHandLaserPoints[index];
+                _handLaserUniforms[index]->resize(sizeof(HandLaserData));
+                _handLaserUniforms[index]->setSubData(0, HandLaserData { vec4(points.first, 1.0f), vec4(points.second, 1.0f), _handLasers[index].color });
+                batch.setUniformBuffer(LINE_DATA_SLOT, _handLaserUniforms[index]);
+                batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
+            }
+        });
+
+        if (_presentExtraLaser.valid()) {
+            const auto& points = _presentExtraLaserPoints;
+            _extraLaserUniforms->resize(sizeof(HandLaserData));
+            _extraLaserUniforms->setSubData(0, HandLaserData { vec4(points.first, 1.0f), vec4(points.second, 1.0f), _presentExtraLaser.color });
+            batch.setUniformBuffer(LINE_DATA_SLOT, _extraLaserUniforms);
+            batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
+        }
+
 }
 
 HmdDisplayPlugin::~HmdDisplayPlugin() {

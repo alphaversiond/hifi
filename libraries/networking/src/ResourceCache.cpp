@@ -475,7 +475,6 @@ int ResourceCache::getLoadingRequestCount() {
 bool ResourceCache::attemptRequest(QSharedPointer<Resource> resource) {
     Q_ASSERT(!resource.isNull());
     auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
-
     if (_requestsActive >= _requestLimit) {
         // wait until a slot becomes available
         sharedItems->appendPendingRequest(resource);

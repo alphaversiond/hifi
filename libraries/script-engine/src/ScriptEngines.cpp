@@ -116,8 +116,8 @@ QUrl expandScriptUrl(const QUrl& rawScriptURL) {
             // stop something like Script.include(["/~/../Desktop/naughty.js"]); from working
             QFileInfo fileInfo(url.toLocalFile());
             url = QUrl::fromLocalFile(fileInfo.canonicalFilePath());
-
-            QUrl defaultScriptsLoc = defaultScriptsLocation();
+            QFileInfo defaultScriptFileInfo(defaultScriptsLocation().toLocalFile());
+            QUrl defaultScriptsLoc = QUrl::fromLocalFile(defaultScriptFileInfo.canonicalFilePath());
             if (!defaultScriptsLoc.isParentOf(url)) {
                 qCWarning(scriptengine) << "Script.include() ignoring file path" << rawScriptURL
                                         << "-- outside of standard libraries: "
@@ -294,6 +294,7 @@ void ScriptEngines::loadOneScript(const QString& scriptFilename) {
 }
 
 void ScriptEngines::loadScripts() {
+#ifndef ANDROID
     // check first run...
     Setting::Handle<bool> firstRun { Settings::firstRun, true };
     if (firstRun.get()) {
@@ -315,6 +316,14 @@ void ScriptEngines::loadScripts() {
         }
     }
     settings.endArray();
+#else
+    // always load defaultScripts for Android
+    qCDebug(scriptengine) << "This is a first run...";
+    // clear the scripts, and set out script to our default scripts
+    clearScripts();
+    loadDefaultScripts();
+    return;
+#endif
 }
 
 void ScriptEngines::clearScripts() {

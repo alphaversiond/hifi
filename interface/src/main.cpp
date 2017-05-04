@@ -80,6 +80,7 @@ int main(int argc, const char* argv[]) {
     }
 
     if (instanceMightBeRunning) {
+
         // Try to connect and send message to existing interface instance
         QLocalSocket socket;
 
@@ -89,6 +90,7 @@ int main(int argc, const char* argv[]) {
 
         // Try to connect - if we can't connect, interface has probably just gone down
         if (socket.waitForConnected(LOCAL_SERVER_TIMEOUT_MS)) {
+
             QCommandLineParser parser;
             QCommandLineOption urlOption("url", "", "value");
             parser.addOption(urlOption);
@@ -106,8 +108,6 @@ int main(int argc, const char* argv[]) {
             }
 
             socket.close();
-
-            qDebug() << "Interface instance appears to be running, exiting";
 
             return EXIT_SUCCESS;
         }
@@ -162,7 +162,6 @@ int main(int argc, const char* argv[]) {
         usecTimestampNowForceClockSkew(clockSkew);
         qCDebug(interfaceapp) << "clockSkewOption=" << clockSkewOption << "clockSkew=" << clockSkew;
     }
-
     // Oculus initialization MUST PRECEDE OpenGL context creation.
     // The nature of the Application constructor means this has to be either here,
     // or in the main window ctor, before GL startup.

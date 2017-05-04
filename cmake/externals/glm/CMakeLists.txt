@@ -1,12 +1,19 @@
 set(EXTERNAL_NAME glm)
 
+if(ANDROID)
+	include("../../../cmake/android/ToolchainSetup.cmake")
+    set(ANDROID_ARGS "")
+    toolchain_setup_args(ANDROID_ARGS "gnustl")
+    list(APPEND PLATFORM_CMAKE_ARGS ${ANDROID_ARGS})
+endif()
+
 include(ExternalProject)
 ExternalProject_Add(
   ${EXTERNAL_NAME}
   URL https://hifi-public.s3.amazonaws.com/dependencies/glm-0.9.8.zip
   URL_MD5 579ac77a3110befa3244d68c0ceb7281
   BINARY_DIR ${EXTERNAL_PROJECT_PREFIX}/build
-  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
+  CMAKE_ARGS ${PLATFORM_CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
   LOG_DOWNLOAD 1
   LOG_CONFIGURE 1
   LOG_BUILD 1

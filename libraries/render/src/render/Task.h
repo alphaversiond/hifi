@@ -28,6 +28,8 @@
 #include "gpu/Batch.h"
 #include <PerfStat.h>
 
+#include <QDebug>
+
 namespace render {
 
 class Varying;
@@ -647,7 +649,6 @@ public:
             // Connect dirty->refresh if defined
             QObject::connect(config.get(), SIGNAL(dirty()), getConfiguration().get(), SLOT(refresh()));
         }
-
         return _jobs.back().getOutput();
     }
     template <class T, class... A> const Varying addJob(std::string name, A&&... args) {

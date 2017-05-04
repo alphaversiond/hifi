@@ -106,6 +106,7 @@ namespace controller {
 
     Pose ScriptingInterface::getPoseValue(const int& source) const {
         auto userInputMapper = DependencyManager::get<UserInputMapper>();
+        //qDebug() << "ScriptingInterface::getPoseValue returning..";
         return userInputMapper->getPose(Input((uint32_t)source)); 
     }
     
@@ -186,6 +187,7 @@ namespace controller {
 
 
     QObject* ScriptingInterface::parseMapping(const QString& json) {
+        qCDebug(controllers) << "ScriptingInterface::parseMapping";
         auto userInputMapper = DependencyManager::get<UserInputMapper>();
         auto mapping = userInputMapper->parseMapping(json);
         return new MappingBuilderProxy(*userInputMapper, mapping);

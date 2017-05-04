@@ -21,7 +21,7 @@ endif ()
 
 macro(qt_create_apk)
 	if(ANDROID_APK_FULLSCREEN)
-		set(ANDROID_APK_THEME "android:theme=\"@android:style/Theme.NoTitleBar.Fullscreen\"")
+		set(ANDROID_APK_THEME "android:theme=\"@style/AppTheme\"")
 	else()
 		set(ANDROID_APK_THEME "")
 	endif()
@@ -52,7 +52,6 @@ macro(qt_create_apk)
   foreach(_IGNORE_COPY IN LISTS IGNORE_COPY_LIBS)
     list(REMOVE_ITEM _DEPENDENCIES ${_IGNORE_COPY})
   endforeach()
-  
   foreach(_DEP IN LISTS _DEPENDENCIES)
     if (NOT TARGET ${_DEP})
       list(APPEND _DEPS_LIST ${_DEP})
@@ -75,7 +74,6 @@ macro(qt_create_apk)
   endforeach()
   
   list(REMOVE_DUPLICATES _DEPS_LIST)
-  
   # just copy static libs to apk libs folder - don't add to deps list
   foreach(_LOCATED_DEP IN LISTS _DEPS_LIST)
     if (_LOCATED_DEP MATCHES "\\.a$")
@@ -88,9 +86,32 @@ macro(qt_create_apk)
     endif ()
   endforeach()
   
+  if (UPPER_CMAKE_BUILD_TYPE MATCHES DEBUG)
+    foreach(_A_DEP IN LISTS _DEPS_LIST)
+      if (_A_DEP MATCHES "^\\$<\\$<NOT:\\$<CONFIG:DEBUG>>")
+        list(REMOVE_ITEM _DEPS_LIST ${_A_DEP})
+      elseif(_A_DEP MATCHES "^\\$<\\$<CONFIG:DEBUG>")
+        string(REPLACE "$<$<CONFIG:DEBUG>:" "" _DEP_TMP ${_A_DEP})
+        string(LENGTH ${_DEP_TMP} _DEP_TEMP_LEN)
+        math(EXPR _DEP_TEMP_LEN '${_DEP_TEMP_LEN}-1')
+        string(SUBSTRING ${_DEP_TMP} 0 ${_DEP_TEMP_LEN} _DEP_TMP)
+        list(REMOVE_ITEM _DEPS_LIST ${_A_DEP})
+        list(APPEND _DEPS_LIST ${_DEP_TMP})
+      endif()
+    endforeach()
+  elseif()
+      # Not happening when compiling release..
+  endif()
+  foreach(_IGNORE_COPY IN LISTS IGNORE_COPY_LIBS)
+    list(REMOVE_ITEM _DEPS_LIST ${_IGNORE_COPY})
+  endforeach()
+
   string(REPLACE ";" "," _DEPS "${_DEPS_LIST}")
   
+  # restore temporarily for json config
+  set(ANDROID_NDK "${ANDROID_NDK_BAK}")
   configure_file("${ANDROID_THIS_DIRECTORY}/deployment-file.json.in" "${TARGET_NAME}-deployment.json")
+  set(ANDROID_NDK "")
   
   # copy the res folder from the target to the apk build dir
   add_custom_target(
@@ -115,7 +136,28 @@ macro(qt_create_apk)
     ${TARGET_NAME}-copy-libs
     COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/libs" "${ANDROID_APK_BUILD_DIR}/libs"
   )
-  
+
+  # copy resources
+  add_custom_target(
+    ${TARGET_NAME}-copy-resources
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/resources" "${ANDROID_APK_BUILD_DIR}/assets/resources"
+  )
+
+  # copy scripts
+  add_custom_target(
+    ${TARGET_NAME}-copy-scripts
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/../scripts" "${ANDROID_APK_BUILD_DIR}/assets/scripts"
+    
+  )
+
+  # download the protobuf-javanano jar if necessary
+  set(PROTOBUF_JAVANANO_JAR "${ANDROID_APK_BUILD_DIR}/libs/protobuf-javanano-3.0.0-alpha-7.jar")
+  if (NOT EXISTS ${PROTOBUF_JAVANANO_JAR})
+    file(DOWNLOAD "https://repo1.maven.org/maven2/com/google/protobuf/nano/protobuf-javanano/3.0.0-alpha-7/protobuf-javanano-3.0.0-alpha-7.jar"
+                  "${PROTOBUF_JAVANANO_JAR}"
+                  EXPECTED_HASH MD5=a5bf5dced93ffd107aa0c1f0e6390d81)
+  endif ()
+
   # handle setup for ndk-gdb
   add_custom_target(${TARGET_NAME}-gdb DEPENDS ${TARGET_NAME})
   
@@ -144,8 +186,8 @@ macro(qt_create_apk)
   
   # use androiddeployqt to create the apk
   add_custom_target(${TARGET_NAME}-apk
-    COMMAND ${ANDROID_DEPLOY_QT} --input "${TARGET_NAME}-deployment.json" --output "${ANDROID_APK_OUTPUT_DIR}" --android-platform android-${ANDROID_API_LEVEL} ${ANDROID_DEPLOY_QT_INSTALL} --verbose --deployment bundled "\\$(ARGS)"
-    DEPENDS ${TARGET_NAME} ${TARGET_NAME}-copy-res ${TARGET_NAME}-copy-assets ${TARGET_NAME}-copy-java ${TARGET_NAME}-copy-libs ${TARGET_NAME}-gdb
+    COMMAND ${ANDROID_DEPLOY_QT} --input "${TARGET_NAME}-deployment.json" --output "${ANDROID_APK_OUTPUT_DIR}" --android-platform android-${ANDROID_API_LEVEL} ${ANDROID_DEPLOY_QT_INSTALL} --verbose --deployment bundled "\\${ARGS}"
+    DEPENDS ${TARGET_NAME} ${TARGET_NAME}-copy-res ${TARGET_NAME}-copy-assets ${TARGET_NAME}-copy-java ${TARGET_NAME}-copy-libs ${TARGET_NAME}-gdb ${TARGET_NAME}-copy-resources ${TARGET_NAME}-copy-scripts
   )
   
   # rename the APK if the caller asked us to

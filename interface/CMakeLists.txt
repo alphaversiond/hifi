@@ -88,15 +88,20 @@ if (ANDROID)
 
   set(ANDROID_SDK_ROOT $ENV{ANDROID_HOME})
   set(ANDROID_APP_DISPLAY_NAME Interface)
-  set(ANDROID_API_LEVEL 19)
-  set(ANDROID_APK_PACKAGE io.highfidelity.interface)
-  set(ANDROID_ACTIVITY_NAME io.highfidelity.interface.InterfaceActivity)
-  set(ANDROID_APK_VERSION_NAME "0.1")
-  set(ANDROID_APK_VERSION_CODE 1)
+  set(ANDROID_API_LEVEL 24)
+  set(ANDROID_APK_PACKAGE io.highfidelity.hifiinterface)
+  set(ANDROID_ACTIVITY_NAME io.highfidelity.hifiinterface.InterfaceActivity)
+  set(ANDROID_APK_VERSION_NAME "0.46")
+  set(ANDROID_APK_VERSION_CODE 46)
   set(ANDROID_APK_FULLSCREEN TRUE)
   set(ANDROID_DEPLOY_QT_INSTALL "--install")
 
   set(BUILD_SHARED_LIBS ON)
+
+  # gvr-sdk to library folder - TODO Move this where it should be, related only to our daydream plugin
+  aar_to_libproject ("${ANDROID_LIB_DIR}/gvr-android-sdk/libraries/common/common.aar"
+    "android-${ANDROID_NATIVE_API_LEVEL}"
+    "${CMAKE_CURRENT_BINARY_DIR}/gvr-common")
 endif ()
 
 if (APPLE)
@@ -187,16 +192,38 @@ if (WIN32)
   set_property(TARGET ${TARGET_NAME} APPEND_STRING PROPERTY LINK_FLAGS_DEBUG "/OPT:NOREF /OPT:NOICF")
 endif()
 
+if (NOT ANDROID)
+  #set(NON_ANDROID_LIBRARIES steamworks-wrapper)
+else()
+  set(ANDROID_LIBRARIES daydream)
+endif ()
+
 # link required hifi libraries
-link_hifi_libraries(
-  shared octree gpu gl gpu-gl procedural model render
-  recording fbx networking model-networking entities avatars
-  audio audio-client animation script-engine physics
-  render-utils entities-renderer ui auto-updater
-  controllers plugins
-  ui-plugins display-plugins input-plugins
-  ${NON_ANDROID_LIBRARIES}
-)
+# temporal exclusion of libs for android
+#if (ANDROID)
+ # message (STATUS "will NOT link gpu-gl")
+ # link_hifi_libraries(
+ #   networking shared octree gpu gl procedural model render
+ #   recording fbx model-networking entities avatars
+ #   audio audio-client animation script-engine physics
+ #   render-utils entities-renderer ui auto-updater
+ #   controllers plugins
+ #   ui-plugins display-plugins input-plugins
+ #   ${NON_ANDROID_LIBRARIES}
+ # )
+#else ()
+ # message (STATUS "will link gpu-gl")
+  link_hifi_libraries(
+    networking shared octree gpu gl gpu-gl procedural model render
+    recording fbx model-networking entities avatars
+    audio audio-client animation script-engine physics
+    render-utils entities-renderer ui auto-updater
+    controllers plugins
+    ui-plugins display-plugins input-plugins
+    ${NON_ANDROID_LIBRARIES}
+    ${ANDROID_LIBRARIES}
+  )
+#endif ()
 
 # include the binary directory of render-utils for shader includes
 target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_BINARY_DIR}/libraries/render-utils")
@@ -204,6 +231,19 @@ target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_BINARY_DIR}/libraries
 #fixme find a way to express faceshift as a plugin
 target_bullet()
 target_opengl()
+
+# just a test, do it separately in a plugin
+if (ANDROID)
+  find_package (GVR)
+  if (GVR_FOUND)
+    include_directories(${GVR_INCLUDE_DIRS})
+    target_link_libraries(${TARGET_NAME} ${GVR_LIBRARIES})
+
+    # Expects the gvr-common library folder to be one level outside $ANDROID_APK_BUILD_DIR
+    file(WRITE "${ANDROID_APK_BUILD_DIR}/project.properties" "android.library.reference.1=../gvr-common")
+
+  endif()
+endif()
 
 if (NOT ANDROID)
   target_glew()
@@ -254,17 +294,21 @@ endforeach()
 # include headers for interface and InterfaceConfig.
 include_directories("${PROJECT_SOURCE_DIR}/src")
 
+if (NOT ANDROID)
+  set(NON_ANDROID_PLATFORM_QT_LIBRARIES Qt5::WebEngine)
+endif ()
+
 target_link_libraries(
   ${TARGET_NAME}
   Qt5::Gui Qt5::Network Qt5::Multimedia Qt5::OpenGL
   Qt5::Qml Qt5::Quick Qt5::Script Qt5::Svg
-  Qt5::WebChannel Qt5::WebEngine
-  ${PLATFORM_QT_LIBRARIES}
+  Qt5::WebChannel ${NON_ANDROID_PLATFORM_QT_LIBRARIES}
 )
 
-if (UNIX)
+if (UNIX AND NOT ANDROID)
+  message (status "pthread here because it was UNIX")
     target_link_libraries(${TARGET_NAME} pthread)
-endif(UNIX)
+endif(UNIX AND NOT ANDROID)
 
 # assume we are using a Qt build without bearer management
 add_definitions(-DQT_NO_BEARERMANAGEMENT)

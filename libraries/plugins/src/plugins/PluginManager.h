@@ -29,8 +29,13 @@ public:
     void disableInputs(const QStringList& inputs);
     void saveSettings();
     void setContainer(PluginContainer* container) { _container = container; }
-
     void shutdown();
+    #if defined(ANDROID) 
+    void loadDisplayPlugins(DisplayPlugin* pool[]);
+    void loadInputPlugins(InputPlugin* pool[]);
+    DisplayPluginList _displayPlugins;
+    InputPluginList _inputPlugins;
+    #endif
 private:
     PluginContainer* _container { nullptr };
 };

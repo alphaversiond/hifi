@@ -22,14 +22,14 @@ layout(std140) uniform overlayBuffer {
     OverlayData overlay;
 };
 
-vec2 resolution = overlay.resolutionRadiusAlpha.xy;
-float radius = overlay.resolutionRadiusAlpha.z;
-float alpha = overlay.resolutionRadiusAlpha.w;
-vec4 glowPoints = overlay.glowPoints;
-vec4 glowColors[2] = overlay.glowColors;
+vec2 resolution;
+float radius;
+float alpha;
+vec4 glowPoints;
+vec4 glowColors[2];
 
-vec2 extraGlowPoint = overlay.extraGlowPoint;
-vec4 extraGlowColor = overlay.extraGlowColor;
+vec2 extraGlowPoint;
+vec4 extraGlowColor;
 
 in vec3 vPosition;
 in vec2 vTexCoord;
@@ -46,6 +46,15 @@ float easeInOutCubic(float f) {
 }
 
 void main() {
+    extraGlowPoint = overlay.extraGlowPoint;
+    extraGlowColor = overlay.extraGlowColor;
+    resolution = overlay.resolutionRadiusAlpha.xy;
+    radius = overlay.resolutionRadiusAlpha.z;
+    alpha = overlay.resolutionRadiusAlpha.w;
+    glowPoints = overlay.glowPoints;
+    glowColors[0] = overlay.glowColors[0];
+    glowColors[1] = overlay.glowColors[1];
+
     FragColor = texture(sampler, vTexCoord);
 
     vec2 aspect = resolution;

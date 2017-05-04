@@ -13,14 +13,16 @@
 #include <AddressManager.h>
 #include <HifiSockAddr.h>
 #include <NodeList.h>
-#include <PacketHeaders.h>
+#include <SettingInterface.h>
 
 #include "Client.h"
 
 Client::Client(QObject* parent) :
     QObject(parent)
 {   
+    Setting::init(); // confirm this: Added by gcalero to remove this warning Setting::Interface::init() for key "AddressManager/address" - Manager not yet created. Settings persistence disabled.
     // we need to make sure that required dependencies are created
+    DependencyManager::set<AccountManager>();
     DependencyManager::set<AddressManager>();
     
     setupNetworking();
@@ -28,14 +30,11 @@ Client::Client(QObject* parent) :
 
 void Client::setupNetworking() {
     // once Application order of instantiation is fixed this should be done from AccountManager
-    AccountManager::getInstance().setAuthURL(DEFAULT_NODE_AUTH_URL);
+    // AccountManager::getInstance().setAuthURL(DEFAULT_NODE_AUTH_URL);
     
     // setup the NodeList for this client
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>(); 
     auto nodeList = DependencyManager::set<NodeList>(NodeType::Agent, 0);
-    
-    // while datagram processing remains simple for targets using Client, we'll handle datagrams
-    connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, this, &Client::processDatagrams);
     
     // every second, ask the NodeList to check in with the domain server
     QTimer* domainCheckInTimer = new QTimer(this);
@@ -48,26 +47,4 @@ void Client::setupNetworking() {
     // handle the case where the domain stops talking to us
     // TODO: can we just have the nodelist do this when it sets up? Is there a user of the NodeList that wouldn't want this?
     connect(nodeList.data(), &NodeList::limitOfSilentDomainCheckInsReached, nodeList.data(), &NodeList::reset);
-}
-
-void Client::processVerifiedPacket(const HifiSockAddr& senderSockAddr, const QByteArray& incomingPacket) {
-    DependencyManager::get<NodeList>()->processNodeData(senderSockAddr, incomingPacket);
-}
-
-void Client::processDatagrams() {
-    HifiSockAddr senderSockAddr;
-    
-    static QByteArray incomingPacket;
-    
-    auto nodeList = DependencyManager::get<NodeList>();
-    
-    while (DependencyManager::get<NodeList>()->getNodeSocket().hasPendingDatagrams()) {
-        incomingPacket.resize(nodeList->getNodeSocket().pendingDatagramSize());
-        nodeList->getNodeSocket().readDatagram(incomingPacket.data(), incomingPacket.size(),
-                                               senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
-        
-        if (nodeList->packetVersionAndHashMatch(incomingPacket)) {
-            processVerifiedPacket(senderSockAddr, incomingPacket);
-        }
-    }
 }

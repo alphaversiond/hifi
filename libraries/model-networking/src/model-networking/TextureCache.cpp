@@ -193,8 +193,10 @@ NetworkTexture::TextureLoaderFunc getTextureLoaderForType(NetworkTexture::Type t
         }
         case Type::CUBE_TEXTURE: {
             if (options.value("generateIrradiance", true).toBool()) {
+                qDebug() << "[SKYBOX] NetworkTexture::TextureLoaderFunc getTextureLoaderForType 1";
                 return model::TextureUsage::createCubeTextureFromImage;
             } else {
+                qDebug() << "[SKYBOX] NetworkTexture::TextureLoaderFunc getTextureLoaderForType 2";
                 return model::TextureUsage::createCubeTextureFromImageWithoutIrradiance;
             }
             break;

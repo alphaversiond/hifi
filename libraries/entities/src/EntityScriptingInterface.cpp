@@ -643,7 +643,9 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersection(cons
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
     QVector<EntityItemID> entitiesToInclude = qVectorEntityItemIDFromScriptValue(entityIdsToInclude);
+    qDebug() << "teleport entitiesToInclude size " << entitiesToInclude.size();
     QVector<EntityItemID> entitiesToDiscard = qVectorEntityItemIDFromScriptValue(entityIdsToDiscard);
+    qDebug() << "teleport entitiesToDiscard size " << entitiesToDiscard.size();
     return findRayIntersectionWorker(ray, Octree::Lock, precisionPicking, entitiesToInclude, entitiesToDiscard, visibleOnly, collidableOnly);
 }
 
@@ -667,11 +669,13 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorke
     if (_entityTree) {
         OctreeElementPointer element;
         EntityItemPointer intersectedEntity = NULL;
+        qDebug() << "teleport ray info origin:" << ray.origin << " direction:" << ray.direction;
         result.intersects = _entityTree->findRayIntersection(ray.origin, ray.direction,
             entityIdsToInclude, entityIdsToDiscard, visibleOnly, collidableOnly, precisionPicking,
             element, result.distance, result.face, result.surfaceNormal,
             (void**)&intersectedEntity, lockType, &result.accurate);
         if (result.intersects && intersectedEntity) {
+            qDebug() << "teleport findRayIntersectionWorker intersection found " << result.intersects;
             result.entityID = intersectedEntity->getEntityItemID();
             result.properties = intersectedEntity->getProperties();
             result.intersection = ray.origin + (ray.direction * result.distance);

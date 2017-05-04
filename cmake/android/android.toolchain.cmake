@@ -242,11 +242,11 @@ set( ANDROID_SUPPORTED_ABIS_mips64 "mips64" )
 
 # API level defaults
 set( ANDROID_DEFAULT_NDK_API_LEVEL 8 )
-set( ANDROID_DEFAULT_NDK_API_LEVEL_arm64 21 )
+set( ANDROID_DEFAULT_NDK_API_LEVEL_arm64 24 )
 set( ANDROID_DEFAULT_NDK_API_LEVEL_x86 9 )
-set( ANDROID_DEFAULT_NDK_API_LEVEL_x86_64 21 )
+set( ANDROID_DEFAULT_NDK_API_LEVEL_x86_64 24 )
 set( ANDROID_DEFAULT_NDK_API_LEVEL_mips 9 )
-set( ANDROID_DEFAULT_NDK_API_LEVEL_mips64 21 )
+set( ANDROID_DEFAULT_NDK_API_LEVEL_mips64 24 )
 
 
 macro( __LIST_FILTER listvar regex )
@@ -501,6 +501,7 @@ endif()
 
 
 # get all the details about standalone toolchain
+message(STATUS "review BUILD_WITH_STANDALONE_TOOLCHAIN=${BUILD_WITH_STANDALONE_TOOLCHAIN}?")
 if( BUILD_WITH_STANDALONE_TOOLCHAIN )
  __DETECT_NATIVE_API_LEVEL( ANDROID_SUPPORTED_NATIVE_API_LEVELS "${ANDROID_STANDALONE_TOOLCHAIN}/sysroot/usr/include/android/api-level.h" )
  set( ANDROID_STANDALONE_TOOLCHAIN_API_LEVEL ${ANDROID_SUPPORTED_NATIVE_API_LEVELS} )
@@ -522,17 +523,20 @@ if( BUILD_WITH_STANDALONE_TOOLCHAIN )
  elseif( __availableToolchainMachines MATCHES mipsel )
   set( __availableToolchainArchs "mips" )
  endif()
+ message(STATUS "review running: ${ANDROID_STANDALONE_TOOLCHAIN}/bin/${__availableToolchainMachines}-gcc${TOOL_OS_SUFFIX}")
  execute_process( COMMAND "${ANDROID_STANDALONE_TOOLCHAIN}/bin/${__availableToolchainMachines}-gcc${TOOL_OS_SUFFIX}" -dumpversion
                   OUTPUT_VARIABLE __availableToolchainCompilerVersions OUTPUT_STRIP_TRAILING_WHITESPACE )
  string( REGEX MATCH "[0-9]+[.][0-9]+([.][0-9]+)?" __availableToolchainCompilerVersions "${__availableToolchainCompilerVersions}" )
+ message(STATUS "review __availableToolchainCompilerVersions=${__availableToolchainCompilerVersions}")
  if( EXISTS "${ANDROID_STANDALONE_TOOLCHAIN}/bin/clang${TOOL_OS_SUFFIX}" )
+  message(STATUS "review clang found! ${ANDROID_STANDALONE_TOOLCHAIN}/bin/clang${TOOL_OS_SUFFIX}")
   list( APPEND __availableToolchains "standalone-clang" )
   list( APPEND __availableToolchainMachines ${__availableToolchainMachines} )
   list( APPEND __availableToolchainArchs ${__availableToolchainArchs} )
   list( APPEND __availableToolchainCompilerVersions ${__availableToolchainCompilerVersions} )
  endif()
 endif()
-
+message(STATUS "review __availableToolchains=${__availableToolchains}")
 macro( __GLOB_NDK_TOOLCHAINS __availableToolchainsVar __availableToolchainsLst __toolchain_subpath )
  foreach( __toolchain ${${__availableToolchainsLst}} )
   if( "${__toolchain}" MATCHES "-clang3[.][0-9]$" AND NOT EXISTS "${ANDROID_NDK_TOOLCHAINS_PATH}/${__toolchain}${__toolchain_subpath}" )
@@ -730,7 +734,7 @@ if( ANDROID_ARCH_NAME STREQUAL "arm" AND NOT ARMEABI_V6 )
 else()
  unset( ANDROID_FORCE_ARM_BUILD CACHE )
 endif()
-
+message(STATUS "review ANDROID_TOOLCHAIN_NAME=${ANDROID_TOOLCHAIN_NAME}")
 # choose toolchain
 if( ANDROID_TOOLCHAIN_NAME )
  list( FIND __availableToolchains "${ANDROID_TOOLCHAIN_NAME}" __toolchainIdx )
@@ -772,6 +776,7 @@ if( __toolchainIdx EQUAL -1 )
 endif()
 list( GET __availableToolchains ${__toolchainIdx} ANDROID_TOOLCHAIN_NAME )
 list( GET __availableToolchainMachines ${__toolchainIdx} ANDROID_TOOLCHAIN_MACHINE_NAME )
+message( STATUS "review __availableToolchainCompilerVersions=${__availableToolchainCompilerVersions} __toolchainIdx=${__toolchainIdx}")
 list( GET __availableToolchainCompilerVersions ${__toolchainIdx} ANDROID_COMPILER_VERSION )
 
 unset( __toolchainIdx )
@@ -852,12 +857,15 @@ The possible values are:
 " )
  endif()
 elseif( BUILD_WITH_STANDALONE_TOOLCHAIN )
- if( NOT "${ANDROID_STL}" MATCHES "^(none|gnustl_static|gnustl_shared)$")
+ # added c++_static to be able to use llvm libc++ as a static lib
+ if( NOT "${ANDROID_STL}" MATCHES "^(none|gnustl_static|gnustl_shared|c\\+\\+_static|c\\+\\+_shared)$")
   message( FATAL_ERROR "ANDROID_STL is set to invalid value \"${ANDROID_STL}\".
 The possible values are:
   none           -> Do not configure the runtime.
   gnustl_static  -> (default) Use the GNU STL as a static library.
   gnustl_shared  -> Use the GNU STL as a shared library.
+  c++_static     -> Use the LLVM libc++ runtime as a static library.
+  c++_shared     -> Use the LLVM libc++ runtime as a shared library.
 " )
  endif()
 endif()
@@ -902,8 +910,55 @@ if( BUILD_WITH_STANDALONE_TOOLCHAIN )
  set( ANDROID_CLANG_TOOLCHAIN_ROOT "${ANDROID_STANDALONE_TOOLCHAIN}" )
  set( ANDROID_SYSROOT "${ANDROID_STANDALONE_TOOLCHAIN}/sysroot" )
 
- if( NOT ANDROID_STL STREQUAL "none" )
+  # this standalone code now supports libc++
+ if( ANDROID_STL MATCHES "c\\+\\+_shared" OR ANDROID_STL MATCHES "c\\+\\+_static" )
+  message(STATUS "review ANDROID_STL=${ANDROID_STL}")
+
+  set( ANDROID_EXCEPTIONS       ON )
+  set( ANDROID_RTTI             ON )
+  set( ANDROID_CXX_ROOT     "${ANDROID_STANDALONE_TOOLCHAIN}/include" )
+  # useless set( ANDROID_LLVM_ROOT    "${ANDROID_CXX_ROOT}/llvm-libc++" )
+
+  if( X86 )
+   set( ANDROID_ABI_INCLUDE_DIRS "${ANDROID_CXX_ROOT}/gabi++/include" )
+  else()
+   set( ANDROID_ABI_INCLUDE_DIRS "${ANDROID_CXX_ROOT}/llvm-libc++abi/include" )
+  endif()
+  # TODO de-hardcode the following (based on the standalone toolchain generated)
+  set( ANDROID_STL_INCLUDE_DIRS "${ANDROID_STANDALONE_TOOLCHAIN}/include/c++/4.9.x" "${ANDROID_ABI_INCLUDE_DIRS}" )
+
+  # android support sfiles
+  #include_directories ( SYSTEM ${ANDROID_NDK}/sources/android/support/include )
+
+  if(ANDROID_STL MATCHES "c\\+\\+_shared")
+    set ( LLVM_LIBRARY_NAME "libc++_shared.so")
+    set ( LLVM_LIBRARY_NAME_WO_TYPE "libc++.so")
+  else()
+    set ( LLVM_LIBRARY_NAME "libc++_static.a" )
+    set ( LLVM_LIBRARY_NAME_WO_TYPE "libc++.a")
+  endif ()
+  message(STATUS "review libc++ library? [${ANDROID_STANDALONE_TOOLCHAIN}/arm-linux-androideabi/lib/${CMAKE_SYSTEM_PROCESSOR}/${LLVM_LIBRARY_NAME}]")
+  if( EXISTS "${ANDROID_STANDALONE_TOOLCHAIN}/arm-linux-androideabi/lib/${CMAKE_SYSTEM_PROCESSOR}/${LLVM_LIBRARY_NAME}" )
+   set( __libstl "${ANDROID_STANDALONE_TOOLCHAIN}/arm-linux-androideabi/lib/${CMAKE_SYSTEM_PROCESSOR}/${LLVM_LIBRARY_NAME}" )
+   # added to get -L to the lib dir
+   link_directories( "${ANDROID_STANDALONE_TOOLCHAIN}/arm-linux-androideabi/lib/${CMAKE_SYSTEM_PROCESSOR}" )
+   message(STATUS "review libc++ library __libstl? ${__libstl}")
+   if( NOT EXISTS "${ANDROID_STANDALONE_TOOLCHAIN}/arm-linux-androideabi/lib/${CMAKE_SYSTEM_PROCESSOR}/${LLVM_LIBRARY_NAME_WO_TYPE}" )
+    message(FATAL "Could not find ${ANDROID_STANDALONE_TOOLCHAIN}/arm-linux-androideabi/lib/${CMAKE_SYSTEM_PROCESSOR}/${LLVM_LIBRARY_NAME_WO_TYPE} Create a symlink or a copy of ${LLVM_LIBRARY_NAME} as ${LLVM_LIBRARY_NAME_WO_TYPE}")
+   endif()
+  else()
+   message( FATAL_ERROR "Could not find libc++ library" )
+  endif()
+
+
+
+ elseif( NOT ANDROID_STL STREQUAL "none" )
+  message(STATUS "review ANDROID_COMPILER_VERSION=${ANDROID_COMPILER_VERSION}")
   set( ANDROID_STL_INCLUDE_DIRS "${ANDROID_STANDALONE_TOOLCHAIN}/include/c++/${ANDROID_COMPILER_VERSION}" )
+  if( NOT EXISTS "${ANDROID_STL_INCLUDE_DIRS}" )
+    # Now is the case of folders like include/c++/4.9.x
+    set( ANDROID_STL_INCLUDE_DIRS "${ANDROID_STANDALONE_TOOLCHAIN}/include/c++/${ANDROID_COMPILER_VERSION}.x" )
+  endif()
   if( NOT EXISTS "${ANDROID_STL_INCLUDE_DIRS}" )
    # old location ( pre r8c )
    set( ANDROID_STL_INCLUDE_DIRS "${ANDROID_STANDALONE_TOOLCHAIN}/${ANDROID_TOOLCHAIN_MACHINE_NAME}/include/c++/${ANDROID_COMPILER_VERSION}" )
@@ -950,12 +1005,18 @@ if( BUILD_WITH_STANDALONE_TOOLCHAIN )
  endif()
 endif()
 
+message (STATUS "review last __libstl=${__libstl}")
+
 # clang
+message (STATUS "review ANDROID_COMPILER_IS_CLANG=${ANDROID_COMPILER_IS_CLANG} BEFORE")
+message (STATUS "review ANDROID_TOOLCHAIN_NAME=${ANDROID_TOOLCHAIN_NAME} ")
 if( "${ANDROID_TOOLCHAIN_NAME}" STREQUAL "standalone-clang" )
+ message(STATUS "review ANDROID_TOOLCHAIN_NAME was standalone-clang")
  set( ANDROID_COMPILER_IS_CLANG 1 )
  execute_process( COMMAND "${ANDROID_CLANG_TOOLCHAIN_ROOT}/bin/clang${TOOL_OS_SUFFIX}" --version OUTPUT_VARIABLE ANDROID_CLANG_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE )
  string( REGEX MATCH "[0-9]+[.][0-9]+" ANDROID_CLANG_VERSION "${ANDROID_CLANG_VERSION}")
 elseif( "${ANDROID_TOOLCHAIN_NAME}" MATCHES "-clang3[.][0-9]?$" )
+ message(STATUS "review ANDROID_TOOLCHAIN_NAME matched clang")
  string( REGEX MATCH "3[.][0-9]$" ANDROID_CLANG_VERSION "${ANDROID_TOOLCHAIN_NAME}")
  string( REGEX REPLACE "-clang${ANDROID_CLANG_VERSION}$" "-${ANDROID_COMPILER_VERSION}" ANDROID_GCC_TOOLCHAIN_NAME "${ANDROID_TOOLCHAIN_NAME}" )
  if( NOT EXISTS "${ANDROID_NDK_TOOLCHAINS_PATH}/llvm-${ANDROID_CLANG_VERSION}${ANDROID_NDK_TOOLCHAINS_SUBPATH}/bin/clang${TOOL_OS_SUFFIX}" )
@@ -963,11 +1024,15 @@ elseif( "${ANDROID_TOOLCHAIN_NAME}" MATCHES "-clang3[.][0-9]?$" )
  endif()
  set( ANDROID_COMPILER_IS_CLANG 1 )
  set( ANDROID_CLANG_TOOLCHAIN_ROOT "${ANDROID_NDK_TOOLCHAINS_PATH}/llvm-${ANDROID_CLANG_VERSION}${ANDROID_NDK_TOOLCHAINS_SUBPATH}" )
+elseif( ANDROID_COMPILER_IS_CLANG )
+  # if it is already established to use CLANG, keep it
+  message(STATUS "ANDROID_COMPILER_IS_CLANG was already true")
 else()
+ message(STATUS "review ANDROID_TOOLCHAIN_NAME matched nothing :(")
  set( ANDROID_GCC_TOOLCHAIN_NAME "${ANDROID_TOOLCHAIN_NAME}" )
  unset( ANDROID_COMPILER_IS_CLANG CACHE )
 endif()
-
+message (STATUS "review ANDROID_COMPILER_IS_CLANG=${ANDROID_COMPILER_IS_CLANG}")
 string( REPLACE "." "" _clang_name "clang${ANDROID_CLANG_VERSION}" )
 if( NOT EXISTS "${ANDROID_CLANG_TOOLCHAIN_ROOT}/bin/${_clang_name}${TOOL_OS_SUFFIX}" )
  set( _clang_name "clang" )
@@ -1090,6 +1155,7 @@ endif()
 # case of shared STL linkage
 if( ANDROID_STL MATCHES "shared" AND DEFINED __libstl )
  string( REPLACE "_static.a" "_shared.so" __libstl "${__libstl}" )
+ message (STATUS "replaced? __libstl?${__libstl}")
  # TODO: check if .so file exists before the renaming
 endif()
 
@@ -1121,9 +1187,11 @@ if( NOT CMAKE_C_COMPILER )
   endif()
  else()
   if( ANDROID_COMPILER_IS_CLANG )
+   message (STATUS "review ANDROID_COMPILER_IS_CLANG !")
    set( CMAKE_C_COMPILER   "${ANDROID_CLANG_TOOLCHAIN_ROOT}/bin/${_clang_name}${TOOL_OS_SUFFIX}"   CACHE PATH "C compiler")
    set( CMAKE_CXX_COMPILER "${ANDROID_CLANG_TOOLCHAIN_ROOT}/bin/${_clang_name}++${TOOL_OS_SUFFIX}" CACHE PATH "C++ compiler")
   else()
+   message (STATUS "review ANDROID_COMPILER_IS_NOT_CLANG !")
    set( CMAKE_C_COMPILER   "${ANDROID_TOOLCHAIN_ROOT}/bin/${ANDROID_TOOLCHAIN_MACHINE_NAME}-gcc${TOOL_OS_SUFFIX}"    CACHE PATH "C compiler" )
    set( CMAKE_CXX_COMPILER "${ANDROID_TOOLCHAIN_ROOT}/bin/${ANDROID_TOOLCHAIN_MACHINE_NAME}-g++${TOOL_OS_SUFFIX}"    CACHE PATH "C++ compiler" )
   endif()
@@ -1331,6 +1399,8 @@ if( EXISTS "${__libstl}" OR EXISTS "${__libsupcxx}" )
  endif()
 endif()
 
+message( STATUS "review Some variables: CMAKE_CXX_CREATE_SHARED_LIBRARY=${CMAKE_CXX_CREATE_SHARED_LIBRARY} CMAKE_CXX_CREATE_SHARED_MODULE=${CMAKE_CXX_CREATE_SHARED_MODULE} CMAKE_CXX_LINK_EXECUTABLE=${CMAKE_CXX_LINK_EXECUTABLE}")
+
 # variables controlling optional build flags
 if( ANDROID_NDK_RELEASE_NUM LESS 7000 ) # before r7
  # libGLESv2.so in NDK's prior to r7 refers to missing external symbols.
@@ -1366,7 +1436,9 @@ if( ANDROID_NO_UNDEFINED )
  if( MIPS )
   # there is some sysroot-related problem in mips linker...
   if( NOT ANDROID_SYSROOT MATCHES "[ ;\"]" )
+   message( STATUS "review ANDROID_LINKER_FLAGS Adding usr/lib?")
    set( ANDROID_LINKER_FLAGS "${ANDROID_LINKER_FLAGS} -Wl,--no-undefined -Wl,-rpath-link,${ANDROID_SYSROOT}/usr/lib" )
+   message( STATUS "review ANDROID_LINKER_FLAGS ${ANDROID_LINKER_FLAGS}")
   endif()
  else()
   set( ANDROID_LINKER_FLAGS "${ANDROID_LINKER_FLAGS} -Wl,--no-undefined" )
@@ -1443,6 +1515,8 @@ set( CMAKE_SHARED_LINKER_FLAGS "${ANDROID_LINKER_FLAGS} ${CMAKE_SHARED_LINKER_FL
 set( CMAKE_MODULE_LINKER_FLAGS "${ANDROID_LINKER_FLAGS} ${CMAKE_MODULE_LINKER_FLAGS}" )
 set( CMAKE_EXE_LINKER_FLAGS    "${ANDROID_LINKER_FLAGS} ${CMAKE_EXE_LINKER_FLAGS}" )
 
+message( STATUS "review ANDROID_LINKER_FLAGS=${ANDROID_LINKER_FLAGS}")
+
 if( MIPS AND BUILD_WITH_ANDROID_NDK AND ANDROID_NDK_RELEASE STREQUAL "r8" )
  set( CMAKE_SHARED_LINKER_FLAGS "-Wl,-T,${ANDROID_NDK_TOOLCHAINS_PATH}/${ANDROID_GCC_TOOLCHAIN_NAME}/mipself.xsc ${CMAKE_SHARED_LINKER_FLAGS}" )
  set( CMAKE_MODULE_LINKER_FLAGS "-Wl,-T,${ANDROID_NDK_TOOLCHAINS_PATH}/${ANDROID_GCC_TOOLCHAIN_NAME}/mipself.xsc ${CMAKE_MODULE_LINKER_FLAGS}" )
@@ -1479,10 +1553,17 @@ if( DEFINED ANDROID_EXCEPTIONS AND ANDROID_STL_FORCE_FEATURES )
  endif()
 endif()
 
+message (STATUS "review include will be [${ANDROID_STL_INCLUDE_DIRS}]")
 # global includes and link directories
 include_directories( SYSTEM "${ANDROID_SYSROOT}/usr/include" ${ANDROID_STL_INCLUDE_DIRS} )
 get_filename_component(__android_install_path "${CMAKE_INSTALL_PREFIX}/libs/${ANDROID_NDK_ABI_NAME}" ABSOLUTE) # avoid CMP0015 policy warning
+message (STATUS "review link_directories __android_install_path=${__android_install_path}")
 link_directories( "${__android_install_path}" )
+
+if ( DEFINED SET_STD_CXX11 )
+ message (STATUS "review adding c++11 flag")
+ set( CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}" )
+endif()
 
 # detect if need link crtbegin_so.o explicitly
 if( NOT DEFINED ANDROID_EXPLICIT_CRT_LINK )
@@ -1534,12 +1615,14 @@ if( DEFINED LIBRARY_OUTPUT_PATH_ROOT
     else()
       set( EXECUTABLE_OUTPUT_PATH "${LIBRARY_OUTPUT_PATH_ROOT}/bin" CACHE PATH "Output directory for applications" )
     endif()
+    message( STATUS "review setting ${LIBRARY_OUTPUT_PATH_ROOT}/libs/${ANDROID_NDK_ABI_NAME}")
     set( LIBRARY_OUTPUT_PATH "${LIBRARY_OUTPUT_PATH_ROOT}/libs/${ANDROID_NDK_ABI_NAME}" CACHE PATH "Output directory for Android libs" )
   endif()
 endif()
 
-# copy shaed stl library to build directory
-if( NOT _CMAKE_IN_TRY_COMPILE AND __libstl MATCHES "[.]so$" AND DEFINED LIBRARY_OUTPUT_PATH )
+# copy shared stl library to build directory
+if( NOT _CMAKE_IN_TRY_COMPILE AND __libstl MATCHES "[.]so$" AND DEFINED LIBRARY_OUTPUT_PATH AND NOT "${LIBRARY_OUTPUT_PATH}" STREQUAL "")
+  message( STATUS "review LIBRARY_OUTPUT_PATH defined as [${LIBRARY_OUTPUT_PATH}]")
   get_filename_component( __libstlname "${__libstl}" NAME )
   execute_process( COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${__libstl}" "${LIBRARY_OUTPUT_PATH}/${__libstlname}" RESULT_VARIABLE __fileCopyProcess )
   if( NOT __fileCopyProcess EQUAL 0 OR NOT EXISTS "${LIBRARY_OUTPUT_PATH}/${__libstlname}")

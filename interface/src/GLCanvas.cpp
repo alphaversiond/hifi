@@ -14,6 +14,7 @@
 #include "GLCanvas.h"
 
 bool GLCanvas::event(QEvent* event) {
+	//qDebug() << "[CONTROLLER-2] GLCanvas::event";
     if (QEvent::Paint == event->type() && qApp->isAboutToQuit()) {
         return true;
     }

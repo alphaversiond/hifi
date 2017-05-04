@@ -15,10 +15,19 @@ macro(LINK_HIFI_LIBRARIES)
   
   foreach(HIFI_LIBRARY ${LIBRARIES_TO_LINK})    
     if (NOT TARGET ${HIFI_LIBRARY})
-      add_subdirectory("${RELATIVE_LIBRARY_DIR_PATH}/${HIFI_LIBRARY}" "${RELATIVE_LIBRARY_DIR_PATH}/${HIFI_LIBRARY}")
+      if (ANDROID AND EXISTS "${HIFI_LIBRARY_DIR}/${HIFI_LIBRARY}-android")
+        add_subdirectory("${RELATIVE_LIBRARY_DIR_PATH}/${HIFI_LIBRARY}-android" "${RELATIVE_LIBRARY_DIR_PATH}/${HIFI_LIBRARY}")
+      else()
+        add_subdirectory("${RELATIVE_LIBRARY_DIR_PATH}/${HIFI_LIBRARY}" "${RELATIVE_LIBRARY_DIR_PATH}/${HIFI_LIBRARY}")
+      endif()
     endif ()
   
-    include_directories("${HIFI_LIBRARY_DIR}/${HIFI_LIBRARY}/src")
+    if (ANDROID AND EXISTS "${HIFI_LIBRARY_DIR}/${HIFI_LIBRARY}-android")
+      include_directories("${HIFI_LIBRARY_DIR}/${HIFI_LIBRARY}-android/src")
+    else()
+      include_directories("${HIFI_LIBRARY_DIR}/${HIFI_LIBRARY}/src")
+    endif()
+
     include_directories("${CMAKE_BINARY_DIR}/libraries/${HIFI_LIBRARY}/shaders")
 
     add_dependencies(${TARGET_NAME} ${HIFI_LIBRARY})

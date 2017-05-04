@@ -42,8 +42,9 @@ protected:
     void keyReleaseEvent(QKeyEvent* event);
 private slots:
     void refreshLoginAction();
+    void showMenu();
 private:
-    void setupMenuBar();
+    void setupMenuBar(QWidget * baseWidget);
     
 #if defined(ANDROID) && defined(HAVE_LIBOVR)
     OVR::KeyState _backKeyState;
@@ -53,6 +54,7 @@ private:
     QVBoxLayout* _mainLayout;
     QMenuBar* _menuBar;
     QAction* _loginAction;
+    QMenu* _fileMenu;
 };
 
 #endif // hifi_GVRMainWindow_h

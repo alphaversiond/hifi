@@ -29,7 +29,7 @@ public:
     glm::mat4 getEyeToHeadTransform(Eye eye) const override final { return _eyeOffsets[eye]; }
     glm::mat4 getEyeProjection(Eye eye, const glm::mat4& baseProjection) const override final { return _eyeProjections[eye]; }
     glm::mat4 getCullingProjection(const glm::mat4& baseProjection) const override final { return _cullingProjection; }
-    glm::uvec2 getRecommendedUiSize() const override final;
+    glm::uvec2 getRecommendedUiSize() const override;
     glm::uvec2 getRecommendedRenderSize() const override final { return _renderTargetSize; }
     bool isDisplayVisible() const override { return isHmdMounted(); }
 
@@ -56,12 +56,15 @@ protected:
     bool internalActivate() override;
     void internalDeactivate() override;
     void compositeOverlay() override;
+    void compositeOverlay(gpu::Batch& batch);
+
     void compositePointer() override;
     void internalPresent() override;
     void customizeContext() override;
     void uncustomizeContext() override;
     void updateFrameData() override;
     void compositeExtra() override;
+    void compositeExtra(gpu::Batch& batch);
 
     struct HandLaserInfo {
         HandLaserMode mode { HandLaserMode::None };
@@ -160,5 +163,6 @@ private:
         void build();
         void updatePipeline();
         void render(HmdDisplayPlugin& plugin);
+        void render(HmdDisplayPlugin& plugin, gpu::Batch& batch);
     } _overlayRenderer;
 };

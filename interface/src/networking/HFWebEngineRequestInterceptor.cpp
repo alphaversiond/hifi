@@ -23,7 +23,7 @@ bool isAuthableHighFidelityURL(const QUrl& url) {
 
     return url.scheme() == "https" && HF_HOSTS.contains(url.host());
 }
-
+#ifndef ANDROID
 void HFWebEngineRequestInterceptor::interceptRequest(QWebEngineUrlRequestInfo& info) {
     // check if this is a request to a highfidelity URL
     if (isAuthableHighFidelityURL(info.requestUrl())) {
@@ -38,3 +38,4 @@ void HFWebEngineRequestInterceptor::interceptRequest(QWebEngineUrlRequestInfo& i
         }
     }
 }
+#endif

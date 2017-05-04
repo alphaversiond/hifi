@@ -25,12 +25,12 @@ Windows.ScrollingWindow {
         width: pane.contentWidth
         implicitHeight: pane.scrollHeight
 
-        WebView {
-            id: webview
-            objectName: "WebView"
-            anchors.fill: parent
-            url: infoView.url
-        }
+        //WebView {
+        //    id: webview
+        //    objectName: "WebView"
+        //    anchors.fill: parent
+        //    url: infoView.url
+        //}
     }
 
     Component.onCompleted: {

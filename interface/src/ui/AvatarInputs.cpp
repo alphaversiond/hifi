@@ -53,6 +53,7 @@ AvatarInputs::AvatarInputs(QQuickItem* parent) :  QQuickItem(parent) {
     }
 
 void AvatarInputs::update() {
+    //qDebug() << "AvatarInputs::update";
     if (!Menu::getInstance()) {
         return;
     }

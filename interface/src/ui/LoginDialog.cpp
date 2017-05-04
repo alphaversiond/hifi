@@ -18,8 +18,9 @@
 
 #include <NetworkingConstants.h>
 #include <plugins/PluginManager.h>
+#ifndef ANDROID
 #include <plugins/SteamClientPlugin.h>
-
+#endif
 #include "AccountManager.h"
 #include "DependencyManager.h"
 #include "Menu.h"
@@ -57,8 +58,12 @@ void LoginDialog::toggleAction() {
 }
 
 bool LoginDialog::isSteamRunning() const {
+#ifndef ANDROID
     auto steamClient = PluginManager::getInstance()->getSteamClientPlugin();
     return steamClient && steamClient->isRunning();
+#else
+    return false;
+#endif
 }
 
 void LoginDialog::login(const QString& username, const QString& password) const {
@@ -67,6 +72,7 @@ void LoginDialog::login(const QString& username, const QString& password) const 
 }
 
 void LoginDialog::loginThroughSteam() {
+#ifndef ANDROID
     qDebug() << "Attempting to login through Steam";
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         steamClient->requestTicket([this](Ticket ticket) {
@@ -78,9 +84,11 @@ void LoginDialog::loginThroughSteam() {
             DependencyManager::get<AccountManager>()->requestAccessTokenWithSteam(ticket);
         });
     }
+#endif
 }
 
 void LoginDialog::linkSteam() {
+#ifndef ANDROID
     qDebug() << "Attempting to link Steam account";
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         steamClient->requestTicket([this](Ticket ticket) {
@@ -106,9 +114,11 @@ void LoginDialog::linkSteam() {
                                         QJsonDocument(payload).toJson());
         });
     }
+#endif
 }
 
 void LoginDialog::createAccountFromStream(QString username) {
+#ifndef ANDROID
     qDebug() << "Attempting to create account from Steam info";
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         steamClient->requestTicket([this, username](Ticket ticket) {
@@ -137,7 +147,7 @@ void LoginDialog::createAccountFromStream(QString username) {
                                         QJsonDocument(payload).toJson());
         });
     }
-
+#endif
 }
 
 void LoginDialog::openUrl(const QString& url) const {

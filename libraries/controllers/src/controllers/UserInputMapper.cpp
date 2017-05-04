@@ -453,25 +453,25 @@ void UserInputMapper::runMappings() {
     }
 
     if (debugRoutes) {
-        qCDebug(controllers) << "Beginning mapping frame";
+        //qCDebug(controllers) << "Beginning mapping frame";
     }
     for (auto endpointEntry : this->_endpointsByInput) {
         endpointEntry.second->reset();
     }
 
     if (debugRoutes) {
-        qCDebug(controllers) << "Processing device routes";
+        //qCDebug(controllers) << "Processing device routes";
     }
     // Now process the current values for each level of the stack
     applyRoutes(_deviceRoutes);
 
     if (debugRoutes) {
-        qCDebug(controllers) << "Processing standard routes";
+        //qCDebug(controllers) << "Processing standard routes";
     }
     applyRoutes(_standardRoutes);
 
     if (debugRoutes) {
-        qCDebug(controllers) << "Done with mappings";
+        //qCDebug(controllers) << "Done with mappings";
     }
     debugRoutes = false;
 }
@@ -504,7 +504,7 @@ void UserInputMapper::applyRoutes(const Route::List& routes) {
 
 bool UserInputMapper::applyRoute(const Route::Pointer& route, bool force) {
     if (debugRoutes && route->debug) {
-        qCDebug(controllers) << "Applying route " << route->json;
+        //qCDebug(controllers) << "Applying route " << route->json;
     }
 
     // If the source hasn't been written yet, defer processing of this route
@@ -512,7 +512,7 @@ bool UserInputMapper::applyRoute(const Route::Pointer& route, bool force) {
     auto sourceInput = source->getInput();
     if (sourceInput.device == STANDARD_DEVICE && !force && source->writeable()) {
         if (debugRoutes && route->debug) {
-            qCDebug(controllers) << "Source not yet written, deferring";
+            //qCDebug(controllers) << "Source not yet written, deferring";
         }
         return false;
     }
@@ -521,7 +521,7 @@ bool UserInputMapper::applyRoute(const Route::Pointer& route, bool force) {
         // FIXME for endpoint conditionals we need to check if they've been written
         if (!route->conditional->satisfied()) {
             if (debugRoutes && route->debug) {
-                qCDebug(controllers) << "Conditional failed";
+                //qCDebug(controllers) << "Conditional failed";
             }
             return true;
         }
@@ -577,7 +577,8 @@ bool UserInputMapper::applyRoute(const Route::Pointer& route, bool force) {
         float value = getValue(source, route->peek);
 
         if (debugRoutes && route->debug) {
-            qCDebug(controllers) << "Value was " << value;
+            if (value || rand() % 100 > 95)
+                qCDebug(controllers) << "Value was " << value;
         }
         // Apply each of the filters.
         for (const auto& filter : route->filters) {
@@ -585,7 +586,8 @@ bool UserInputMapper::applyRoute(const Route::Pointer& route, bool force) {
         }
 
         if (debugRoutes && route->debug) {
-            qCDebug(controllers) << "Filtered value was " << value;
+            if (value || rand() % 100 > 95)
+                qCDebug(controllers) << "Filtered value was " << value;
         }
 
         destination->apply(value, source);
@@ -725,6 +727,7 @@ float UserInputMapper::getValue(const Input& input) const {
 }
 
 Pose UserInputMapper::getPose(const Endpoint::Pointer& endpoint, bool peek) {
+    //qCDebug(controllers) << "UserInputMapper::getPose 2 endpoint endpoint->isPose() " << endpoint->isPose() << " peek?" << peek;
     if (!endpoint->isPose()) {
         return Pose();
     }
@@ -732,6 +735,7 @@ Pose UserInputMapper::getPose(const Endpoint::Pointer& endpoint, bool peek) {
 }
 
 Pose UserInputMapper::getPose(const Input& input) const {
+    //qCDebug(controllers) << "UserInputMapper::getPose 1";
     Locker locker(_lock);
     auto endpoint = endpointFor(input);
     if (!endpoint) {

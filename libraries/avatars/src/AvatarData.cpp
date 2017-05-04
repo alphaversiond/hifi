@@ -99,7 +99,11 @@ AvatarData::~AvatarData() {
 QUrl AvatarData::_defaultFullAvatarModelUrl = {}; // In C++, if this initialization were in the AvatarInfo, every file would have it's own copy, even for class vars.
 const QUrl& AvatarData::defaultFullAvatarModelUrl() {
     if (_defaultFullAvatarModelUrl.isEmpty()) {
+#ifdef ANDROID
+        _defaultFullAvatarModelUrl = QUrl::fromLocalFile(PathUtils::resourcesPath() + "/meshes/defaultAvatar_full.fst");
+#else
         _defaultFullAvatarModelUrl = QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_full.fst");
+#endif
     }
     return _defaultFullAvatarModelUrl;
 }

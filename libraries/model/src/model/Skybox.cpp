@@ -93,7 +93,7 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
             bindings.insert(gpu::Shader::Binding(std::string("cubeMap"), SKYBOX_SKYMAP_SLOT));
             bindings.insert(gpu::Shader::Binding(std::string("skyboxBuffer"), SKYBOX_CONSTANTS_SLOT));
             if (!gpu::Shader::makeProgram(*skyShader, bindings)) {
-
+                //qDebug() << "[SKYBOX] error creating shader program!!!";
             }
 
             auto skyState = std::make_shared<gpu::State>();

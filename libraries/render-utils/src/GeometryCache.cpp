@@ -44,6 +44,8 @@
 
 #include "grid_frag.h"
 
+#include <androidhacks.h>
+
 //#define WANT_DEBUG
 
 const int GeometryCache::UNKNOWN_ID = -1;

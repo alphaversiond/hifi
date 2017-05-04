@@ -268,10 +268,17 @@ bool CompositorHelper::getReticleOverDesktop() const {
         QMutexLocker locker(&_reticleLock);
         glm::vec2 maxOverlayPosition = _currentDisplayPlugin->getRecommendedUiSize();
         static const glm::vec2 minOverlayPosition;
+        /*qDebug() << "[controller] getReticleOverDesktop is over desktop VALUES: " <<
+                " _reticlePositionInHMD : " << _reticlePositionInHMD.x << "," << _reticlePositionInHMD.y <<
+                " minOverlayPosition : " << minOverlayPosition.x << "," << minOverlayPosition.y <<
+                " maxOverlayPosition : " << maxOverlayPosition.x << "," << maxOverlayPosition.y
+                ;*/
         if (glm::any(glm::lessThan(_reticlePositionInHMD, minOverlayPosition)) ||
             glm::any(glm::greaterThan(_reticlePositionInHMD, maxOverlayPosition))) {
+            qDebug() << "[controller] getReticleOverDesktop is over desktop!";
             return true;
         }
+        //qDebug() << "[controller] getReticleOverDesktop is NOT over desktop, return old value: " << _isOverDesktop;
     }
     return _isOverDesktop;
 }
@@ -308,15 +315,20 @@ void CompositorHelper::sendFakeMouseEvent() {
 
 void CompositorHelper::setReticlePosition(const glm::vec2& position, bool sendFakeEvent) {
     if (isHMD()) {
+        //qDebug() << "CompositorHelper::setReticlePosition " << position.x << position.y;
         glm::vec2 maxOverlayPosition = _currentDisplayPlugin->getRecommendedUiSize();
         // FIXME don't allow negative mouseExtra
         glm::vec2 mouseExtra = (MOUSE_EXTENTS_PIXELS - maxOverlayPosition) / 2.0f;
         glm::vec2 minMouse = vec2(0) - mouseExtra;
         glm::vec2 maxMouse = maxOverlayPosition + mouseExtra;
-
+        /*qDebug() << "CompositorHelper::setReticlePosition  maxOverlayPosition" << maxOverlayPosition.x << "," << maxOverlayPosition.y;
+        qDebug() << "CompositorHelper::setReticlePosition  mouseExtra" << mouseExtra.x << "," << mouseExtra.y;
+        qDebug() << "CompositorHelper::setReticlePosition  minMouse" << minMouse.x << "," << minMouse.y;
+        qDebug() << "CompositorHelper::setReticlePosition  maxMouse" << maxMouse.x << "," << maxMouse.y;*/
         {
             QMutexLocker locker(&_reticleLock);
             _reticlePositionInHMD = glm::clamp(position, minMouse, maxMouse);
+            //qDebug() << "CompositorHelper::setReticlePosition  _reticlePositionInHMD" << _reticlePositionInHMD.x << "," << _reticlePositionInHMD.y;
         }
 
         if (sendFakeEvent) {
@@ -342,19 +354,24 @@ glm::mat4 CompositorHelper::getUiTransform() const {
 
 //Finds the collision point of a world space ray
 bool CompositorHelper::calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction, glm::vec3& result) const {
+    qDebug() << "CompositorHelper::calculateRayUICollisionPoint [controller] start";
     auto UITransform = getUiTransform();
     auto relativePosition4 = glm::inverse(UITransform) * vec4(position, 1);
-    auto relativePosition = vec3(relativePosition4) / relativePosition4.w;
+    auto relativePosition = vec3(relativePosition4) / relativePosition4.w;//glm::vec3();
     auto relativeDirection = glm::inverse(glm::quat_cast(UITransform)) * direction;
 
     float uiRadius = _hmdUIRadius; // * myAvatar->getUniformScale(); // FIXME - how do we want to handle avatar scale
-
+    qDebug() << "CompositorHelper::calculateRayUICollisionPoint [controller] direction " << direction.x << ", " << direction.y << ", " << direction.z;
+    qDebug() << "CompositorHelper::calculateRayUICollisionPoint [controller] relativeDirection " << relativeDirection.x << ", " << relativeDirection.y << ", " << relativeDirection.z;
+    qDebug() << "CompositorHelper::calculateRayUICollisionPoint [controller] relativePosition " << relativePosition.x << ", " << relativePosition.y << ", " << relativePosition.z;
+    qDebug() << "CompositorHelper::calculateRayUICollisionPoint [controller] uiRadius " << uiRadius;
     float instersectionDistance;
     if (raySphereIntersect(relativeDirection, relativePosition, uiRadius, &instersectionDistance)){
         result = position + glm::normalize(direction) * instersectionDistance;
+        qDebug() << "CompositorHelper::calculateRayUICollisionPoint [controller] result " << result.x << ", " << result.y << ", " << result.z;
         return true;
     }
-
+    qDebug() << "CompositorHelper::calculateRayUICollisionPoint [controller] return no collision";
     return false;
 }
 
@@ -379,12 +396,17 @@ glm::vec2 CompositorHelper::overlayToSpherical(const glm::vec2& overlayPos) cons
 }
 
 glm::vec2 CompositorHelper::overlayFromSphereSurface(const glm::vec3& sphereSurfacePoint) const {
+    qDebug() << "CompositorHelper::overlayFromSphereSurface [controller] start sphereSurfacePoint " << sphereSurfacePoint.x << ", " << sphereSurfacePoint.y << ", " << sphereSurfacePoint.z;
     auto UITransform = getUiTransform();
     auto relativePosition4 = glm::inverse(UITransform) * vec4(sphereSurfacePoint, 1);
+    qDebug() << "CompositorHelper::overlayFromSphereSurface [controller] relativePosition4 " << relativePosition4.x << ", " << relativePosition4.y << ", " << relativePosition4.z << ", " << relativePosition4.w;
     auto direction = vec3(relativePosition4) / relativePosition4.w;
     // FIXME use a GLMHelper cartesianToSpherical after fixing the rotation signs.
+    qDebug() << "CompositorHelper::overlayFromSphereSurface [controller] direction " << direction.x << ", " << direction.y << ", " << direction.z;
     glm::vec2 polar = glm::vec2(glm::atan(direction.x, -direction.z), glm::asin(direction.y)) * -1.0f;
+    qDebug() << "CompositorHelper::overlayFromSphereSurface [controller] polar " << polar.x << ", " << polar.y;
     auto overlayPos = sphericalToOverlay(polar);
+    qDebug() << "CompositorHelper::overlayFromSphereSurface [controller] end overlayPos " << overlayPos.x << ", " << overlayPos.y;
     return overlayPos;
 }
 
@@ -448,5 +470,7 @@ QVariant ReticleInterface::getPosition() const {
 }
 
 void ReticleInterface::setPosition(QVariant position) {
-    _compositor->setReticlePosition(vec2FromVariant(position));
+    vec2 pos = vec2FromVariant(position);
+    qDebug() << "[controller] ReticleInterface::setPosition " << pos.x << pos.y;
+    _compositor->setReticlePosition(pos);
 }

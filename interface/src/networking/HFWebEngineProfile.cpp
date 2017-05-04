@@ -13,7 +13,10 @@
 
 #include "HFWebEngineRequestInterceptor.h"
 
+#ifndef ANDROID
+
 static const QString QML_WEB_ENGINE_STORAGE_NAME = "qmlWebEngine";
+
 
 HFWebEngineProfile::HFWebEngineProfile(QObject* parent) :
     QQuickWebEngineProfile(parent)
@@ -25,3 +28,5 @@ HFWebEngineProfile::HFWebEngineProfile(QObject* parent) :
     auto requestInterceptor = new HFWebEngineRequestInterceptor(this);
     setRequestInterceptor(requestInterceptor);
 }
+
+#endif

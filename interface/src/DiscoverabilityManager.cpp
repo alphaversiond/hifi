@@ -16,7 +16,9 @@
 #include <DomainHandler.h>
 #include <NodeList.h>
 #include <plugins/PluginManager.h>
+#ifndef ANDROID
 #include <plugins/SteamClientPlugin.h>
+#endif
 #include <UserActivityLogger.h>
 #include <UUID.h>
 
@@ -110,11 +112,12 @@ void DiscoverabilityManager::updateLocation() {
         accountManager->sendRequest(API_USER_HEARTBEAT_PATH, AccountManagerAuth::Optional,
                                    QNetworkAccessManager::PutOperation, callbackParameters);
     }
-
+#ifndef ANDROID
     // Update Steam
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         steamClient->updateLocation(domainHandler.getHostname(), addressManager->currentFacingShareableAddress());
     }
+#endif
 }
 
 void DiscoverabilityManager::handleHeartbeatResponse(QNetworkReply& requestReply) {

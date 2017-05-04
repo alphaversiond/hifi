@@ -38,8 +38,9 @@ void main(void) {
     <$evalMaterialAlbedo(albedoTex, albedo, matKey, albedo)$>;
     albedo *= _color;
 
-    packDeferredFragmentUnlit(
+     packDeferredFragmentUnlit(
         normalize(_normal), 
         opacity,
         albedo * isUnlitEnabled());
+
 }

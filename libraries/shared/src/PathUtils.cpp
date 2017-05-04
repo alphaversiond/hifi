@@ -18,11 +18,16 @@
 #include <QUrl>
 #include "PathUtils.h"
 #include <QtCore/QStandardPaths>
+#include <QDebug>
+#include <QDirIterator>
+#include <QStandardPaths>
 #include <mutex> // std::once
 
 const QString& PathUtils::resourcesPath() {
 #ifdef Q_OS_MAC
     static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/../Resources/";
+#elif defined (ANDROID)
+    static QString staticResourcePath = QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/resources/";
 #else
     static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/resources/";
 #endif
@@ -75,12 +80,44 @@ QUrl defaultScriptsLocation() {
     QString path = QCoreApplication::applicationDirPath() + "/scripts";
 #elif defined(Q_OS_OSX)
     QString path = QCoreApplication::applicationDirPath() + "/../Resources/scripts";
+#elif defined (ANDROID) 
+    QString path = QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/scripts";
 #else
     QString path = QCoreApplication::applicationDirPath() + "/scripts";
 #endif
 
+#if defined(ANDROID) 
+    return QUrl::fromLocalFile(path);
+#else
     QFileInfo fileInfo(path);
-    return QUrl::fromLocalFile(fileInfo.canonicalFilePath());
+    return QUrl::fromLocalFile(fileInfo.canonicalFilePath());    
+#endif
+}
+
+void copyDirDeep(QString src, QString dst) {
+    QDir dir = QDir::root();
+    dir.mkpath(dst);
+    QDirIterator it(src, QStringList() << "*", QDir::Files|QDir::AllDirs, QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        QString f = it.next();
+        QFileInfo fInfo(f);
+        QString newDst = dst + (dst.endsWith("/")?"":"/") + fInfo.fileName();
+        if (fInfo.isFile()) {
+            QFile dfile(f);
+            if (dfile.exists(f))
+            {
+                if (dfile.copy(newDst)) {
+                    QFile::setPermissions(newDst, QFile::ReadOwner);
+                } else {
+                    QFile::setPermissions(newDst, QFile::ReadOwner);
+                    // sometimes copy returns false but it worked anyway
+                    //qWarning() << "Could not copy to " << newDst;
+                }
+            }
+        } else if (fInfo.isDir() ) {
+            copyDirDeep(f, newDst);
+        }
+    }
 }
 
 

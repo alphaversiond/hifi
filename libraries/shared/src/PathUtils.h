@@ -39,5 +39,6 @@ QString fileNameWithoutExtension(const QString& fileName, const QVector<QString>
 QString findMostRecentFileExtension(const QString& originalFileName, QVector<QString> possibleExtensions);
 
 QUrl defaultScriptsLocation();
+void copyDirDeep(QString src, QString dst);
 
 #endif // hifi_PathUtils_h

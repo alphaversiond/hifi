@@ -54,8 +54,11 @@ namespace controller {
     Pose InputDevice::getPose(int channel) const {
         auto pose = _poseStateMap.find(channel);
         if (pose != _poseStateMap.end()) {
-            return (*pose).second;
+            auto pose2 = (*pose).second;
+            //qDebug() << "InputDevice::getPose there is a second one valid? " << pose2.isValid();
+            return pose2;
         } else {
+            //qDebug() << "InputDevice::getPose return empty invalid";
             return Pose();
         }
     }

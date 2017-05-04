@@ -1,7 +1,13 @@
 set(EXTERNAL_NAME vhacd)
 
 if (ANDROID)
-  set(ANDROID_CMAKE_ARGS "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}" "-DANDROID_NATIVE_API_LEVEL=19")
+  include("../../../cmake/android/ToolchainSetup.cmake")
+  set(ANDROID_ARGS "")
+  toolchain_setup_args(ANDROID_ARGS "gnustl")
+  message (STATUS "ANDROID_ARGS: [${ANDROID_ARGS}]")
+  list(APPEND ANDROID_CMAKE_ARGS ${ANDROID_ARGS})
+  message (STATUS "ANDROID_CMAKE_ARGS: [${ANDROID_CMAKE_ARGS}]")
+  #set(ANDROID_CMAKE_ARGS "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}" "-DANDROID_NATIVE_API_LEVEL=24")
 endif ()
 
 include(ExternalProject)

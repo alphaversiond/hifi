@@ -17,6 +17,7 @@
 #include <QtWidgets/QMenuBar>
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QVBoxLayout>
+#include <QtWidgets/QPushButton>
 
 #ifndef ANDROID
 
@@ -32,6 +33,7 @@ const float LIBOVR_LONG_PRESS_DURATION = 0.75f;
 #endif
 
 #include <AddressManager.h>
+#include <NetworkingConstants.h>
 
 #include "InterfaceView.h"
 #include "LoginDialog.h"
@@ -52,16 +54,16 @@ GVRMainWindow::GVRMainWindow(QWidget* parent) :
     _loginAction(NULL)
 {
     
-#ifndef ANDROID
+// TODO: CHECK THIS CHANGE: I have added  && defined(HAVE_LIBOVR)
+ #if defined(ANDROID) && defined(HAVE_LIBOVR)
     const int NOTE_4_WIDTH = 2560;
     const int NOTE_4_HEIGHT = 1440;
     setFixedSize(NOTE_4_WIDTH / 2, NOTE_4_HEIGHT / 2);
 #endif
     
-    setupMenuBar();
-    
     QWidget* baseWidget = new QWidget(this);
-    
+    setupMenuBar(baseWidget);
+
     // setup a layout so we can vertically align to top
     _mainLayout = new QVBoxLayout(baseWidget);
     _mainLayout->setAlignment(Qt::AlignTop);
@@ -80,7 +82,7 @@ GVRMainWindow::~GVRMainWindow() {
 }
 
 void GVRMainWindow::keyPressEvent(QKeyEvent* event) {
-#ifdef ANDROID
+#if defined(ANDROID) && defined(HAVE_LIBOVR)
     if (event->key() == Qt::Key_Back) {
         // got the Android back key, hand off to OVR KeyState
         _backKeyState.HandleEvent(ovr_GetTimeInSeconds(), true, (_wasBackKeyDown ? 1 : 0));
@@ -92,7 +94,8 @@ void GVRMainWindow::keyPressEvent(QKeyEvent* event) {
 }
 
 void GVRMainWindow::keyReleaseEvent(QKeyEvent* event) {
-#ifdef ANDROID
+// TODO: CHECK THIS CHANGE: I have added  && defined(HAVE_LIBOVR)
+#if defined(ANDROID) && defined(HAVE_LIBOVR)
     if (event->key() == Qt::Key_Back) {
         // release on the Android back key, hand off to OVR KeyState
         _backKeyState.HandleEvent(ovr_GetTimeInSeconds(), false, 0);
@@ -102,26 +105,29 @@ void GVRMainWindow::keyReleaseEvent(QKeyEvent* event) {
     QWidget::keyReleaseEvent(event);
 }
 
-void GVRMainWindow::setupMenuBar() {
-    QMenu* fileMenu = new QMenu("File");
+void GVRMainWindow::setupMenuBar(QWidget * baseWidget) {
+    _fileMenu = new QMenu("File");
     QMenu* helpMenu = new QMenu("Help");
     
     _menuBar = new QMenuBar(0);
     
-    _menuBar->addMenu(fileMenu);
+    _menuBar->addMenu(_fileMenu);
     _menuBar->addMenu(helpMenu);
     
-    QAction* goToAddress = new QAction("Go to Address", fileMenu);
+    QAction* goToAddress = new QAction("Go to Address", _fileMenu);
     connect(goToAddress, &QAction::triggered, this, &GVRMainWindow::showAddressBar);
-    fileMenu->addAction(goToAddress);
+    _fileMenu->addAction(goToAddress);
     
-    _loginAction = new QAction("Login", fileMenu);
-    fileMenu->addAction(_loginAction);
+    _loginAction = new QAction("Login", _fileMenu);
+    _fileMenu->addAction(_loginAction);
     
     // change the login action depending on our logged in/out state
-    AccountManager& accountManager = AccountManager::getInstance();
-    connect(&accountManager, &AccountManager::loginComplete, this, &GVRMainWindow::refreshLoginAction);
-    connect(&accountManager, &AccountManager::logoutComplete, this, &GVRMainWindow::refreshLoginAction);
+    auto accountManager = DependencyManager::get<AccountManager>();
+    accountManager->setIsAgent(true);
+    accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL);
+
+    connect(accountManager.data(), &AccountManager::loginComplete, this, &GVRMainWindow::refreshLoginAction);
+    connect(accountManager.data(), &AccountManager::logoutComplete, this, &GVRMainWindow::refreshLoginAction);
     
     // refresh the state now
     refreshLoginAction();
@@ -129,8 +135,22 @@ void GVRMainWindow::setupMenuBar() {
     QAction* aboutQt = new QAction("About Qt", helpMenu);
     connect(aboutQt, &QAction::triggered, qApp, &QApplication::aboutQt);
     helpMenu->addAction(aboutQt);
+
+    QPushButton *menuButton = new QPushButton(baseWidget);
+    menuButton->setText(tr("Menu"));
+    menuButton->setGeometry(QRect(QPoint(0, 0), QSize(400,100)));
+    QPalette buttonPal(menuButton->palette());
+    buttonPal.setColor(QPalette::ButtonText, QColor(Qt::yellow));
+    buttonPal.setColor(QPalette::Window, QColor(Qt::blue));
+    menuButton->setPalette(buttonPal);
+    menuButton->show();
+    connect(menuButton, &QAbstractButton::clicked, this, &GVRMainWindow::showMenu);
     
     setMenuBar(_menuBar);
+}
+
+void GVRMainWindow::showMenu() {
+    _fileMenu->exec();
 }
 
 void GVRMainWindow::showAddressBar() {
@@ -141,17 +161,17 @@ void GVRMainWindow::showAddressBar() {
     // add the address dialog to the main layout
     _mainLayout->addWidget(addressDialog);
     
-    connect(addressDialog, &QInputDialog::textValueSelected, 
-            DependencyManager::get<AddressManager>().data(), &AddressManager::handleLookupString);
+    connect(addressDialog, &QInputDialog::textValueSelected,
+            DependencyManager::get<AddressManager>().data(), [](const QString& text) { DependencyManager::get<AddressManager>()->handleLookupString(text); } );
 }
 
 void GVRMainWindow::showLoginDialog() {
     LoginDialog* loginDialog = new LoginDialog(this);
     
     // have the acccount manager handle credentials from LoginDialog
-    AccountManager& accountManager = AccountManager::getInstance();
-    connect(loginDialog, &LoginDialog::credentialsEntered, &accountManager, &AccountManager::requestAccessToken);
-    connect(&accountManager, &AccountManager::loginFailed, this, &GVRMainWindow::showLoginFailure);
+    auto accountManager = DependencyManager::get<AccountManager>();
+    connect(loginDialog, &LoginDialog::credentialsEntered, accountManager.data(), &AccountManager::requestAccessToken);
+    connect(accountManager.data(), &AccountManager::loginFailed, this, &GVRMainWindow::showLoginFailure);
     
     _mainLayout->addWidget(loginDialog);
 }
@@ -162,12 +182,12 @@ void GVRMainWindow::showLoginFailure() {
 }
 
 void GVRMainWindow::refreshLoginAction() {
-    AccountManager& accountManager = AccountManager::getInstance();
-    disconnect(_loginAction, &QAction::triggered, &accountManager, 0);
+    auto accountManager = DependencyManager::get<AccountManager>();
+    disconnect(_loginAction, &QAction::triggered, accountManager.data(), 0);
     
-    if (accountManager.isLoggedIn()) {
+    if (accountManager->isLoggedIn()) {
         _loginAction->setText("Logout");
-        connect(_loginAction, &QAction::triggered, &accountManager, &AccountManager::logout);
+        connect(_loginAction, &QAction::triggered, accountManager.data(), &AccountManager::logout);
     } else {
         _loginAction->setText("Login");
         connect(_loginAction, &QAction::triggered, this, &GVRMainWindow::showLoginDialog);

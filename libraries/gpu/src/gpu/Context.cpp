@@ -105,13 +105,18 @@ void Context::executeFrame(const FramePointer& frame) const {
     consumeFrameUpdates(frame);
     _backend->setStereoState(frame->stereoState);
     {
+        PROFILE_RANGE_EX(render, "executeFrameBatch", 0xff00dddd, 1)
         Batch beginBatch;
         _frameRangeTimer->begin(beginBatch);
         _backend->render(beginBatch);
 
+        { PROFILE_RANGE_EX(render, "renderForEachBatch", 0xffdddd00, 1)
+
         // Execute the frame rendering commands
         for (auto& batch : frame->batches) {
             _backend->render(batch);
+        }
+
         }
 
         Batch endBatch;

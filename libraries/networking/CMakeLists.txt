@@ -37,9 +37,9 @@ if (APPLE)
 endif (APPLE)
 
 # libcrypto uses dlopen in libdl
-if (UNIX)
+if (UNIX AND NOT ANDROID)
   target_link_libraries(${TARGET_NAME} ${CMAKE_DL_LIBS})
-endif (UNIX)
+endif ()
 
 # append tbb includes to our list of includes to bubble
 target_include_directories(${TARGET_NAME} SYSTEM PUBLIC ${TBB_INCLUDE_DIRS})

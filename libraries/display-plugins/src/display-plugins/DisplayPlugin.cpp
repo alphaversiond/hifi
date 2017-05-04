@@ -14,6 +14,9 @@
 #include "stereo/InterleavedStereoDisplayPlugin.h"
 #include "hmd/DebugHmdDisplayPlugin.h"
 #include "Basic2DWindowOpenGLDisplayPlugin.h"
+#include "stereo/StereoDisplayPlugin.h"
+#include "hmd/DebugHmdDisplayPlugin.h"
+
 
 const QString& DisplayPlugin::MENU_PATH() {
     static const QString value = "Display";

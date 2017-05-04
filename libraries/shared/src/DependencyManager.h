@@ -134,14 +134,23 @@ void DependencyManager::destroy() {
 
 template<typename Base, typename Derived>
 void DependencyManager::registerInheritance() {
+#ifndef ANDROID
     size_t baseHashCode = typeid(Base).hash_code();
     size_t derivedHashCode = typeid(Derived).hash_code();
+#else 
+    size_t baseHashCode = std::hash<std::string>{}( typeid(Base).name() );
+    size_t derivedHashCode = std::hash<std::string>{}( typeid(Derived).name() );
+#endif
     manager()._inheritanceHash.insert(baseHashCode, derivedHashCode);
 }
 
 template<typename T>
 size_t DependencyManager::getHashCode() {
+#ifndef ANDROID
     size_t hashCode = typeid(T).hash_code();
+#else
+    size_t hashCode = std::hash<std::string>{}( typeid(T).name() );
+#endif
     auto derivedHashCode = _inheritanceHash.find(hashCode);
     
     while (derivedHashCode != _inheritanceHash.end()) {

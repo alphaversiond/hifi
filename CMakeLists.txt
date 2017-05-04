@@ -1,11 +1,13 @@
 cmake_minimum_required(VERSION 3.2)
 
 if (USE_ANDROID_TOOLCHAIN)
-  set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/android/android.toolchain.cmake")
-  set(ANDROID_NATIVE_API_LEVEL 19)
-  set(ANDROID_TOOLCHAIN_NAME arm-linux-androideabi-clang3.5)
-  set(ANDROID_STL c++_shared)
-endif ()
+  include("cmake/android/ToolchainSetup.cmake")
+  toolchain_setup("gnustl")
+
+  set(ANDROID_ARGSXX "")
+  toolchain_setup_args(ANDROID_ARGSXX "gnustl")
+  message(STATUS "arguments to use ${ANDROID_ARGSXX}")
+endif()
 
 if (WIN32)
   cmake_policy(SET CMP0020 NEW)
@@ -220,8 +222,14 @@ endif()
 if (ANDROID)
   file(GLOB ANDROID_CUSTOM_MACROS "cmake/android/*.cmake")
   foreach(CUSTOM_MACRO ${ANDROID_CUSTOM_MACROS})
-    include(${CUSTOM_MACRO})
+    if (NOT ${CUSTOM_MACRO} MATCHES ".*ToolchainSetup.cmake")
+      include(${CUSTOM_MACRO})
+    endif()
   endforeach()
+
+  # testing gvr cmake TODO delete
+  # find_package(GVR)
+
 endif ()
 
 set(EXTERNAL_PROJECT_PREFIX "project")
@@ -260,9 +268,13 @@ if (NOT ANDROID)
   add_subdirectory(tools)
 endif()
 
+#if (DESKTOP_GVR)
+#  add_subdirectory(interface)
+#endif ()
+
 if (ANDROID OR DESKTOP_GVR)
   add_subdirectory(interface)
-  add_subdirectory(gvr-interface)
+  #add_subdirectory(gvr-interface)
   add_subdirectory(plugins)
 endif ()
 

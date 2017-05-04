@@ -296,6 +296,8 @@ protected:
     bool _debuggable { false };
     qint64 _lastUpdate;
 
+    quint64 getTimersRemainingTime();
+
     QString _fileNameString;
     Quat _quatLibrary;
     Vec3 _vec3Library;

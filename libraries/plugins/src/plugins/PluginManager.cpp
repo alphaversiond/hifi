@@ -145,6 +145,48 @@ const CodecPluginList& PluginManager::getCodecPlugins() {
     return codecPlugins;
 }
 
+//#ifndef Q_OS_ANDROID
+
+// TODO migrate to a DLL model where plugins are discovered and loaded at runtime by the PluginManager class
+extern DisplayPluginList getDisplayPlugins();
+extern InputPluginList getInputPlugins();
+
+extern void saveInputPluginSettings(const InputPluginList& plugins);
+#if defined(ANDROID)
+void PluginManager::loadDisplayPlugins(DisplayPlugin* pool[]) {
+    for (int i = 0; pool[i]; ++i) {
+        DisplayPlugin * plugin = pool[i];
+        if (plugin->isSupported()) {
+            plugin->init();
+            _displayPlugins.push_back(DisplayPluginPointer(plugin));
+            qDebug() << "Display Plugin supported " << i;
+        }
+    }
+}
+
+void PluginManager::loadInputPlugins(InputPlugin *pool[]) {
+    for (int i = 0; pool[i]; ++i) {
+        InputPlugin * plugin = pool[i];
+        if (plugin->isSupported()) {
+            plugin->init();
+            _inputPlugins.push_back(InputPluginPointer(plugin));
+            qDebug() << "Input Plugin supported " << i;
+        }
+    }
+}
+
+DisplayPluginList getDisplayPlugins() {
+    return PluginManager::getInstance()->_displayPlugins;
+}
+
+InputPluginList getInputPlugins() {
+    return PluginManager::getInstance()->_inputPlugins;
+}
+
+void saveInputPluginSettings(const InputPluginList& plugins) {
+}
+#endif
+
 const SteamClientPluginPointer PluginManager::getSteamClientPlugin() {
     static SteamClientPluginPointer steamClientPlugin;
     static std::once_flag once;
@@ -161,13 +203,6 @@ const SteamClientPluginPointer PluginManager::getSteamClientPlugin() {
     return steamClientPlugin;
 }
 
-#ifndef Q_OS_ANDROID
-
-// TODO migrate to a DLL model where plugins are discovered and loaded at runtime by the PluginManager class
-extern DisplayPluginList getDisplayPlugins();
-extern InputPluginList getInputPlugins();
-
-extern void saveInputPluginSettings(const InputPluginList& plugins);
 static DisplayPluginList displayPlugins;
 
 const DisplayPluginList& PluginManager::getDisplayPlugins() {
@@ -317,4 +352,4 @@ void PluginManager::shutdown() {
         }
     }
 }
-#endif
+//#endif

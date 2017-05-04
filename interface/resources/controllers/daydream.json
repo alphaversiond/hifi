@@ -1,0 +1,15 @@
+{
+    "name": "Daydream to Standard",
+    "channels": [
+        { "from": "Daydream.RY", "when": "Daydream.RSY", "to": "Actions.TranslateZ", "debug": true },
+        { "from": "Daydream.RX", "when": "Daydream.RSX", "to": "Standard.RX", "debug": true },
+
+        { "from": "Daydream.RTClick", "to": "Standard.RTClick", "peek": true, "debug": true},
+        { "from": "Daydream.RS", "to": "Standard.RS" },
+        { "from": "Daydream.RT", "to": "Standard.RT"},
+        { "from": "Daydream.RSTouch", "to": "Standard.RSTouch" },
+		{ "from": "Daydream.RightPrimaryThumb", "to": "Standard.RightPrimaryThumb" },
+
+        { "from": "Daydream.RightHand", "to": "Standard.RightHand", "when": [ "Application.InHMD" ]  }    
+    ]
+}

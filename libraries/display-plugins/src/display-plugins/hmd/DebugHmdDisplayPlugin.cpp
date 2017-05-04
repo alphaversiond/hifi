@@ -13,6 +13,10 @@
 #include <controllers/Pose.h>
 #include <gpu/Frame.h>
 
+#ifdef ANDROID
+#include <QtOpenGL/QGLWidget>
+#endif
+
 const QString DebugHmdDisplayPlugin::NAME("HMD Simulator");
 
 static const QString DEBUG_FLAG("HIFI_DEBUG_HMD");
@@ -52,10 +56,13 @@ bool DebugHmdDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
 
 // DLL based display plugins MUST initialize GLEW inside the DLL code.
 void DebugHmdDisplayPlugin::customizeContext() {
+    // glewContextInit undefined for android (why it isn't taking it from the ndk?) AND!!!
+#ifndef ANDROID
     glewExperimental = true;
     glewInit();
     glGetError(); // clear the potential error from glewExperimental
     Parent::customizeContext();
+#endif
 }
 
 bool DebugHmdDisplayPlugin::internalActivate() {
@@ -71,7 +78,7 @@ bool DebugHmdDisplayPlugin::internalActivate() {
     _eyeInverseProjections[0] = glm::inverse(_eyeProjections[0]);
     _eyeInverseProjections[1] = glm::inverse(_eyeProjections[1]);
     _eyeOffsets[0][3] = vec4{ -0.0327499993, 0.0, 0.0149999997, 1.0 };
-    _eyeOffsets[0][3] = vec4{ 0.0327499993, 0.0, 0.0149999997, 1.0 };
+    _eyeOffsets[1][3] = vec4{ 0.0327499993, 0.0, 0.0149999997, 1.0 };
     _renderTargetSize = { 3024, 1680 };
     _cullingProjection = _eyeProjections[0];
     // This must come after the initialization, so that the values calculated

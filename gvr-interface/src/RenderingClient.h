@@ -39,12 +39,8 @@ public:
 private slots:
     void goToLocation(const glm::vec3& newPosition,
                       bool hasOrientationChange, const glm::quat& newOrientation,
-                      bool shouldFaceLocation);
-    void sendAvatarPacket();
-    
-private:
-    virtual void processVerifiedPacket(const HifiSockAddr& senderSockAddr, const QByteArray& incomingPacket);
-    
+                      bool shouldFaceLocation);    
+private:    
     static RenderingClient* _instance;
     
     glm::vec3 _position;

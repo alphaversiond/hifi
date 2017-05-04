@@ -30,9 +30,9 @@
 #include "udt/PacketHeaders.h"
 
 #if USE_STABLE_GLOBAL_SERVICES
-const QString DEFAULT_HIFI_ADDRESS = "hifi://welcome";
+const QString DEFAULT_HIFI_ADDRESS = "hifi://android/0.0,0.0,-200";
 #else
-const QString DEFAULT_HIFI_ADDRESS = "hifi://dev-welcome";
+const QString DEFAULT_HIFI_ADDRESS = "hifi://android/0.0,0.0,-200";
 #endif
 
 const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";

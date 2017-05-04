@@ -503,7 +503,7 @@ private:
 
 void OffscreenUi::createDesktop(const QUrl& url) {
     if (_desktop) {
-        qCDebug(uiLogging) << "Desktop already created";
+        qDebug() << "Desktop already created";
         return;
     }
 
@@ -512,11 +512,13 @@ void OffscreenUi::createDesktop(const QUrl& url) {
 #else 
     getRootContext()->setContextProperty("DebugQML", QVariant(false));
 #endif
-
+#ifdef ANDROID
+    _desktop = static_cast<QQuickItem*>(load(url));
+#else 
     _desktop = dynamic_cast<QQuickItem*>(load(url));
+#endif
     Q_ASSERT(_desktop);
     getRootContext()->setContextProperty("desktop", _desktop);
-
     _toolWindow = _desktop->findChild<QQuickItem*>("ToolWindow");
 
     _vrMenu = new VrMenu(this);
@@ -525,7 +527,6 @@ void OffscreenUi::createDesktop(const QUrl& url) {
     }
 
     new KeyboardFocusHack();
-
     connect(_desktop, SIGNAL(showDesktop()), this, SIGNAL(showDesktop()));
 }
 
@@ -667,7 +668,9 @@ QString OffscreenUi::getExistingDirectory(void* ignored, const QString &caption,
 }
 
 bool OffscreenUi::eventFilter(QObject* originalDestination, QEvent* event) {
+
     if (!filterEnabled(originalDestination, event)) {
+        qDebug() << "[CONTROLLER-2] OffscreenUi::eventFilter event " << event->type() << " returning false";
         return false;
     }
 
@@ -678,6 +681,7 @@ bool OffscreenUi::eventFilter(QObject* originalDestination, QEvent* event) {
     // Check if this is a key press/release event that might need special attention
     auto type = event->type();
     if (type != QEvent::KeyPress && type != QEvent::KeyRelease) {
+        qDebug() << "[CONTROLLER-2] OffscreenUi::eventFilter event " << event->type() << " returning 2 " << result;
         return result;
     }
 
@@ -695,9 +699,11 @@ bool OffscreenUi::eventFilter(QObject* originalDestination, QEvent* event) {
     // accepted by the QML layer are suppressed
     if (type == QEvent::KeyRelease && pressed) {
         pressed = false;
+        qDebug() << "[CONTROLLER-2] OffscreenUi::eventFilter event " << event->type() << " returning 3 true";
         return true;
     }
 
+    qDebug() << "[CONTROLLER-2] OffscreenUi::eventFilter event " << event->type() << " returning 4 " << result;
     return result;
 }
 

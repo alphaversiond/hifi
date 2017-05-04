@@ -127,6 +127,9 @@ void Text3DOverlay::render(RenderArgs* args) {
     //        Text renderer sets its own pipeline,
     _textRenderer->draw(batch, 0, 0, _text, textColor, glm::vec2(-1.0f), getDrawInFront());
     //        so before we continue, we must reset the pipeline
+    if (!args->_pipeline->pipeline) {
+        qDebug() << "Text3DOverlay setting null pipeline";
+    }
     batch.setPipeline(args->_pipeline->pipeline);
     args->_pipeline->prepare(batch);
 }

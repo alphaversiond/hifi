@@ -39,7 +39,7 @@ float getMaterialShininess(Material m) { return 1.0 - getMaterialRoughness(m); }
 
 float getMaterialScattering(Material m) { return m._scatteringSpare2Key.x; }
 
-int getMaterialKey(Material m) { return floatBitsToInt(m._scatteringSpare2Key.w); }
+int getMaterialKey(Material m) { return int(m._scatteringSpare2Key.w); }
 
 const int EMISSIVE_VAL_BIT              = 0x00000001;
 const int UNLIT_VAL_BIT                 = 0x00000002;

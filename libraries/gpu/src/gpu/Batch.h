@@ -84,6 +84,8 @@ public:
         }
     };
 
+    bool _debugBatch;
+
     using NamedBatchDataMap = std::map<std::string, NamedBatchData>;
 
     DrawCallInfoBuffer _drawCallInfos;
@@ -329,6 +331,7 @@ public:
 
         NUM_COMMANDS,
     };
+
     typedef std::vector<Command> Commands;
     typedef std::vector<size_t> CommandOffsets;
 

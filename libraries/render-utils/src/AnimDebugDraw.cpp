@@ -311,7 +311,6 @@ static void addLine(const glm::vec3& start, const glm::vec3& end, const glm::vec
 }
 
 void AnimDebugDraw::update() {
-
     render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
     if (!scene) {
         return;

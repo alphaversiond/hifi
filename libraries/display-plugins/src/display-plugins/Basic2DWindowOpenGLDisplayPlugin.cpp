@@ -20,16 +20,18 @@ const QString Basic2DWindowOpenGLDisplayPlugin::NAME("Desktop");
 static const QString FULLSCREEN = "Fullscreen";
 
 bool Basic2DWindowOpenGLDisplayPlugin::internalActivate() {
+    qDebug()<<"Basic2DWindowOpenGLDisplayPlugin::internalActivate  00100";
     _framerateActions.clear();
-    _container->addMenuItem(PluginType::DISPLAY_PLUGIN, MENU_PATH(), FULLSCREEN,
+    qDebug()<<"Basic2DWindowOpenGLDisplayPlugin::internalActivate  00101";
+    /*this is breaking SIGSEGV _container->addMenuItem(PluginType::DISPLAY_PLUGIN, MENU_PATH(), FULLSCREEN,
         [this](bool clicked) {
             if (clicked) {
                 _container->setFullscreen(getFullscreenTarget());
             } else {
                 _container->unsetFullscreen();
             }
-        }, true, false);
-
+        }, true, false);*/
+    qDebug()<<"Basic2DWindowOpenGLDisplayPlugin::internalActivate  00110";
     return Parent::internalActivate();
 }
 

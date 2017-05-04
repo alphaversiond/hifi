@@ -131,7 +131,6 @@ public:
     GeometryReader(QWeakPointer<Resource>& resource, const QUrl& url, const QVariantHash& mapping,
         const QByteArray& data) :
         _resource(resource), _url(url), _mapping(mapping), _data(data) {
-
         DependencyManager::get<StatTracker>()->incrementStat("PendingProcessing");
     }
 

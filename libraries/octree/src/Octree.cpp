@@ -133,6 +133,7 @@ void Octree::recurseElementWithOperation(OctreeElementPointer element, RecurseOc
             OctreeElementPointer child = element->getChildAtIndex(i);
             if (child) {
                 recurseElementWithOperation(child, operation, extraData, recursionCount+1);
+            } else {
             }
         }
     }
