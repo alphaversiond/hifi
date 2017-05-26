@@ -512,11 +512,11 @@ void PrioVRPlugin::pluginUpdate(float deltaTime, const controller::InputCalibrat
             else {
                 //  qCDebug(inputplugins) << "ERROR: " << yost_skeleton_error_string[error];
             }
-            
+
             if (error == YOST_SKELETON_NO_ERROR) {
-                PrioVRJoint jointdata;                                
-                jointdata.position = glm::vec3(-positionBuffer[i][0], positionBuffer[i][1], positionBuffer[i][2]);                
-                jointdata.rotation = glm::quat(-quatBuffer[i][0], quatBuffer[i][1], quatBuffer[i][2], quatBuffer[i][3]);
+                PrioVRJoint jointdata;
+                jointdata.position = glm::vec3(positionBuffer[i][0], positionBuffer[i][1], positionBuffer[i][2]);
+                jointdata.rotation = glm::quat(quatBuffer[i][1], quatBuffer[i][2], quatBuffer[i][3], quatBuffer[i][0]);
                 _joints[i] = jointdata;
             }
             
